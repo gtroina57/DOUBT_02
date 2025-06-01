@@ -9,8 +9,6 @@ autogen-core
 autogen-ext[openai,web-surfer]
 autogen-ext[anthropic]
 
-autogen-agentchat[openai]
-
 # Core AI APIs
 openai
 anthropic
