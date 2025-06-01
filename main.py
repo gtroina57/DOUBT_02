@@ -11,7 +11,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import os
 
-from autogen.agentchat import AssistantAgent
+from autogen.agentchat.agents import AssistantAgent
 
 # Ensure the OpenAI API key is set in the environment
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
