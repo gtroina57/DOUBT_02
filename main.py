@@ -28,14 +28,14 @@ app.add_middleware(
 config_list = config_list_from_json("OAI_CONFIG_LIST")
 
 user_proxy = UserProxyAgent("user_proxy", code_execution_config={"use_docker": False})
-assistant = AssistantAgent("assistant", llm_config={"config_list": [{"model": "gpt-4", "api_key": os.getenv("OPENAI_API_KEY<")}]}
+assistant = AssistantAgent("assistant", llm_config={"config_list": [{"model": "gpt-4", "api_key": os.getenv("OPENAI_API_KEY")}]}
 
 chat_group = GroupChat(
     agents=[user_proxy, assistant],
     messages=[],
     max_round=10,
 )
-chat_manager = GroupChatManager(groupchat=chat_group, llm_config={"config_list": [{"model": "gpt-4", "api_key": os.getenv("OPENAI_API_KEY<")}]}
+chat_manager = GroupChatManager(groupchat=chat_group, llm_config={"config_list": [{"model": "gpt-4", "api_key": os.getenv("OPENAI_API_KEY")}]}
 # === API Schema ===
 class ChatRequest(BaseModel):
     user_message: str
