@@ -22,7 +22,7 @@ pandas
 python-dotenv
 requests
 beautifulsoup4
-
+Ipython
 # Optional local TTS tools
 pyttsx3
 gTTS
