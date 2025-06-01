@@ -1,7 +1,6 @@
 fastapi
 uvicorn
 pydantic
-git+https://github.com/microsoft/autogen.git@v0.4.9
 # AutoGen core packages
 autogen-agentchat
 autogen-core

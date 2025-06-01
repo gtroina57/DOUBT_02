@@ -10,26 +10,68 @@ Created on Fri May 30 20:11:19 2025
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import os
+import asyncio
+from autogen_agentchat.agents import AssistantAgent, UserProxyAgent
+from autogen_agentchat.conditions import MaxMessageTermination, TextMentionTermination, HandoffTermination
+from autogen_agentchat.teams import RoundRobinGroupChat
+from autogen_agentchat.ui import Console
+from autogen_ext.models.openai import OpenAIChatCompletionClient
+from autogen_ext.agents.web_surfer import MultimodalWebSurfer
+from autogen_agentchat.messages import TextMessage
+from autogen_core import CancellationToken
+from autogen_agentchat.messages import AgentEvent, ChatMessage
+from autogen_agentchat.teams import SelectorGroupChat
+from autogen_agentchat.messages import HandoffMessage
+from autogen_agentchat.teams import Swarm
+from autogen_core.tools import FunctionTool
+from typing import Sequence
+from typing import Any, Dict, List
 
-from autogen.agentchat.agents import AssistantAgent
+
+import playwright
+from autogen_ext.models.openai import OpenAIChatCompletionClient
+from openai import OpenAI
+from pathlib import Path
+from IPython.display import Audio, display, HTML
+from pydub import AudioSegment
+from pydub.playback import play  # ✅ Import play() to actually play audio
+import time
+import pprint
+
+import ipywidgets as widgets
+
+import gc
+
+import json
+import re
 
 # Ensure the OpenAI API key is set in the environment
+from dotenv import load_dotenv
+load_dotenv()
+
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 if not OPENAI_API_KEY:
     raise RuntimeError("OPENAI_API_KEY environment variable is not set.")
 
+
+model_client_openai = OpenAIChatCompletionClient(
+    model="gpt-4o-2024-08-06",
+    api_key=OPENAI_API_KEY # Optional if you have an OPENAI_API_KEY env variable set.
+)
 # Configure the LLM for the assistant agent (e.g., using GPT-4 with the API key)
+"""
 llm_config = {
     "config_list": [
         {"model": "gpt-4", "api_key": OPENAI_API_KEY}
     ]
 }
-
+"""
 # Initialize the assistant agent with the LLM configuration
 assistant_agent = AssistantAgent(
-    name="assistant",
-    llm_config=llm_config,
-    system_message="You are a helpful AI assistant."
+            name="Assy",
+            description="you are a helpful assistant",
+            system_message="you are a helpful assistant",
+            model_client=model_client_openai,
 )
 
 # Create the FastAPI app
