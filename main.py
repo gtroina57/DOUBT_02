@@ -9,36 +9,53 @@ Created on Fri May 30 20:11:19 2025
 from fastapi import FastAPI, Request
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
+from autogen import UserProxyAgent, AssistantAgent, GroupChat, GroupChatManager, config_list_from_json
+import asyncio
+import uvicorn
 
-# --- Initialize app ---
 app = FastAPI()
 
-# --- Allow all origins (CORS) ---
+# CORS for testing from browser
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Later, restrict this to your frontend domain
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# --- Define request body schema ---
-class ChatInput(BaseModel):
+# === Agent Setup ===
+config_list = config_list_from_json("OAI_CONFIG_LIST")
+
+user_proxy = UserProxyAgent("user_proxy", code_execution_config={"use_docker": False})
+assistant = AssistantAgent("assistant", llm_config={"config_list": config_list})
+
+chat_group = GroupChat(
+    agents=[user_proxy, assistant],
+    messages=[],
+    max_round=10,
+)
+chat_manager = GroupChatManager(groupchat=chat_group, llm_config={"config_list": config_list})
+
+# === API Schema ===
+class ChatRequest(BaseModel):
     user_message: str
 
-# --- Temporary placeholder for multi-agent logic ---
-def run_multiagent_response(user_message: str) -> str:
-    # 🔁 Replace this with call to your AutoGen-based system
-    return f"[Mocked response] You said: {user_message}"
-
-# --- POST endpoint ---
 @app.post("/chat")
-async def chat_endpoint(input_data: ChatInput):
-    user_msg = input_data.user_message
-    response = run_multiagent_response(user_msg)
-    return {"reply": response}
+async def chat_endpoint(request: ChatRequest):
+    user_message = request.user_message
 
-# --- Optional root ---
-@app.get("/")
-def root():
-    return {"status": "Multi-agent AI API running"}
+    # Inject user message into the proxy
+    user_proxy.initiate_chat(chat_manager, message=user_message)
+
+    # Run async group chat
+    result = await chat_manager.a_run()
+
+    # Return only the latest assistant response
+    assistant_messages = [m["content"] for m in chat_group.messages if m["name"] == "assistant"]
+    last_response = assistant_messages[-1] if assistant_messages else "No reply."
+
+    return {"response": last_response}
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=10000)
