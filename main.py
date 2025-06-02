@@ -111,7 +111,7 @@ async def chat_endpoint(request: ChatRequest):
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     try:
-        user = UserProxyAgent("user", human_input_mode="NEVER")
+        user = UserProxyAgent("user", name="Pippo")
         while True:
             data = await websocket.receive_text()
             print(f"✅ Received: {data}")
