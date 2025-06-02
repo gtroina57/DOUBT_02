@@ -75,6 +75,10 @@ assistant_agent = AssistantAgent(
 # Create the FastAPI app
 app = FastAPI()
 
+@app.get("/")
+def read_root():
+    return {"status": "ok", "message": "Service is running"}
+
 # Define request and response data models for the /chat endpoint
 class ChatRequest(BaseModel):
     message: str
