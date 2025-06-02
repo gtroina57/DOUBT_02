@@ -115,9 +115,6 @@ import traceback
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     try:
-        user = UserProxyAgent("user")
-        print("✅ WebSocket connection accepted")
-
         while True:
             data = await websocket.receive_text()
             print(f"📩 Received from browser: {data}")
@@ -127,8 +124,8 @@ async def websocket_endpoint(websocket: WebSocket):
                 result = await assistant.run(task="Hello")
                 print("🤖 Result from assistant:", result)
                 """
-                await websocket.send_text(result)
-                print(f"📤 Sent to browser: {result}")
+                await websocket.send_text(data)
+                print(f"📤 Sent to browser: {data}")
 
             except Exception as inner_error:
                 print("❌ Error during assistant response:")
