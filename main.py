@@ -107,8 +107,6 @@ async def chat_endpoint(request: ChatRequest):
     return ChatResponse(reply=reply_text)
 
 
-from autogen import UserProxyAgent
-
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
