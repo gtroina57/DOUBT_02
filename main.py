@@ -38,8 +38,6 @@ from pydub.playback import play  # ✅ Import play() to actually play audio
 import time
 import pprint
 
-import ipywidgets as widgets
-
 import gc
 
 import json
