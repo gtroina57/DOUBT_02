@@ -114,20 +114,30 @@ async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     try:
         user = UserProxyAgent("user")
+        print("✅ WebSocket connection accepted")
+
         while True:
             data = await websocket.receive_text()
-            print(f"✅ Received: {data}")
+            print(f"📩 Received from browser: {data}")
 
-            result = await assistant.a_run(
-                input={"name": "user", "content": data},
-                sender=user
-            )
+            try:
+                result = await assistant.a_run(
+                    input={"name": "user", "content": data},
+                    sender=user
+                )
+                print("🤖 Result from assistant:", result)
 
-            reply = result.get("content", "⚠️ No content returned")
-            await websocket.send_text(reply)
+                reply = result.get("content", "⚠️ No content returned")
+                await websocket.send_text(reply)
+                print(f"📤 Sent to browser: {reply}")
+
+            except Exception as inner_error:
+                print("❌ Error during assistant response:")
+                traceback.print_exc()
+                await websocket.send_text("⚠️ Internal error")
 
     except WebSocketDisconnect:
         print("❌ WebSocket disconnected")
     except Exception as e:
-        print("❌ WebSocket failed:", e)
+        print("❌ Unexpected WebSocket failure:", e)
         traceback.print_exc()
