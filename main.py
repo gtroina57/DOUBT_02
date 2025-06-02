@@ -114,7 +114,7 @@ async def websocket_endpoint(websocket: WebSocket):
         while True:
             data = await websocket.receive_text()
             print(f"Received from client: {data}")
-            response = assistant.generate_reply(messages=[{"role": "user", "content": data}])
+            response = await assistant.generate_reply(messages=[{"role": "user", "content": data}])
             reply_text = response["content"]
             await websocket.send_text(reply_text)
     except WebSocketDisconnect:
