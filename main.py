@@ -126,7 +126,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 
                 print("🤖 Result from assistant:", data)
                 
-                await websocket.send_text(result)
+                await websocket.send_text(data)
                 print(f"📤 Sent to browser: {data}")
 
             except Exception as inner_error:
