@@ -122,8 +122,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
             try:
                 result = assistant.run(
-                sender=user,
-                messages=[{"role": "user", "content": data}]
+                task = data}]
                 )
                 print("🤖 Result from assistant:", result)
 
