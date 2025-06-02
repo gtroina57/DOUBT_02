@@ -107,15 +107,27 @@ async def chat_endpoint(request: ChatRequest):
     return ChatResponse(reply=reply_text)
 
 
+from autogen import UserProxyAgent
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     try:
+        user = UserProxyAgent("user", human_input_mode="NEVER")
         while True:
             data = await websocket.receive_text()
-            print(f"Received from client: {data}")
-            response = await assistant.generate_reply(messages=[{"role": "user", "content": data}])
-            reply_text = response["content"]
-            await websocket.send_text(reply_text)
+            print(f"✅ Received: {data}")
+
+            result = await assistant.a_run(
+                input={"name": "user", "content": data},
+                sender=user
+            )
+
+            reply = result.get("content", "⚠️ No content returned")
+            await websocket.send_text(reply)
+
     except WebSocketDisconnect:
-        print("WebSocket disconnected")
+        print("❌ WebSocket disconnected")
+    except Exception as e:
+        print("❌ WebSocket failed:", e)
+        traceback.print_exc()
