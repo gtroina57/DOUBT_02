@@ -68,7 +68,7 @@ llm_config = {
 """
 # Initialize the assistant agent with the LLM configuration
 assistant_agent = AssistantAgent(
-            name="Assy",
+            name="Assistant",
             description="you are a helpful assistant",
             system_message="you are a helpful assistant",
             model_client=model_client_openai,
