@@ -66,7 +66,7 @@ llm_config = {
     ]
 }
 """
-"""
+
 # Initialize the assistant agent with the LLM configuration
 assistant = AssistantAgent(
             name="assistant",
@@ -74,7 +74,7 @@ assistant = AssistantAgent(
             system_message="you are a helpful assistant",
             model_client=model_client_openai,
 )
-"""
+
 
 # Create the FastAPI app
 app = FastAPI()
