@@ -106,12 +106,14 @@ async def chat_endpoint(request: ChatRequest):
         reply_text = last_msg.content if hasattr(last_msg, "content") else str(last_msg)
     return ChatResponse(reply=reply_text)
 
+import traceback
+
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     try:
-        user = UserProxyAgent("user", name="Pippo")
+        user = UserProxyAgent("user")
         while True:
             data = await websocket.receive_text()
             print(f"✅ Received: {data}")
