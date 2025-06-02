@@ -67,7 +67,7 @@ llm_config = {
 }
 """
 # Initialize the assistant agent with the LLM configuration
-assistant_agent = AssistantAgent(
+assistant = AssistantAgent(
             name="assistant",
             description="you are a helpful assistant",
             system_message="you are a helpful assistant",
@@ -94,7 +94,7 @@ async def chat_endpoint(request: ChatRequest):
     user_message = request.message
     try:
         # Use the assistant agent to process the user's message
-        result = await assistant_agent.run(task=user_message)
+        result = await assistant.run(task=user_message)
     except Exception as e:
         # Handle errors (e.g., API issues) by returning an HTTP 500 response
         raise HTTPException(status_code=500, detail=f"Agent error: {e}")
