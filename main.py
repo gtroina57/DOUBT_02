@@ -121,7 +121,7 @@ async def websocket_endpoint(websocket: WebSocket):
             print(f"📩 Received from browser: {data}")
 
             try:
-                result = await assistant.a_run(
+                result = assistant.generate_reply(
                     input={"name": "user", "content": data},
                     sender=user
                 )
