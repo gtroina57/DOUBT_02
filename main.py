@@ -132,7 +132,7 @@ async def websocket_endpoint(websocket: WebSocket):
             except Exception as inner_error:
                 print("❌ Error during assistant response:")
                 traceback.print_exc()
-                await websocket.send_text("⚠️ Internal error", inner_error)
+                await websocket.send_text("⚠️ Internal error")
 
     except WebSocketDisconnect:
         print("❌ WebSocket disconnected")
