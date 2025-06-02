@@ -66,6 +66,7 @@ llm_config = {
     ]
 }
 """
+"""
 # Initialize the assistant agent with the LLM configuration
 assistant = AssistantAgent(
             name="assistant",
@@ -73,6 +74,7 @@ assistant = AssistantAgent(
             system_message="you are a helpful assistant",
             model_client=model_client_openai,
 )
+"""
 
 # Create the FastAPI app
 app = FastAPI()
@@ -87,7 +89,7 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     reply: str
-
+"""
 # Define the /chat POST endpoint
 @app.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(request: ChatRequest):
@@ -105,7 +107,7 @@ async def chat_endpoint(request: ChatRequest):
         last_msg = result.messages[-1]
         reply_text = last_msg.content if hasattr(last_msg, "content") else str(last_msg)
     return ChatResponse(reply=reply_text)
-
+"""
 import traceback
 
 
