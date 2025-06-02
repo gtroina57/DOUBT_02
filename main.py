@@ -122,7 +122,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
             try:
                 
-                result = await assistant.run(task="Hello")
+                result = await assistant.run(task=data)
                 
                 print("🤖 Result from assistant:", data)
                 
