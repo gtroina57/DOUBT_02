@@ -123,20 +123,17 @@ async def websocket_endpoint(websocket: WebSocket):
             try:
                 
                 result = await assistant.run(task=data)
-                print("📄 Summary:", result.summary)
+
                 print("💬 Last message:", result.last_message)
-                print("📚 Chat history:", result.chat_history)
-                print("🧾 Metadata:", result.metadata)
-                print("✅ Terminated:", result.is_terminated)
                 print("🤖 Result from assistant:", data)
-                
+
                 await websocket.send_text(data)
                 print(f"📤 Sent to browser: {data}")
 
             except Exception as inner_error:
                 print("❌ Error during assistant response:")
                 traceback.print_exc()
-                await websocket.send_text("⚠️ Internal error")
+                await websocket.send_text("⚠️ Internal error", inner_error)
 
     except WebSocketDisconnect:
         print("❌ WebSocket disconnected")
