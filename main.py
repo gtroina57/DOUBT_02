@@ -9,6 +9,8 @@ Created on Fri May 30 20:11:19 2025
 # main.py
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
 import os
 import asyncio
 from autogen_agentchat.agents import AssistantAgent, UserProxyAgent
