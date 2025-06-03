@@ -118,15 +118,15 @@ async def websocket_endpoint(websocket: WebSocket):
             print("PIPPO")
             data = await websocket.receive_text()
             print(f"📩 Received from browser: {data}")
-
+            print("PIPPO2")
             try:
                 
-                result = await assistant.run(task=data)
-                full_msg = result
+                #result = await assistant.run(task=data)
+                #full_msg = result
                 print("🤖 Result from assistant:", data)
-
+                print("PIPPO3")
                 await websocket.send_text(data)
-
+                print("PIPPO4")
                 print(f"📤 Sent to browser: {data}")
 
             except Exception as inner_error:
