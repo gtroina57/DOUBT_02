@@ -4,7 +4,6 @@ Created on Fri May 30 20:11:19 2025
 
 @author: giuse
 """
-
 # main.py
 # main.py
 from fastapi import FastAPI, HTTPException
@@ -126,7 +125,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 full_msg = result
                 print("🤖 Result from assistant:", data)
 
-                await websocket.send_text(full_msg)
+                await websocket.send_text(data)
 
                 print(f"📤 Sent to browser: {data}")
 
