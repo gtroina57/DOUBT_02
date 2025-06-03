@@ -112,6 +112,7 @@ import traceback
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
+    await websocket.close()
     await websocket.accept()
     try:
         while True:
