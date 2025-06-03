@@ -112,7 +112,6 @@ import traceback
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    await websocket.close()
     await websocket.accept()
     try:
         while True:
@@ -123,8 +122,7 @@ async def websocket_endpoint(websocket: WebSocket):
             try:
                 
                 result = await assistant.run(task=data)
-                #full_msg = result
-                print("🤖 Result from assistant:", data)
+                print(f"📤 Sent to browser: {result}")
                 print("PIPPO3")
                 await websocket.send_text(data)
                 print("PIPPO4")
