@@ -93,7 +93,7 @@ agents = {}
 agent_list = []
 team = None
 loaded_team_state = None  # Will hold config if loaded before team is created
-task1 ="This is a debate on ethics and AI"
+task1 =""
 print("✅ Environment cleared.")
 
 ############################ TEXT TO SPEECH  #########################################
