@@ -546,7 +546,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 continue
 
             # 👤 User input
-            await agents["user_proxy"].a_send(TextMessage(content=data, source="user"))
+            await agents["user_proxy"].a_receive(TextMessage(content=data, source="user"))
             await speech_queue.join()
 
     except WebSocketDisconnect:
