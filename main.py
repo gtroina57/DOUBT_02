@@ -53,6 +53,10 @@ if not OPENAI_API_KEY:
     raise RuntimeError("OPENAI_API_KEY environment variable is not set.")
 
 """
+
+#####################################################################################################
+#global user_proxy, team, loaded_team_state, agents, agent_list, model_client_openai, model_client_gemini
+
 ################################ Create OpenAI model client   #############################
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 if not OPENAI_API_KEY:
@@ -73,7 +77,6 @@ model_client_gemini = OpenAIChatCompletionClient(
 )
 
 #####################################################################################################
-global user_proxy, team, loaded_team_state, agents, agent_list, model_client_openai, model_client_gemini
 image_url = None
 #########################################################################################################
 ################################## Initialize variables   ##################################################
@@ -84,9 +87,6 @@ team = None
 loaded_team_state = None  # Will hold config if loaded before team is created
 task1 =""
 print("✅ Environment cleared.")
-
-
-
 
 ############################ TEXT TO SPEECH  #########################################
 # Store already processed messages to prevent duplicates
