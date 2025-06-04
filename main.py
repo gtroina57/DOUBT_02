@@ -643,9 +643,13 @@ async def websocket_endpoint(websocket: WebSocket):
             if loaded_team_state:
                 await team.load_state(loaded_team_state)
                 loaded_team_state = None
-
+            
+###############################################################################            
+            asyncio.create_task(run_chat(team))
+##############################################################################            
+            
             asyncio.create_task(speak_worker())
-
+            
         while True:
             data = await websocket.receive_text()
             if data == "__ping__":
