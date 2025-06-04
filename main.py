@@ -498,14 +498,22 @@ async def websocket_endpoint(websocket: WebSocket):
     awaiting_user_reply = False
 
     await websocket.accept()
+    
+    # Optional: Flush early/stale messages
+    try:
+        while True:
+            stale_msg = await asyncio.wait_for(websocket.receive_text(), timeout=0.1)
+            print("🧹 Flushed stale message:", stale_msg)
+    except asyncio.TimeoutError:
+        print("✅ Message queue flushed")
+    
+    gradio_input_buffer = {"message": None}
+    
     try:
         if not team:
             # 🔧 Load agents from config
             name_to_agent_skill = extract_agent_skills(CONFIG_FILE)
             agents = build_agents_from_config(CONFIG_FILE, name_to_agent_skill, model_clients_map)
-            
-            
-            gradio_input_buffer = {"message": None}
 
             async def websocket_async_input_func(*args, **kwargs):
                 while gradio_input_buffer["message"] is None:
