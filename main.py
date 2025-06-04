@@ -544,29 +544,35 @@ async def websocket_endpoint(websocket: WebSocket):
             asyncio.create_task(speak_worker())      # ✅ Starts audio playback loop
 
         # 🔁 Handle incoming websocket messages
-        first_user_input = True
-        awaiting_user_reply = False
-        
         while True:
             data = await websocket.receive_text()
             if data == "__ping__":
                 continue
-
+        
             stop_execution = False
-
+        
             if first_user_input:
                 print("📌 First user input received, setting up debate topic.")
                 gradio_input_buffer["message"] = data
                 first_user_input = False
                 continue
         
+            if data == "__USER_PROXY_TURN__":
+                # 🧠 Moderator has given the floor to the user
+                print("🕓 Awaiting user reply...")
+                awaiting_user_reply = True
+                await websocket.send_text("👤 It's your turn to speak.")
+                continue
+        
             if awaiting_user_reply:
+                print("👤 User input received:", data)
                 gradio_input_buffer["message"] = data
                 awaiting_user_reply = False
             else:
-                print("⚠️ Unexpected input received while not awaiting user. Ignoring or log it.")
+                print("⚠️ Ignored unexpected input:", data)
 
 
+###############################################################################################
             await speech_queue.join()
 
     except WebSocketDisconnect:
