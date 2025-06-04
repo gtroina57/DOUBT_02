@@ -506,7 +506,7 @@ async def websocket_endpoint(websocket: WebSocket):
             name_to_agent_skill = extract_agent_skills(CONFIG_FILE)
             agents = build_agents_from_config(CONFIG_FILE, name_to_agent_skill, model_clients_map)
 
-            agents["user_proxy"] = UserProxyAgent(name="user_proxy", human_input_mode="NEVER")
+            agents["user_proxy"] = UserProxyAgent(name="user_proxy")
 
             agent_list = [
                 agents["moderator_agent"],
