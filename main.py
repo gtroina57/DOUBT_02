@@ -267,11 +267,11 @@ def build_agents_from_config(config_path, name_to_agent_skill, model_clients_map
         agent.llm_config["temperature"] = cfg.get("temperature", 0.7)
 
         agents[name] = agent
-        #print(f"✅ Initialized {len(agents)} agents for debate topic: {task1}")
+        print(f"✅ Initialized {len(agents)} agents for debate topic: {task1}")
     return agents
 
 
-print(f"✅ Initialized {len(agents)} agents for debate topic: {task1}")
+#print(f"✅ Initialized {len(agents)} agents for debate topic: {task1}")
     
 
 ##########################################################################################################
@@ -446,7 +446,7 @@ def intervene_now(user_input):
 ##########################################################################################################
 ################################# loop for debate  #######################################################
 async def run_chat(team, websocket=None):
-    global stop_execution, image_url, task1, awaiting_user_reply
+    global stop_execution, image_url, task1, awaiting_user_reply, gradio_input_buffer
 
     async for result in team.run_stream(task=task1):
         if stop_execution:
@@ -494,7 +494,7 @@ import traceback
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    global team, agents, agent_list, stop_execution, loaded_team_state, awaiting_user_reply
+    global team, agents, agent_list, stop_execution, loaded_team_state, awaiting_user_reply, gradio_input_buffer
     awaiting_user_reply = False
 
     await websocket.accept()
