@@ -494,7 +494,7 @@ import traceback
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    global team, agents, agent_list, stop_execution, loaded_team_state, awaiting_user_reply, gradio_input_buffer
+    global team, agents, agent_list, stop_execution, loaded_team_state, awaiting_user_reply, gradio_input_buffer, first_user_input
     awaiting_user_reply = False
 
     await websocket.accept()
