@@ -62,18 +62,6 @@ async def get_index():
     return HTMLResponse(content=html_path.read_text(encoding="utf-8"))
 
 
-
-"""
-# Ensure the OpenAI API key is set in the environment
-from dotenv import load_dotenv
-load_dotenv()
-
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-if not OPENAI_API_KEY:
-    raise RuntimeError("OPENAI_API_KEY environment variable is not set.")
-
-"""
-
 #####################################################################################################
 #global user_proxy, team, loaded_team_state, agents, agent_list, model_client_openai, model_client_gemini
 
@@ -93,7 +81,7 @@ model_client_openai = OpenAIChatCompletionClient(
 
 model_client_gemini = OpenAIChatCompletionClient(
     model="gemini-1.5-flash",
-    api_key=GOOGLE_API_KEY,
+    api_key=GOOGLE_API_KEY
 )
 
 #####################################################################################################
@@ -214,14 +202,13 @@ async def speak_worker():
 
 model_clients_map = {
     "openai": model_client_openai,
-    "gemini": model_client_gemini,
+    "gemini": model_client_gemini
 }
 ##########################################################################################################
 ################################# Load default configuration    ##########################################
 with open(CONFIG_FILE, "r") as f:
     agent_config = json.load(f)
     
-   
 ##########################################################################################################
 ################################# Build name_to_agent_skill for introducing Agents #######################
 def extract_agent_skills(config_path):
