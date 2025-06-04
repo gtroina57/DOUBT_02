@@ -495,13 +495,11 @@ def root():
     return {"status": "ok", "message": "Service is running"}
 
 import traceback
-"""
+
 async def no_input(prompt, cancellation_token=None):
     return None  # or raise CancelledError to signal termination
-"""
-async def no_input(prompt: str, cancellation_token: Optional[object] = None) -> str:
-    # 🚫 Prevents default blocking input() from being used
-    raise EOFError("No synchronous input allowed in WebSocket mode.")
+
+
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
