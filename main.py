@@ -446,7 +446,7 @@ def intervene_now(user_input):
 ##########################################################################################################
 ################################# loop for debate  #######################################################
 async def run_chat(team, websocket=None):
-    global stop_execution, image_url, task1
+    global stop_execution, image_url, task1, awaiting_user_reply
 
     async for result in team.run_stream(task=task1):
         if stop_execution:
@@ -491,14 +491,10 @@ def root():
 
 import traceback
 
-async def no_input(prompt, cancellation_token=None):
-    return None  # or raise CancelledError to signal termination
-
-
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    global team, agents, agent_list, stop_execution, loaded_team_state
+    global team, agents, agent_list, stop_execution, loaded_team_state, awaiting_user_reply
     awaiting_user_reply = False
 
     await websocket.accept()
@@ -507,10 +503,20 @@ async def websocket_endpoint(websocket: WebSocket):
             # 🔧 Load agents from config
             name_to_agent_skill = extract_agent_skills(CONFIG_FILE)
             agents = build_agents_from_config(CONFIG_FILE, name_to_agent_skill, model_clients_map)
+            
+            
+            gradio_input_buffer = {"message": None}
 
+            async def websocket_async_input_func(*args, **kwargs):
+                while gradio_input_buffer["message"] is None:
+                    await asyncio.sleep(0.1)
+                message = gradio_input_buffer["message"]
+                gradio_input_buffer["message"] = None
+                return message
             # 🎭 Add user_proxy with NO input_func
-            agents["user_proxy"] = UserProxyAgent(name="user_proxy", input_func=no_input)
 
+            agents["user_proxy"] = UserProxyAgent(name="user_proxy",input_func=websocket_async_input_func)
+        
             agent_list = [
                 agents["moderator_agent"],
                 agents["expert_1_agent"],
@@ -550,16 +556,15 @@ async def websocket_endpoint(websocket: WebSocket):
 
             if first_user_input:
                 print("📌 First user input received, setting up debate topic.")
-                await agents["user_proxy"].a_receive(TextMessage(content=data, source="user"))
+                gradio_input_buffer["message"] = data
                 first_user_input = False
                 continue
         
             if awaiting_user_reply:
-                print("👤 User replying during their turn.")
-                await agents["user_proxy"].a_receive(TextMessage(content=data, source="user"))
+                gradio_input_buffer["message"] = data
                 awaiting_user_reply = False
             else:
-                print("⚠️ Unexpected input. Possibly a user interruption or mis-sequenced message.")
+                print("⚠️ Unexpected input received while not awaiting user. Ignoring or log it.")
 
 
             await speech_queue.join()
