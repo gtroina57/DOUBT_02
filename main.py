@@ -43,6 +43,23 @@ import gc
 
 import json
 import re
+
+
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
+
+# Mount static directory
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# Serve the index.html at root
+@app.get("/", response_class=HTMLResponse)
+async def get_index():
+    html_path = Path("static/index.html")
+    return HTMLResponse(content=html_path.read_text(encoding="utf-8"))
+
+
+
 """
 # Ensure the OpenAI API key is set in the environment
 from dotenv import load_dotenv
@@ -288,6 +305,7 @@ You are the Selector agent following strictly the instructions of the moderator 
 """
 
 def dynamic_selector_func(thread):
+    global agent_id
     last_msg = thread[-1]
     last_message = last_msg.content.lower().strip()
     sender = last_msg.source.lower()
@@ -374,7 +392,7 @@ def dynamic_selector_func(thread):
 user_conversation = []
 gradio_input_buffer = {"message": None}
 agent_config_ui = {}
-chat_log_shared = gr.Textbox(label="Conversation Log", lines=20, interactive=False)
+## chat_log_shared = gr.Textbox(label="Conversation Log", lines=20, interactive=False)
 
 ################## SET TOPIC        ###########################################################
 def set_task_only(task_text):
@@ -601,9 +619,7 @@ async def websocket_endpoint(websocket: WebSocket):
             model_clients_map = {"openai": model_client_openai}
             agents = build_agents_from_config(CONFIG_FILE, name_to_agent_skill, model_clients_map)
 
-            agents["user_proxy"].human_input_mode = "NEVER"
             agent_list = [agents[name] for name in agents]
-            
             
             agents["user_proxy"] = UserProxyAgent(
                 name="user_proxy")
@@ -662,7 +678,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 await run_chat(team, websocket)
 
                 # 🎙️ If next speaker is user_proxy, notify frontend and wait
-                if team.last_speaker and team.last_speaker.name == "user_proxy":
+                if agent_id == "user_proxy":
                     await websocket.send_text("__USER_PROXY_TURN__")
                     awaiting_user_reply = True
 
