@@ -465,7 +465,8 @@ async def run_chat(team, websocket=None):
             # ✅ Notify frontend if it's Giuseppe's turn
             if agent_name == "user_proxy" and websocket:
                 await websocket.send_text("__USER_PROXY_TURN__")
-
+                awaiting_user_reply = True
+                
             # ✅ Optional: log internal message history
             if not hasattr(team, "_message_history"):
                 team._message_history = []
@@ -543,6 +544,9 @@ async def websocket_endpoint(websocket: WebSocket):
             asyncio.create_task(speak_worker())      # ✅ Starts audio playback loop
 
         # 🔁 Handle incoming websocket messages
+        first_user_input = True
+        awaiting_user_reply = False
+        
         while True:
             data = await websocket.receive_text()
             if data == "__ping__":
@@ -550,12 +554,19 @@ async def websocket_endpoint(websocket: WebSocket):
 
             stop_execution = False
 
+            if first_user_input:
+                print("📌 First user input received, setting up debate topic.")
+                await agents["user_proxy"].a_receive(TextMessage(content=data, source="user"))
+                first_user_input = False
+                continue
+        
             if awaiting_user_reply:
-                # 👤 User is expected to reply
+                print("👤 User replying during their turn.")
                 await agents["user_proxy"].a_receive(TextMessage(content=data, source="user"))
                 awaiting_user_reply = False
             else:
-                print("⚠️ Unexpected input received while not awaiting user. Ignoring or log it.")
+                print("⚠️ Unexpected input. Possibly a user interruption or mis-sequenced message.")
+
 
             await speech_queue.join()
 
