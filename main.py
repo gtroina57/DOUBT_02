@@ -552,6 +552,10 @@ async def websocket_endpoint(websocket: WebSocket):
             asyncio.create_task(speak_worker())      # ✅ Starts audio playback loop
 
         # 🔁 Handle incoming websocket messages
+        
+        first_user_input = True
+        awaiting_user_reply = False
+        
         while True:
             data = await websocket.receive_text()
             if data == "__ping__":
