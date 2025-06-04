@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Debate WebSocket Chat</title>
+</head>
+<body>
+  <h2>Debate System</h2>
+  <textarea id="log" cols="80" rows="20" readonly></textarea><br>
+  <input type="text" id="messageInput" placeholder="Wait for your turn..." size="60" disabled />
+  <button onclick="sendMessage()">Send</button>
+
+  <script>
+    const ws = new WebSocket("wss://doubt-02.onrender.com/ws");   
+
+    ws.onopen = () => {
+      log("✅ WebSocket connected");
+    };
+
+    ws.onmessage = (event) => {
+      if (event.data === "__USER_PROXY_TURN__") {
+        log("🎤 Moderator gives you the floor. You may speak now.");
+        const input = document.getElementById("messageInput");
+        input.disabled = false;
+        input.focus();
+        return;
+      }
+
+      log("🤖 " + event.data);
+    };
+
+    ws.onclose = () => {
+      log("❌ WebSocket disconnected");
+    };
+
+    ws.onerror = (err) => {
+      log("⚠️ WebSocket error: " + err.message);
+    };
+
+    function log(message) {
+      const logArea = document.getElementById("log");
+      logArea.value += message + "\n";
+      logArea.scrollTop = logArea.scrollHeight;
+    }
+
+    function sendMessage() {
+      const input = document.getElementById("messageInput");
+      const message = input.value.trim();
+      if (message && ws.readyState === WebSocket.OPEN) {
+        ws.send(message);
+        log("🧑 You: " + message);
+        input.value = "";
+        input.disabled = true;
+      }
+    }
+
+    // Ping every 20s to keep connection alive
+    setInterval(() => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send("__ping__");
+      }
+    }, 20000);
+  </script>
+</body>
+</html>
