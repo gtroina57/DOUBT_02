@@ -600,7 +600,7 @@ async def websocket_endpoint(websocket: WebSocket):
     try:
         if not team:
             name_to_agent_skill = extract_agent_skills(CONFIG_FILE)
-            model_clients_map = {"openai": model_client_openai}
+            #model_clients_map = {"openai": model_client_openai}
             agents = build_agents_from_config(CONFIG_FILE, name_to_agent_skill, model_clients_map)
 
             agent_list = [agents[name] for name in agents]
