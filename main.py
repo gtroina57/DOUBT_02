@@ -115,18 +115,21 @@ async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     try:
         while True:
-            print("PIPPO")
             data = await websocket.receive_text()
             print(f"📩 Received from browser: {data}")
-            print("PIPPO2")
+
+            if data == "__ping__":
+                continue
+
             try:
-                
                 result = await assistant.run(task=data)
-                print(f"📤 Sent to browser: {result}")
-                print("PIPPO3")
-                await websocket.send_text(data)
-                print("PIPPO4")
-                print(f"📤 Sent to browser: {data}")
+                reply_text = ""
+                if result and hasattr(result, "messages") and result.messages:
+                    last_msg = result.messages[-1]
+                    reply_text = last_msg.content if hasattr(last_msg, "content") else str(last_msg)
+
+                print(f"📤 Sent to browser: {reply_text}")
+                await websocket.send_text(reply_text)
 
             except Exception as inner_error:
                 print("❌ Error during assistant response:")
@@ -135,6 +138,3 @@ async def websocket_endpoint(websocket: WebSocket):
 
     except WebSocketDisconnect:
         print("❌ WebSocket disconnected")
-    except Exception as e:
-        print("❌ Unexpected WebSocket failure:", e)
-        traceback.print_exc()
