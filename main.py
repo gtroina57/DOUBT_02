@@ -190,15 +190,394 @@ async def speak_worker():
         speech_queue.task_done()
 
 
+##########################################################################################################
+################################# Load default configuration    ##########################################
+with open(CONFIG_FILE, "r") as f:
+    agent_config = json.load(f)
+    
+   
+##########################################################################################################
+################################# Build name_to_agent_skill for introducing Agents #######################
+def extract_agent_skills(config_path):
+    with open(config_path, "r") as f:
+        config = json.load(f)
 
-# Initialize the assistant agent with the LLM configuration
-assistant = AssistantAgent(
-            name="assistant",
-            description="you are a helpful assistant",
-            system_message="you are a helpful assistant",
+    skills = []
+    for agent_id, cfg in config.items():
+        description = cfg.get("description", "")
+        words = description.split()
+        name = words[1] if len(words) > 1 else agent_id  # crude fallback
+        skills.append(f"{name} ({description.split(',', 1)[-1].strip()})")
+
+    #skills.append("Giuseppe (user proxy)")
+    return ", ".join(skills)
+
+##########################################################################################################
+################################# Build Agents from configuration  #######################################
+
+tool_lookup = {
+}
+##########################################################################################################
+################################# Build Agents from configuration  #######################################
+def build_agents_from_config(config_path, name_to_agent_skill, model_clients_map):
+    global task1
+    with open(config_path, "r") as f:
+        config = json.load(f)
+
+    agents = {}
+    for name, cfg in config.items():
+        if name == "proxy_agent":
+            continue  # Skip creating an AssistantAgent for the user_proxy
+        sys_msg = (
+            cfg["system_message"]
+            .replace("{task1}", task1)
+            .replace("{name_to_agent_skill}", name_to_agent_skill)
+        )
+
+        client_key = cfg.get("model_client", "openai")
+        model_client = model_clients_map.get(client_key)
+        if model_client is None:
+            raise ValueError(f"Model client '{client_key}' not found for agent '{name}'")
+        print("MODEL_CLIENT", model_client)
+
+        tool_names = cfg.get("tools", [])
+        if isinstance(tool_names, str):
+            import ast
+            tool_names = ast.literal_eval(tool_names)  # Safe way to convert string to list
+
+        tool_list = [tool_lookup[t] for t in tool_names] if tool_names else []
+
+        agent = AssistantAgent(
+            name=name,
+            description=cfg["description"],
+            system_message=sys_msg,
+            model_client=model_client,
+            tools=tool_list)
+
+        # Ensure llm_config exists
+        if not hasattr(agent, "llm_config") or agent.llm_config is None:
+            agent.llm_config = {}
+        agent.llm_config["temperature"] = cfg.get("temperature", 0.7)
+
+        agents[name] = agent
+        print(f"✅ Initialized {len(agents)} agents for debate topic: {task1}")
+    return agents
+
+
+#print(f"✅ Initialized {len(agents)} agents for debate topic: {task1}")
+    
+
+##########################################################################################################
+################################# Build Agents from configuration  ####################################
+
+model_clients_map = {
+    "openai": model_client_openai,
+    "gemini": model_client_gemini,
+}
+
+##########################################################################################################
+################################# Termination  ####################################
+text_mention_termination = TextMentionTermination("TERMINATE")
+max_messages_termination = MaxMessageTermination(max_messages=50)
+termination = text_mention_termination | max_messages_termination
+
+##########################################################################################################
+################################# Selector Prompt Function    ############################################
+selector_prompt = """
+You are the Selector agent following strictly the instructions of the moderator and of the selector_func
+"""
+
+def dynamic_selector_func(thread):
+    last_msg = thread[-1]
+    last_message = last_msg.content.lower().strip()
+    sender = last_msg.source.lower()
+
+    name_to_agent = {
+        "alice": "expert_1_agent",
+        "bob": "expert_2_agent",
+        "charlie": "hilarious_agent",
+        "alan": "moderator_agent",
+        "albert": "creative_agent",
+        "giuseppe": "user_proxy",
+    }
+
+    # 🔹 First user interaction → go to moderator
+    if sender == "user":
+        print("👤 User input detected. Moderator takes over.")
+        return "moderator_agent"
+
+    # 🔹 AGENT (not moderator) just spoke
+    if sender != "moderator_agent":
+        if last_message.endswith("xyz"):
+            focus_area = last_message.rsplit("xyz", 1)[0].strip()
+            pattern = r'\b(' + '|'.join(map(re.escape, name_to_agent.keys())) + r')\b'
+            matches = re.findall(pattern, focus_area)
+            unique_mentions = set(matches)
+
+            if len(unique_mentions) == 1:
+                mentioned = matches[0]
+                if name_to_agent[mentioned] == sender:
+                    print(f"🔁 Agent '{sender}' mentioned only themselves. Returning to Moderator.")
+                    return "moderator_agent"
+                else:
+                    print(f"📣 Agent '{sender}' mentioned another agent ('{mentioned}'). Moderator should intervene.")
+                    return "moderator_agent"
+            elif len(unique_mentions) > 1:
+                print(f"📣 Agent '{sender}' mentioned multiple agents. Moderator should intervene.")
+                return "moderator_agent"
+        # No 'xyz' or no mentions → let agent continue
+        print(f"⏭ Agent '{sender}' keeps the floor.")
+        return sender
+
+    # 🔹 MODERATOR just spoke
+    if not last_message.endswith("xyz"):
+        print("⚠️ Moderator message incomplete (no 'xyz'). Staying with Moderator.")
+        return "moderator_agent"
+
+    focus_area = last_message.rsplit("xyz", 1)[0].strip()
+    pattern = r'\b(' + '|'.join(map(re.escape, name_to_agent.keys())) + r')\b'
+    matches = list(re.finditer(pattern, focus_area))
+
+    if not matches:
+        print("⚠️ No agent mentioned by moderator. Staying with Moderator.")
+        return "moderator_agent"
+
+    # ✅ Find the last valid agent mentioned
+    for match in matches:
+
+        if len(matches) == 1:
+            match = matches[0]
+            name = match.group(1)
+            agent_id = name_to_agent.get(name)
+            if agent_id and agent_id != "moderator_agent":
+                print(f"✅ Moderator selected '{name}'. Routing to {agent_id}.")
+                return agent_id
+
+        if len(matches) >= 2:
+            match = matches[1]
+            name = match.group(1)
+            agent_id = name_to_agent.get(name)
+            if agent_id and agent_id != "moderator_agent":
+                print(f"✅ Moderator selected '{name}'. Routing to {agent_id}.")
+                return agent_id
+    print("⚠️ Moderator mentioned only user or moderator. Staying with Moderator.")
+    return "moderator_agent"
+
+#print(dir(agents["user_proxy"]))
+#print(dir (team))
+#print(help (team))
+
+####################################################################################################
+####################################################################################################
+####################################################################################################
+# === Globals ===
+user_conversation = []
+gradio_input_buffer = {"message": None}
+agent_config_ui = {}
+chat_log_shared = gr.Textbox(label="Conversation Log", lines=20, interactive=False)
+
+################## SET TOPIC        ###########################################################
+def set_task_only(task_text):
+            global task1
+            task1 = task_text
+            return "✅ Debate topic set." if task_text else "❌ Topic cannot be empty."
+
+##########################################################################################################
+################################# Configuration File    ###################################################=
+def load_agent_config():
+    with open(CONFIG_FILE, "r") as f:
+        return json.load(f)
+
+def save_agent_config(*args):
+    updated = {}
+    idx = 0
+    for name in agent_config_ui:
+        updated[name] = {
+            "description": args[idx],
+            "system_message": args[idx + 1],
+            "temperature": args[idx + 2],
+            "model_client": args[idx + 3],
+            "tools": args[idx + 4]
+        }
+        idx += 5
+    with open(CONFIG_FILE, "w") as f:
+        json.dump(updated, f, indent=2)
+    return "✅ Configuration saved."
+
+
+##########################################################################################################
+################################# SAVE Config    ###################################################
+# === Save config ===
+async def save_config():
+    global team
+    team_state = await team.save_state()
+    with open("coding/team_state.json", "w") as f:
+        json.dump(team_state, f)
+    print("✅ Config saved.")
+    return "✅ Config saved to disk."
+
+def sync_save_config():
+    return asyncio.run(save_config())  # 'team' must be globally accessible
+
+
+##########################################################################################################
+################################# LOAD Config   ###################################################
+
+def sync_load_config():
+    global loaded_team_state
+    with open("coding/team_state.json", "r") as f:
+        loaded_team_state = json.load(f)
+    print("🟢 Config loaded and pending application.")
+    return "🟢 Config loaded. Ready to apply when system starts."
+
+##########################################################################################################
+################################# User Intervention    ###################################################
+# === User interaction ===
+def handle_user_message(message):
+    global user_conversation, gradio_input_buffer
+    gradio_input_buffer["message"] = message
+    user_conversation.append(f"🧑 USER: {message}")
+    return "\n".join(user_conversation)
+
+def intervene_now(user_input):
+    return handle_user_message(user_input)
+
+
+##########################################################################################################
+################################# loop for debate  #######################################################
+async def run_chat(team):
+    global stop_execution, image_url
+    print("PIPPOPIPPO",team)
+    async for result in team.run_stream(task=task1):
+        if stop_execution:
+            break
+
+        if hasattr(result, "content") and isinstance(result.content, str) and (result.content, result.source) not in processed_messages:
+            text = result.content
+            agent_name = result.source
+
+            # ✅ Optional: Keep internal history on the SelectorGroupChat instance
+            if not hasattr(team, "_message_history"):
+                team._message_history = []
+            team._message_history.append({"sender": agent_name, "content": text})
+            print ("sender: ",agent_name)
+            print ("content: ",text)
+            print ("url: ", image_url)
+            # ✅ Add to UI log
+            prefix = "🧑" if "user" in agent_name.lower() else "🤖"
+            line = f"{prefix} {agent_name.upper()}: {text}"
+            user_conversation.append(line)
+
+            try:
+                chat_log_shared.update(value="\n".join(user_conversation))
+            except:
+                pass
+
+            processed_messages.add((text, agent_name))
+
+            await speech_queue.put((agent_name, text))
+
+            if "TERMINATE" in text:
+                stop_execution = True
+                await speech_queue.put(("system", "TERMINATE"))
+                print("✅ Chat terminated.")
+                break
+
+"""
+##########################################################################################################
+################################# trigger block  for debate activation  ##################################
+async def notebook_block_logic():
+    global user_conversation, gradio_input_buffer, team, loaded_team_state
+    try:
+        ##########################################################################################################
+        ################################# Build name_to_agent_skill and start agents   ###########################
+        name_to_agent_skill = extract_agent_skills("agent_config.json")
+
+        print ("EXTRACT", name_to_agent_skill)
+        agents = build_agents_from_config("agent_config.json", name_to_agent_skill, model_clients_map)
+        print ("AGENTS", agents)
+        ##########################################################################################################
+        ################################# Add proxy agent   ######################################################
+        gradio_input_buffer = {"message": None}
+        async def gradio_async_input_func(*args, **kwargs):
+            global user_conversation, gradio_input_buffer
+            # Wait for message to be available
+            while gradio_input_buffer["message"] is None:
+                await asyncio.sleep(0.1)  # yield control
+
+            message = gradio_input_buffer["message"]
+            gradio_input_buffer["message"] = None  # Clear after use
+            return message
+
+        agents["user_proxy"] = UserProxyAgent(
+            name="user_proxy")
+        agents["user_proxy"].input_func = gradio_async_input_func
+
+        print("System initialized. ✅ You can now use editor_agent to change thinker_agent's perspective.")
+        print("✅ All agents initialized successfully.")
+
+        agent_list = [
+            agents["moderator_agent"],
+            agents["expert_1_agent"],
+            agents["expert_2_agent"],
+            agents["hilarious_agent"],
+            agents["creative_agent"],
+            agents["user_proxy"],
+        ]
+        print(dir(agents["expert_1_agent"]))
+        print(dir(agents["user_proxy"]))
+
+        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX Agents", agents)
+
+        print ("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX Agent list:", agent_list)
+
+        #######################################################################################################################
+        ############################## ✅ Create SelectorGroupChat with selector_func (not selector) #########################
+
+
+            team = SelectorGroupChat(
+            agent_list,
             model_client=model_client_openai,
-)
+            #selector_prompt=selector_prompt,
+            selector_func=dynamic_selector_func,
+            termination_condition=termination,
+            allow_repeated_speaker=True,
+        )
+        print("✅ Team created.")
 
+        # 🔄 Apply loaded config only if it was loaded earlier
+        if loaded_team_state:
+            print("🟢 Applying previously loaded config...")
+            await team.load_state(loaded_team_state)
+            print("✅ Config applied to team.")
+            loaded_team_state = None  # Reset after applying
+
+        ##########################################################################################################
+        ################################# Main   ###################################################
+        speech_task = asyncio.create_task(speak_worker())  # Start speech processor
+        print("✅ Team after speech.", team)
+        #await Console(stream)
+        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+        await run_chat(team)  # Run message processing
+        print("✅ Team after run chat.", team)
+        print("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY")
+        await speech_queue.join()  # Wait until all speech tasks are processed
+        print("ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ")
+        print("Notebook block executed!")
+        stop_execution = True
+        print("Finished speaking.")
+        if speech_queue.empty():
+            print("✅ Queue is empty.")
+            return "✅ Notebook block executed!"
+        else:
+            print("📦 Queue has pending items.")
+            speech_queue.task_done()
+            return "✅ Notebook block executed after emptying the queue"
+    except Exception as e:
+        return f"❌ Error: {str(e)}"
+
+#######################################################################################################
+"""
 
 # Create the FastAPI app
 app = FastAPI()
@@ -207,59 +586,90 @@ app = FastAPI()
 def root():
     return {"status": "ok", "message": "Service is running"}
 
-# Define request and response data models for the /chat endpoint
-class ChatRequest(BaseModel):
-    message: str
-
-class ChatResponse(BaseModel):
-    reply: str
-"""
-# Define the /chat POST endpoint
-@app.post("/chat", response_model=ChatResponse)
-async def chat_endpoint(request: ChatRequest):
-    user_message = request.message
-    try:
-        # Use the assistant agent to process the user's message
-        result = await assistant.run(task=user_message)
-    except Exception as e:
-        # Handle errors (e.g., API issues) by returning an HTTP 500 response
-        raise HTTPException(status_code=500, detail=f"Agent error: {e}")
-    # Extract the assistant's reply from the agent's result
-    reply_text = ""
-    if result and hasattr(result, "messages") and result.messages:
-        # The last message in the result should be the assistant's response
-        last_msg = result.messages[-1]
-        reply_text = last_msg.content if hasattr(last_msg, "content") else str(last_msg)
-    return ChatResponse(reply=reply_text)
-"""
 import traceback
 
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
+    global team, agents, agent_list, stop_execution, loaded_team_state
+    awaiting_user_reply = False
+
     await websocket.accept()
     try:
+        if not team:
+            name_to_agent_skill = extract_agent_skills(CONFIG_FILE)
+            model_clients_map = {"openai": model_client_openai}
+            agents = build_agents_from_config(CONFIG_FILE, name_to_agent_skill, model_clients_map)
+
+            agents["user_proxy"].human_input_mode = "NEVER"
+            agent_list = [agents[name] for name in agents]
+            
+            
+            agents["user_proxy"] = UserProxyAgent(
+                name="user_proxy")
+
+            print("System initialized. ✅ You can now use editor_agent to change thinker_agent's perspective.")
+            print("✅ All agents initialized successfully.")
+
+            agent_list = [
+                agents["moderator_agent"],
+                agents["expert_1_agent"],
+                agents["expert_2_agent"],
+                agents["hilarious_agent"],
+                agents["creative_agent"],
+                agents["user_proxy"],
+            ]
+            print(dir(agents["expert_1_agent"]))
+            print(dir(agents["user_proxy"]))
+
+            print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX Agents", agents)
+
+            print ("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX Agent list:", agent_list)
+
+            #######################################################################################################################
+            ############################## ✅ Create SelectorGroupChat with selector_func (not selector) #########################
+
+            
+            
+            
+            team = SelectorGroupChat(
+                agent_list,
+                model_client=model_client_openai,
+                selector_func=dynamic_selector_func,
+                termination_condition=termination,
+                allow_repeated_speaker=True,
+            )
+
+            if loaded_team_state:
+                await team.load_state(loaded_team_state)
+                loaded_team_state = None
+
+            asyncio.create_task(speak_worker())
+
         while True:
             data = await websocket.receive_text()
-            print(f"📩 Received from browser: {data}")
-
             if data == "__ping__":
                 continue
 
-            try:
-                result = await assistant.run(task=data)
-                reply_text = ""
-                if result and hasattr(result, "messages") and result.messages:
-                    last_msg = result.messages[-1]
-                    reply_text = last_msg.content if hasattr(last_msg, "content") else str(last_msg)
+            stop_execution = False
 
-                print(f"📤 Sent to browser: {reply_text}")
-                await websocket.send_text(reply_text)
+            if awaiting_user_reply:
+                # 👤 It's user's turn: inject their message
+                await agents["user_proxy"].a_send(TextMessage(content=data, source="user"))
+                awaiting_user_reply = False  # Reset
+            else:
+                # 🧠 Otherwise, let the debate run normally
+                await run_chat(team, websocket)
 
-            except Exception as inner_error:
-                print("❌ Error during assistant response:")
-                traceback.print_exc()
-                await websocket.send_text("⚠️ Internal error")
+                # 🎙️ If next speaker is user_proxy, notify frontend and wait
+                if team.last_speaker and team.last_speaker.name == "user_proxy":
+                    await websocket.send_text("__USER_PROXY_TURN__")
+                    awaiting_user_reply = True
+
+            await speech_queue.join()
 
     except WebSocketDisconnect:
-        print("❌ WebSocket disconnected")
+        print("🔌 WebSocket disconnected")
+    except Exception as e:
+        traceback.print_exc()
+        await websocket.send_text("⚠️ Internal server error")
