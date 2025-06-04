@@ -496,6 +496,9 @@ def root():
 
 import traceback
 
+async def no_input(prompt, cancellation_token=None):
+    return None  # or raise CancelledError to signal termination
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     global team, agents, agent_list, stop_execution, loaded_team_state, task1
@@ -506,7 +509,10 @@ async def websocket_endpoint(websocket: WebSocket):
             name_to_agent_skill = extract_agent_skills(CONFIG_FILE)
             agents = build_agents_from_config(CONFIG_FILE, name_to_agent_skill, model_clients_map)
 
-            agents["user_proxy"] = UserProxyAgent(name="user_proxy")
+            agents["user_proxy"] = UserProxyAgent(name="user_proxy",input_func=no_input)
+            
+            async def no_input(prompt, cancellation_token=None):
+                return None  # or raise CancelledError to signal termination
 
             agent_list = [
                 agents["moderator_agent"],
