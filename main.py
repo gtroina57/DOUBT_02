@@ -43,7 +43,7 @@ import gc
 
 import json
 import re
-
+"""
 # Ensure the OpenAI API key is set in the environment
 from dotenv import load_dotenv
 load_dotenv()
@@ -52,19 +52,142 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 if not OPENAI_API_KEY:
     raise RuntimeError("OPENAI_API_KEY environment variable is not set.")
 
-
+"""
+################################ Create OpenAI model client   #############################
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+if not OPENAI_API_KEY:
+    raise RuntimeError("OPENAI_API_KEY environment variable is not set.")
+    
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+if not GOOGLE_API_KEY:
+    raise RuntimeError("GOOGLE_API_KEY environment variable is not set.")
+    
 model_client_openai = OpenAIChatCompletionClient(
     model="gpt-4o-2024-08-06",
     api_key=OPENAI_API_KEY # Optional if you have an OPENAI_API_KEY env variable set.
 )
-# Configure the LLM for the assistant agent (e.g., using GPT-4 with the API key)
-"""
-llm_config = {
-    "config_list": [
-        {"model": "gpt-4", "api_key": OPENAI_API_KEY}
-    ]
+
+model_client_gemini = OpenAIChatCompletionClient(
+    model="gemini-1.5-flash",
+    api_key=GOOGLE_API_KEY,
+)
+#########################################################################################################
+################################## Initialize variables   ##################################################
+CONFIG_FILE = "agent_config.json"
+agents = {}
+agent_list = []
+team = None
+loaded_team_state = None  # Will hold config if loaded before team is created
+task1 =""
+print("✅ Environment cleared.")
+
+#########################################################################################
+global user_proxy, team, loaded_team_state, agents, agent_list, model_client_openai, model_client_gemini
+image_url = None
+
+
+############################ TEXT TO SPEECH  #########################################
+# Store already processed messages to prevent duplicates
+processed_messages = set()
+stop_execution = False  # Flag to stop when "APPROVE" is reached
+
+import asyncio
+from IPython.display import Audio, display
+from pydub import AudioSegment
+import os
+from openai import OpenAI
+
+speech_queue = asyncio.Queue()
+
+async def speak_worker():
+    ###Processes speech requests sequentially from the queue.
+    global stop_execution
+    AGENT_VOICES = {
+    "moderator_agent": "onyx",
+    "expert_1_agent": "nova",
+    "expert_2_agent": "shimmer",
+    "hilarious_agent": "alloy",
+    "image_agent": "alloy",
+    "describe_agent": "nova",
+    "creative_agent": "onyx",
+    "user": "alloy"
 }
-"""
+    print("PIPPO10")
+    while True:
+        item = await speech_queue.get()  # Wait for a new message
+
+        agent_name, content = item  # ✅ Unpack tuple into content and source
+        if item == ("system", "TERMINATE"):
+            print("🛑 Received TERMINATE. Exiting speak_worker...")
+            speech_queue.task_done()
+            stop_execution = True
+            break
+        print ("ITEM", item)
+        if content.strip():
+            print("CONTENT CONTENT",content)
+            #print(f"DEBUG - Adding message to queue: {item}")
+            processed_messages.add(item)
+
+            # Determine the voice based on the agent
+            voice = AGENT_VOICES.get(agent_name, "onyx")  # Default to "onyx" if not found
+            filename = "temp_audio.mp3"
+            client1 = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+            #text_for_audio =content.rsplit("XYZ", 1)[0].strip()
+            #print("TEXT FOR AUDIO", text_for_audio)
+
+            # Step 1: Remove trailing "XYZ"
+            text_for_audio = content.rsplit("XYZ", 1)[0].strip()
+
+            # Step 2: Replace Markdown links like [text](https://...)
+            text_for_audio = re.sub(
+                r'\[.*?\]\(https?://\S+\)',
+                'You can find the image at the link',
+                text_for_audio
+            )
+
+            # Step 3: Replace raw URLs like https://...
+            text_for_audio = re.sub(
+                r'https?://\S+',
+                'You can find the image at the link',
+                text_for_audio
+            )
+            """
+            # Step 4: Replace base64 image URIs (optional)
+            text_for_audio = re.sub(
+                r'data:image/\w+;base64,\S+',
+                'You can find the image at the link',
+                text_for_audio
+            )
+
+            # Clean up extra spaces
+            text_for_audio = re.sub(r'\s+', ' ', text_for_audio).strip()
+
+            """
+            response = client1.audio.speech.create(
+                model="tts-1",
+                voice=voice,
+                input=text_for_audio
+            )
+            #input=content.strip()
+            with open(filename, 'wb') as file:
+                file.write(response.content)
+            print(f"File saved: {filename}")
+
+            # Display and play audio
+            display(Audio(filename, autoplay=True))
+
+            # Load and play audio
+            audio_l = AudioSegment.from_mp3(filename)
+            audio_duration_seconds = len(audio_l) / 1000
+
+            await asyncio.sleep(audio_duration_seconds + 1)  # ✅ Non-blocking sleep
+            os.remove(filename)
+
+        print("Finished speaking.")
+        speech_queue.task_done()
+
+
 
 # Initialize the assistant agent with the LLM configuration
 assistant = AssistantAgent(
