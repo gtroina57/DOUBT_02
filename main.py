@@ -71,6 +71,10 @@ model_client_gemini = OpenAIChatCompletionClient(
     model="gemini-1.5-flash",
     api_key=GOOGLE_API_KEY,
 )
+
+#####################################################################################################
+global user_proxy, team, loaded_team_state, agents, agent_list, model_client_openai, model_client_gemini
+image_url = None
 #########################################################################################################
 ################################## Initialize variables   ##################################################
 CONFIG_FILE = "agent_config.json"
@@ -81,9 +85,7 @@ loaded_team_state = None  # Will hold config if loaded before team is created
 task1 =""
 print("✅ Environment cleared.")
 
-#########################################################################################
-global user_proxy, team, loaded_team_state, agents, agent_list, model_client_openai, model_client_gemini
-image_url = None
+
 
 
 ############################ TEXT TO SPEECH  #########################################
