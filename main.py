@@ -209,7 +209,13 @@ async def speak_worker():
         print("Finished speaking.")
         speech_queue.task_done()
 
+##########################################################################################################
+################################# Build Agents from configuration  ####################################
 
+model_clients_map = {
+    "openai": model_client_openai,
+    "gemini": model_client_gemini,
+}
 ##########################################################################################################
 ################################# Load default configuration    ##########################################
 with open(CONFIG_FILE, "r") as f:
@@ -286,14 +292,6 @@ def build_agents_from_config(config_path, name_to_agent_skill, model_clients_map
 
 #print(f"✅ Initialized {len(agents)} agents for debate topic: {task1}")
     
-
-##########################################################################################################
-################################# Build Agents from configuration  ####################################
-
-model_clients_map = {
-    "openai": model_client_openai,
-    "gemini": model_client_gemini,
-}
 
 ##########################################################################################################
 ################################# Termination  ####################################
