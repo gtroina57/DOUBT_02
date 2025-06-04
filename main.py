@@ -495,24 +495,28 @@ def root():
     return {"status": "ok", "message": "Service is running"}
 
 import traceback
-
+"""
 async def no_input(prompt, cancellation_token=None):
     return None  # or raise CancelledError to signal termination
+"""
+async def no_input(prompt: str, cancellation_token: Optional[object] = None) -> str:
+    # 🚫 Prevents default blocking input() from being used
+    raise EOFError("No synchronous input allowed in WebSocket mode.")
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    global team, agents, agent_list, stop_execution, loaded_team_state, task1
+    global team, agents, agent_list, stop_execution, loaded_team_state
+    awaiting_user_reply = False
 
     await websocket.accept()
     try:
         if not team:
+            # 🔧 Load agents from config
             name_to_agent_skill = extract_agent_skills(CONFIG_FILE)
             agents = build_agents_from_config(CONFIG_FILE, name_to_agent_skill, model_clients_map)
 
-            agents["user_proxy"] = UserProxyAgent(name="user_proxy",input_func=no_input)
-            
-            async def no_input(prompt, cancellation_token=None):
-                return None  # or raise CancelledError to signal termination
+            # 🎭 Add user_proxy with NO input_func
+            agents["user_proxy"] = UserProxyAgent(name="user_proxy", input_func=no_input)
 
             agent_list = [
                 agents["moderator_agent"],
@@ -523,6 +527,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 agents["user_proxy"],
             ]
 
+            # 🧠 Initialize the SelectorGroupChat
             team = SelectorGroupChat(
                 agent_list,
                 model_client=model_client_openai,
@@ -535,8 +540,11 @@ async def websocket_endpoint(websocket: WebSocket):
                 await team.load_state(loaded_team_state)
                 loaded_team_state = None
 
-            asyncio.create_task(speak_worker())
+            # 🚀 Start the debate and speaking loop
+            asyncio.create_task(run_chat(team))      # ✅ Starts the debate
+            asyncio.create_task(speak_worker())      # ✅ Starts audio playback loop
 
+        # 🔁 Handle incoming websocket messages
         while True:
             data = await websocket.receive_text()
             if data == "__ping__":
@@ -544,15 +552,13 @@ async def websocket_endpoint(websocket: WebSocket):
 
             stop_execution = False
 
-            if not task1:
-                # ✅ First message = topic
-                task1 = data.strip()
-                await websocket.send_text(f"📘 Topic set: {task1}")
-                asyncio.create_task(run_chat(team, websocket))
-                continue
+            if awaiting_user_reply:
+                # 👤 User is expected to reply
+                await agents["user_proxy"].a_receive(TextMessage(content=data, source="user"))
+                awaiting_user_reply = False
+            else:
+                print("⚠️ Unexpected input received while not awaiting user. Ignoring or log it.")
 
-            # 👤 User input
-            await agents["user_proxy"].a_receive(TextMessage(content=data, source="user"))
             await speech_queue.join()
 
     except WebSocketDisconnect:
