@@ -49,6 +49,9 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 
+
+# Create the FastAPI app
+app = FastAPI()
 # Mount static directory
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -596,10 +599,6 @@ async def notebook_block_logic():
 
 #######################################################################################################
 """
-
-# Create the FastAPI app
-app = FastAPI()
-
 @app.api_route("/", methods=["GET", "HEAD"])
 def root():
     return {"status": "ok", "message": "Service is running"}
