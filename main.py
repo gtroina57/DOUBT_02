@@ -4,7 +4,7 @@ Created on Fri May 30 20:11:19 2025
 
 @author: giuse
 """
-# main.py
+
 # main.py
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -100,12 +100,6 @@ print("✅ Environment cleared.")
 # Store already processed messages to prevent duplicates
 processed_messages = set()
 stop_execution = False  # Flag to stop when "APPROVE" is reached
-
-import asyncio
-from IPython.display import Audio, display
-from pydub import AudioSegment
-import os
-from openai import OpenAI
 
 speech_queue = asyncio.Queue()
 
@@ -273,11 +267,11 @@ def build_agents_from_config(config_path, name_to_agent_skill, model_clients_map
         agent.llm_config["temperature"] = cfg.get("temperature", 0.7)
 
         agents[name] = agent
-        print(f"✅ Initialized {len(agents)} agents for debate topic: {task1}")
+        #print(f"✅ Initialized {len(agents)} agents for debate topic: {task1}")
     return agents
 
 
-#print(f"✅ Initialized {len(agents)} agents for debate topic: {task1}")
+print(f"✅ Initialized {len(agents)} agents for debate topic: {task1}")
     
 
 ##########################################################################################################
@@ -464,8 +458,8 @@ async def run_chat(team, websocket=None):
 
             # ✅ Notify frontend if it's Giuseppe's turn
             if agent_name == "user_proxy" and websocket:
-                await websocket.send_text("__USER_PROXY_TURN__")
                 awaiting_user_reply = True
+                await websocket.send_text("__USER_PROXY_TURN__")
                 
             # ✅ Optional: log internal message history
             if not hasattr(team, "_message_history"):
