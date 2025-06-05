@@ -494,13 +494,12 @@ import traceback
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    global team, agents, agent_list, stop_execution, loaded_team_state
+    global team, agents, agent_list, stop_execution, loaded_team_state, early_input_buffer, awaiting_user_reply
     team = None
-    session = {
-        "awaiting_user_reply": False,
-        "first_user_input": True,
-        "early_input_buffer": None,
-    }
+    
+    awaiting_user_reply = False,
+    early_input_buffer = None,
+    
     user_message_queue = asyncio.Queue()
     async def flush_queue(queue: asyncio.Queue):
         while not queue.empty():
@@ -520,45 +519,39 @@ async def websocket_endpoint(websocket: WebSocket):
 
             # ✅ Define the input function using queue
             async def websocket_async_input_func(*args, **kwargs):
+                global stop_execution, early_input_buffer, awaiting_user_reply
                 while True:
                   
                     data = await websocket.receive_text()
                     if data == "__ping__":
                         continue
-                    """
+
                     stop_execution = False
 
-                    # 🎯 Handle first user input to set debate topic
-                    if session["first_user_input"]:
-                        print("📌 First user input received, setting debate topic.")
-                        await user_message_queue.put(data)
-                        session["first_user_input"] = False
-                        continue
-                    """
                     # 🕓 Handle moderator giving floor to user
                     if data == "__USER_PROXY_TURN__":
                         print("🟢 Moderator has delegated to user_proxy.")
-                        session["awaiting_user_reply"] = True
+                        awaiting_user_reply = True
 
                     # 🕗 Check if early input was already given
-                    if session["early_input_buffer"]:
-                        print("📥 Using cached early input:", session["early_input_buffer"])
-                        await user_message_queue.put(session["early_input_buffer"])
-                        session["early_input_buffer"] = None
-                        session["awaiting_user_reply"] = False
+                    if  early_input_buffer:
+                        print("📥 Using cached early input:", early_input_buffer)
+                        await user_message_queue.put (early_input_buffer)
+                        early_input_buffer = None
+                        awaiting_user_reply = False
                     else:
                         await websocket.send_text("👤 It's your turn to speak.")
                     continue
 
                     # 🎤 User is replying during their turn
-                    if session["awaiting_user_reply"]:
+                    if  awaiting_user_reply:
                         print("👤 User replied:", data)
                         await user_message_queue.put(data)
-                        session["awaiting_user_reply"] = False
+                        awaiting_user_reply = False
                     else:
                         # 🕒 Not their turn: warn and buffer if useful
-                        if not session["early_input_buffer"]:
-                            session["early_input_buffer"] = data
+                        if not early_input_buffer:
+                            early_input_buffer = data
                             print("⚠️ Cached early user input:", data)
                         await websocket.send_text("⚠️ Not your turn yet. Please wait for the moderator.")
 
