@@ -1,65 +1,45 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Debate WebSocket Chat</title>
-</head>
-<body>
-  <h2>Debate System</h2>
-  <textarea id="log" cols="80" rows="20" readonly></textarea><br>
-  <input type="text" id="messageInput" placeholder="Wait for your turn..." size="60" />
-  <button onclick="sendMessage()">Send</button>
+<script>
+const ws = new WebSocket("wss://doubt-02.onrender.com/ws");
+const inputBox = document.getElementById("user-input");
+const sendButton = document.getElementById("send-button");
 
-  <script>
-    const ws = new WebSocket("wss://doubt-02.onrender.com/ws");   
+// 🔒 Initially disable input
+inputBox.disabled = true;
+sendButton.disabled = true;
 
-    ws.onopen = () => {
-      log("✅ WebSocket connected");
-    };
+socket.onmessage = function(event) {
+    const msg = event.data;
 
-    ws.onmessage = (event) => {
-      if (event.data === "__USER_PROXY_TURN__") {
-        log("🎤 Moderator gives you the floor. You may speak now.");
-        const input = document.getElementById("messageInput");
-        input.disabled = false;
-        input.focus();
-        return;
-      }
+    if (msg === "__USER_PROXY_TURN__") {
+        // ✅ It's the user's turn
+        inputBox.disabled = false;
+        sendButton.disabled = false;
+        inputBox.focus();
 
-      log("🤖 " + event.data);
-    };
-
-    ws.onclose = () => {
-      log("❌ WebSocket disconnected");
-    };
-
-    ws.onerror = (err) => {
-      log("⚠️ WebSocket error: " + err.message);
-    };
-
-    function log(message) {
-      const logArea = document.getElementById("log");
-      logArea.value += message + "\n";
-      logArea.scrollTop = logArea.scrollHeight;
+        // Optional: notify user visually
+        console.log("🎤 It's your turn to speak.");
+    } else {
+        // 📥 Handle normal bot message
+        appendToChatLog("🤖", msg);
     }
+};
 
-    function sendMessage() {
-      const input = document.getElementById("messageInput");
-      const message = input.value.trim();
-      if (message && ws.readyState === WebSocket.OPEN) {
-        ws.send(message);
-        log("🧑 You: " + message);
-        input.value = "";
-        input.disabled = false;
-      }
-    }
+sendButton.addEventListener("click", () => {
+    const message = inputBox.value.trim();
+    if (message === "") return;
 
-    // Ping every 20s to keep connection alive
-    setInterval(() => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send("__ping__");
-      }
-    }, 20000);
-  </script>
-</body>
-</html>
+    socket.send(message);
+
+    // ⛔ Disable input after sending, wait for next prompt
+    inputBox.value = "";
+    inputBox.disabled = true;
+    sendButton.disabled = true;
+});
+
+function appendToChatLog(sender, message) {
+    const chatLog = document.getElementById("chat-log");
+    const entry = document.createElement("div");
+    entry.textContent = `${sender}: ${message}`;
+    chatLog.appendChild(entry);
+}
+</script>
