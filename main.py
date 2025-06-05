@@ -491,40 +491,32 @@ def root():
 
 import traceback
 
+from fastapi import WebSocket, WebSocketDisconnect
+import asyncio
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    global team, agents, agent_list, stop_execution, loaded_team_state, awaiting_user_reply, gradio_input_buffer, first_user_input
+    global team, agents, agent_list, stop_execution, loaded_team_state
+
+    user_message_queue = asyncio.Queue()
     awaiting_user_reply = False
+    first_user_input = True
 
     await websocket.accept()
-    
-    # Optional: Flush early/stale messages
-    try:
-        while True:
-            stale_msg = await asyncio.wait_for(websocket.receive_text(), timeout=0.1)
-            print("🧹 Flushed stale message:", stale_msg)
-    except asyncio.TimeoutError:
-        print("✅ Message queue flushed")
-    
-    gradio_input_buffer = {"message": None}
-    
     try:
         if not team:
             # 🔧 Load agents from config
             name_to_agent_skill = extract_agent_skills(CONFIG_FILE)
             agents = build_agents_from_config(CONFIG_FILE, name_to_agent_skill, model_clients_map)
 
+            # ✅ Define the input function using queue
             async def websocket_async_input_func(*args, **kwargs):
-                while gradio_input_buffer["message"] is None:
-                    await asyncio.sleep(0.1)
-                message = gradio_input_buffer["message"]
-                gradio_input_buffer["message"] = None
-                return message
-            # 🎭 Add user_proxy with NO input_func
+                return await user_message_queue.get()
 
-            agents["user_proxy"] = UserProxyAgent(name="user_proxy",input_func=websocket_async_input_func)
-        
+            # 👤 Add the user_proxy agent with the queue-based input_func
+            agents["user_proxy"] = UserProxyAgent(name="user_proxy", input_func=websocket_async_input_func)
+
+            # 🧠 Define agent list
             agent_list = [
                 agents["moderator_agent"],
                 agents["expert_1_agent"],
@@ -534,7 +526,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 agents["user_proxy"],
             ]
 
-            # 🧠 Initialize the SelectorGroupChat
+            # 🧠 Initialize SelectorGroupChat
             team = SelectorGroupChat(
                 agent_list,
                 model_client=model_client_openai,
@@ -547,44 +539,37 @@ async def websocket_endpoint(websocket: WebSocket):
                 await team.load_state(loaded_team_state)
                 loaded_team_state = None
 
-            # 🚀 Start the debate and speaking loop
-            asyncio.create_task(run_chat(team))      # ✅ Starts the debate
-            asyncio.create_task(speak_worker())      # ✅ Starts audio playback loop
+            # 🚀 Start core tasks
+            asyncio.create_task(run_chat(team))      # Debate engine
+            asyncio.create_task(speak_worker())      # Audio playback
 
-        # 🔁 Handle incoming websocket messages
-        
-        first_user_input = True
-        awaiting_user_reply = False
-        
+        # 🔁 Main WebSocket message loop
         while True:
             data = await websocket.receive_text()
             if data == "__ping__":
                 continue
-        
+
             stop_execution = False
-        
+
             if first_user_input:
-                print("📌 First user input received, setting up debate topic.")
-                gradio_input_buffer["message"] = data
+                print("📌 First user input received, setting debate topic.")
+                await user_message_queue.put(data)
                 first_user_input = False
                 continue
-        
+
             if data == "__USER_PROXY_TURN__":
-                # 🧠 Moderator has given the floor to the user
-                print("🕓 Awaiting user reply...")
+                print("🕓 Moderator has delegated to user. Awaiting input.")
                 awaiting_user_reply = True
                 await websocket.send_text("👤 It's your turn to speak.")
                 continue
-        
+
             if awaiting_user_reply:
-                print("👤 User input received:", data)
-                gradio_input_buffer["message"] = data
+                print("👤 User replied:", data)
+                await user_message_queue.put(data)
                 awaiting_user_reply = False
             else:
-                print("⚠️ Ignored unexpected input:", data)
+                print("⚠️ Ignored unexpected input (not awaiting user):", data)
 
-
-###############################################################################################
             await speech_queue.join()
 
     except WebSocketDisconnect:
@@ -592,3 +577,5 @@ async def websocket_endpoint(websocket: WebSocket):
     except Exception as e:
         traceback.print_exc()
         await websocket.send_text("⚠️ Internal server error")
+
+
