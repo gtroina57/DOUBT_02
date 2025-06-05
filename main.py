@@ -666,4 +666,4 @@ async def websocket_endpoint(websocket: WebSocket):
 
     except Exception as e:
         traceback.print_exc()
-        await websocket.send_text("⚠️ 
+        await websocket.send_text("⚠️ ERROR in  block")
