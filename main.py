@@ -503,12 +503,12 @@ async def websocket_endpoint(websocket: WebSocket):
     }
     user_message_queue = asyncio.Queue()
     async def flush_queue(queue: asyncio.Queue):
-    while not queue.empty():
-        try:
-            queue.get_nowait()
-            queue.task_done()
-        except asyncio.QueueEmpty:
-            break
+        while not queue.empty():
+            try:
+                queue.get_nowait()
+                queue.task_done()
+            except asyncio.QueueEmpty:
+                break
     await flush_queue(user_message_queue)
 
     await websocket.accept()
