@@ -93,7 +93,7 @@ agents = {}
 agent_list = []
 team = None
 loaded_team_state = None  # Will hold config if loaded before team is created
-task1 =""
+task1 ="This is a debate on ethics and AI"
 print("✅ Environment cleared.")
 
 ############################ TEXT TO SPEECH  #########################################
@@ -277,7 +277,7 @@ def build_agents_from_config(config_path, name_to_agent_skill, model_clients_map
 ##########################################################################################################
 ################################# Termination  ####################################
 text_mention_termination = TextMentionTermination("TERMINATE")
-max_messages_termination = MaxMessageTermination(max_messages=50)
+max_messages_termination = MaxMessageTermination(max_messages=80)
 termination = text_mention_termination | max_messages_termination
 
 ##########################################################################################################
