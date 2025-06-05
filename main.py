@@ -422,7 +422,6 @@ def sync_save_config():
 
 ##########################################################################################################
 ################################# LOAD Config   ###################################################
-
 def sync_load_config():
     global loaded_team_state
     with open("coding/team_state.json", "r") as f:
@@ -491,16 +490,18 @@ def root():
 
 import traceback
 
-from fastapi import WebSocket, WebSocketDisconnect
-import asyncio
+#########
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     global team, agents, agent_list, stop_execution, loaded_team_state
 
+    session = {
+        "awaiting_user_reply": False,
+        "first_user_input": True,
+        "early_input_buffer": None,
+    }
     user_message_queue = asyncio.Queue()
-    awaiting_user_reply = False
-    first_user_input = True
 
     await websocket.accept()
     try:
@@ -511,7 +512,11 @@ async def websocket_endpoint(websocket: WebSocket):
 
             # ✅ Define the input function using queue
             async def websocket_async_input_func(*args, **kwargs):
-                return await user_message_queue.get()
+                while True:
+                    msg = await user_message_queue.get()
+                    if msg.strip():  # 🚫 Skip empty input
+                        return msg
+                    print("⚠️ Skipped empty user input")
 
             # 👤 Add the user_proxy agent with the queue-based input_func
             agents["user_proxy"] = UserProxyAgent(name="user_proxy", input_func=websocket_async_input_func)
@@ -551,31 +556,48 @@ async def websocket_endpoint(websocket: WebSocket):
 
             stop_execution = False
 
-            if first_user_input:
+            # 🎯 Handle first user input to set debate topic
+            if session["first_user_input"]:
                 print("📌 First user input received, setting debate topic.")
                 await user_message_queue.put(data)
-                first_user_input = False
+                session["first_user_input"] = False
                 continue
 
+            # 🕓 Handle moderator giving floor to user
             if data == "__USER_PROXY_TURN__":
-                print("🕓 Moderator has delegated to user. Awaiting input.")
-                awaiting_user_reply = True
-                await websocket.send_text("👤 It's your turn to speak.")
+                print("🟢 Moderator has delegated to user_proxy.")
+                session["awaiting_user_reply"] = True
+
+                # 🕗 Check if early input was already given
+                if session["early_input_buffer"]:
+                    print("📥 Using cached early input:", session["early_input_buffer"])
+                    await user_message_queue.put(session["early_input_buffer"])
+                    session["early_input_buffer"] = None
+                    session["awaiting_user_reply"] = False
+                else:
+                    await websocket.send_text("👤 It's your turn to speak.")
                 continue
 
-            if awaiting_user_reply:
+            # 🎤 User is replying during their turn
+            if session["awaiting_user_reply"]:
                 print("👤 User replied:", data)
                 await user_message_queue.put(data)
-                awaiting_user_reply = False
+                session["awaiting_user_reply"] = False
             else:
-                print("⚠️ Ignored unexpected input (not awaiting user):", data)
+                # 🕒 Not their turn: warn and buffer if useful
+                if not session["early_input_buffer"]:
+                    session["early_input_buffer"] = data
+                    print("⚠️ Cached early user input:", data)
+                await websocket.send_text("⚠️ Not your turn yet. Please wait for the moderator.")
 
             await speech_queue.join()
 
     except WebSocketDisconnect:
         print("🔌 WebSocket disconnected")
+        await speech_queue.put(("system", "TERMINATE"))
+        stop_execution = True
+        team = None
+
     except Exception as e:
         traceback.print_exc()
         await websocket.send_text("⚠️ Internal server error")
-
-
