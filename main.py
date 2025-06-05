@@ -521,10 +521,51 @@ async def websocket_endpoint(websocket: WebSocket):
             # ✅ Define the input function using queue
             async def websocket_async_input_func(*args, **kwargs):
                 while True:
+                  
+                    data = await websocket.receive_text()
+                    if data == "__ping__":
+                        continue
+                    """
+                    stop_execution = False
+
+                    # 🎯 Handle first user input to set debate topic
+                    if session["first_user_input"]:
+                        print("📌 First user input received, setting debate topic.")
+                        await user_message_queue.put(data)
+                        session["first_user_input"] = False
+                        continue
+                    """
+                    # 🕓 Handle moderator giving floor to user
+                    if data == "__USER_PROXY_TURN__":
+                        print("🟢 Moderator has delegated to user_proxy.")
+                        session["awaiting_user_reply"] = True
+
+                    # 🕗 Check if early input was already given
+                    if session["early_input_buffer"]:
+                        print("📥 Using cached early input:", session["early_input_buffer"])
+                        await user_message_queue.put(session["early_input_buffer"])
+                        session["early_input_buffer"] = None
+                        session["awaiting_user_reply"] = False
+                    else:
+                        await websocket.send_text("👤 It's your turn to speak.")
+                    continue
+
+                    # 🎤 User is replying during their turn
+                    if session["awaiting_user_reply"]:
+                        print("👤 User replied:", data)
+                        await user_message_queue.put(data)
+                        session["awaiting_user_reply"] = False
+                    else:
+                        # 🕒 Not their turn: warn and buffer if useful
+                        if not session["early_input_buffer"]:
+                            session["early_input_buffer"] = data
+                            print("⚠️ Cached early user input:", data)
+                        await websocket.send_text("⚠️ Not your turn yet. Please wait for the moderator.")
+
                     msg = await user_message_queue.get()
                     if msg.strip():  # 🚫 Skip empty input
                         return msg
-                    print("⚠️ Skipped empty user input")
+                    
 
             # 👤 Add the user_proxy agent with the queue-based input_func
             agents["user_proxy"] = UserProxyAgent(name="user_proxy", input_func=websocket_async_input_func)
@@ -553,8 +594,9 @@ async def websocket_endpoint(websocket: WebSocket):
                 loaded_team_state = None
 
             # 🚀 Start core tasks
-            asyncio.create_task(run_chat(team))      # Debate engine
-            asyncio.create_task(speak_worker())      # Audio playback
+            #asyncio.create_task(run_chat(team))      # Debate engine
+            
+        asyncio.create_task(speak_worker())      # Audio playback
 
         # 🔁 Main WebSocket message loop
         while True:
@@ -598,8 +640,24 @@ async def websocket_endpoint(websocket: WebSocket):
                     print("⚠️ Cached early user input:", data)
                 await websocket.send_text("⚠️ Not your turn yet. Please wait for the moderator.")
 
-            await speech_queue.join()
-
+            
+        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+        await run_chat(team)  # Run message processing
+        print("✅ Team after run chat.", team)
+        print("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY")
+        await speech_queue.join()  # Wait until all speech tasks are processed
+        print("ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ")
+        print("Notebook block executed!")
+        stop_execution = True
+        print("Finished speaking.")
+        if speech_queue.empty():
+            print("✅ Queue is empty.")
+            return "✅ Notebook block executed!"
+        else:
+            print("📦 Queue has pending items.")
+            speech_queue.task_done()
+            return "✅ Notebook block executed after emptying the queue"
+        
     except WebSocketDisconnect:
         print("🔌 WebSocket disconnected")
         await speech_queue.put(("system", "TERMINATE"))
@@ -608,4 +666,4 @@ async def websocket_endpoint(websocket: WebSocket):
 
     except Exception as e:
         traceback.print_exc()
-        await websocket.send_text("⚠️ Internal server error")
+        await websocket.send_text("⚠️ 
