@@ -495,7 +495,7 @@ import traceback
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     global team, agents, agent_list, stop_execution, loaded_team_state
-
+    team = None
     session = {
         "awaiting_user_reply": False,
         "first_user_input": True,
