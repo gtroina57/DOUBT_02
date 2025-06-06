@@ -454,12 +454,14 @@ async def run_chat(team, websocket=None):
         if hasattr(result, "content") and isinstance(result.content, str):
             text = result.content
             agent_name = result.source
-
+            
+            """
             # ✅ Notify frontend if it's Giuseppe's turn
             if agent_name == "user_proxy" and websocket:
                 awaiting_user_reply = True
                 await websocket.send_text("__USER_PROXY_TURN__")
-                
+            """
+            
             # ✅ Optional: log internal message history
             if not hasattr(team, "_message_history"):
                 team._message_history = []
@@ -494,11 +496,10 @@ import traceback
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    global team, agents, agent_list, stop_execution, loaded_team_state, early_input_buffer, awaiting_user_reply
+    global team, agents, agent_list, stop_execution, loaded_team_state, awaiting_user_reply
     team = None
     
     awaiting_user_reply = False,
-    early_input_buffer = None,
     
     user_message_queue = asyncio.Queue()
     async def flush_queue(queue: asyncio.Queue):
@@ -519,7 +520,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
             # ✅ Define the input function using queue
             async def websocket_async_input_func(*args, **kwargs):
-                global stop_execution, early_input_buffer, awaiting_user_reply
+                global stop_execution, awaiting_user_reply
                 while True:
                   
                     data = await websocket.receive_text()
@@ -527,21 +528,13 @@ async def websocket_endpoint(websocket: WebSocket):
                         continue
 
                     stop_execution = False
-
+                    
+                    """
                     # 🕓 Handle moderator giving floor to user
                     if data == "__USER_PROXY_TURN__":
                         print("🟢 Moderator has delegated to user_proxy.")
                         awaiting_user_reply = True
 
-                    # 🕗 Check if early input was already given
-                    if  early_input_buffer:
-                        print("📥 Using cached early input:", early_input_buffer)
-                        await user_message_queue.put (early_input_buffer)
-                        early_input_buffer = None
-                        awaiting_user_reply = False
-                    else:
-                        await websocket.send_text("👤 It's your turn to speak.")
-                    continue
 
                     # 🎤 User is replying during their turn
                     if  awaiting_user_reply:
@@ -549,12 +542,9 @@ async def websocket_endpoint(websocket: WebSocket):
                         await user_message_queue.put(data)
                         awaiting_user_reply = False
                     else:
-                        # 🕒 Not their turn: warn and buffer if useful
-                        if not early_input_buffer:
-                            early_input_buffer = data
-                            print("⚠️ Cached early user input:", data)
                         await websocket.send_text("⚠️ Not your turn yet. Please wait for the moderator.")
-
+                    """
+                    await user_message_queue.put(data)
                     msg = await user_message_queue.get()
                     if msg.strip():  # 🚫 Skip empty input
                         return msg
