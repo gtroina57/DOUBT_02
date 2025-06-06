@@ -1,13 +1,12 @@
 
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Multi-Agent Debate Interface</title>
+  <title>Debate UI with Mic and Audio Playback Enable</title>
 </head>
 <body>
-  <h2>Multi-Agent Debate</h2>
+  <h2>🎙️ Multi-Agent Debate UI</h2>
 
   <textarea id="log" cols="80" rows="20" readonly></textarea><br>
 
@@ -16,47 +15,45 @@
 
   <input id="messageInput" type="text" placeholder="Wait for your turn..." size="60" disabled />
   <button id="sendButton" onclick="sendMessage()" disabled>Send</button>
-  <button onclick="startListening()" id="micButton" disabled>🎤 Speak</button>
+  <button id="micButton" onclick="startMic()" disabled>🎤 Speak</button><br><br>
+
+  <button onclick="enableAudio()">🔊 Tap here to enable audio playback</button>
 
   <script>
     const ws = new WebSocket("wss://doubt-02.onrender.com/ws");
+    let audioEnabled = false;
 
     ws.onopen = () => {
-      log("✅ Connected to debate server.");
+      log("✅ Connected to server.");
     };
 
     ws.onmessage = (event) => {
       if (event.data === "__USER_PROXY_TURN__") {
-        log("🎤 Moderator gives you the floor. You may speak now.");
-        const input = document.getElementById("messageInput");
-        input.disabled = false;
+        log("🎤 Moderator gives you the floor.");
+        document.getElementById("messageInput").disabled = false;
         document.getElementById("sendButton").disabled = false;
         document.getElementById("micButton").disabled = false;
-        input.focus();
+        document.getElementById("messageInput").focus();
         return;
       }
 
       if (event.data.startsWith("__AUDIO_URL__/")) {
         const audioUrl = event.data.replace("__AUDIO_URL__/", "");
-        const audio = new Audio(audioUrl);
-        audio.play().then(() => {
+        if (audioEnabled) {
+          const audio = new Audio(audioUrl);
+          audio.play().catch(err => log("❌ Error playing audio: " + err.message));
           log("🔊 Playing audio...");
-        }).catch((err) => {
-          log("❌ Error playing audio: " + err);
-        });
+        } else {
+          log("🔇 Audio playback blocked until tap.");
+        }
         return;
       }
 
       log("📩 " + event.data);
     };
 
-    ws.onclose = () => {
-      log("❌ WebSocket disconnected.");
-    };
-
-    ws.onerror = (err) => {
-      log("⚠️ WebSocket error: " + err.message);
-    };
+    ws.onclose = () => log("❌ Disconnected.");
+    ws.onerror = (err) => log("⚠️ WebSocket error: " + err.message);
 
     function log(message) {
       const logArea = document.getElementById("log");
@@ -85,34 +82,30 @@
       }
     }
 
-    function startListening() {
-      try {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) {
-          alert("Speech recognition not supported on this browser.");
-          return;
-        }
+    function enableAudio() {
+      const dummy = new Audio();
+      dummy.play().catch(() => {});  // dummy trigger
+      audioEnabled = true;
+      log("🔊 Audio playback enabled.");
+    }
 
-        const recognition = new SpeechRecognition();
-        recognition.lang = "en-US";
-        recognition.interimResults = false;
-        recognition.maxAlternatives = 1;
+    function startMic() {
+      const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+      recognition.lang = "en-US";
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
 
-        recognition.onresult = function (event) {
-          const transcript = event.results[0][0].transcript;
-          document.getElementById("messageInput").value = transcript;
-        };
+      recognition.onresult = (event) => {
+        const message = event.results[0][0].transcript;
+        document.getElementById("messageInput").value = message;
+        sendMessage();
+      };
 
-        recognition.onerror = function (event) {
-          console.error("Speech recognition error:", event.error);
-          log("❌ Speech error: " + event.error);
-        };
+      recognition.onerror = (event) => {
+        log("❌ Mic error: " + event.error);
+      };
 
-        recognition.start();
-      } catch (e) {
-        console.error("Speech recognition not available:", e);
-        log("❌ Speech recognition not available.");
-      }
+      recognition.start();
     }
 
     setInterval(() => {
