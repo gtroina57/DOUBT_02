@@ -127,14 +127,30 @@
   }
 
   function playNextAudio() {
-    if (isPlaying || audioQueue.length === 0) return;
+    if (audioQueue.length === 0) {
+      isPlaying = false;
+      return;
+    }
+
     const url = audioQueue.shift();
     const audio = new Audio(url);
     isPlaying = true;
-    audio.onended = () => { isPlaying = false; playNextAudio(); };
-    audio.onerror = () => { isPlaying = false; playNextAudio(); log("❌ Error playing audio."); };
+    log("🔊 Playing audio from: " + url);
+
+    audio.onended = () => {
+      isPlaying = false;
+      playNextAudio();
+    };
+
+    audio.onerror = () => {
+      log("❌ Error playing audio.");
+      isPlaying = false;
+      playNextAudio();
+    };
+
     audio.play();
   }
+
 
   setInterval(() => {
     if (ws.readyState === WebSocket.OPEN) ws.send("__ping__");
