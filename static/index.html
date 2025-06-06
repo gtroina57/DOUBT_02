@@ -32,6 +32,14 @@
         return;
       }
 
+     if (event.data.startsWith("__AUDIO_URL__/")) {
+       const audioUrl = event.data.replace("__AUDIO_URL__/", "");
+       const audio = new Audio(audioUrl);
+       audio.play();
+       log("🔊 Playing audio...");
+       return;
+     }
+
       log("📩 " + event.data);
     };
 
