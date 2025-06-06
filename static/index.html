@@ -1,11 +1,12 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Multi-Agent Debate Interface</title>
+  <title>Debate with Audio Queue</title>
 </head>
 <body>
-  <h2>Multi-Agent Debate</h2>
+  <h2>Multi-Agent Debate with Audio Queue</h2>
 
   <textarea id="log" cols="80" rows="20" readonly></textarea><br>
 
@@ -13,18 +14,22 @@
   <button onclick="setTopic()">Set Topic</button><br><br>
 
   <input id="messageInput" type="text" placeholder="Wait for your turn..." size="60" disabled />
-  <button id="sendButton" onclick="sendMessage()" disabled>Send</button>
+  <button id="sendButton" onclick="sendMessage()" disabled>Send</button><br><br>
 
-  <hr>
-
-  <input type="file" id="configFileInput" accept=".json" />
-  <button onclick="loadConfig()">📂 Load Agent Config</button><br><br>
-
-  <div id="configDisplay"></div><br>
-  <button onclick="saveConfig()">💾 Save Config</button>
+  <button onclick="enableAudio()">🔊 Enable Audio Playback</button>
 
   <script>
     const ws = new WebSocket("wss://doubt-02.onrender.com/ws");
+    let audioQueue = [];
+    let isPlaying = false;
+    let userAllowedAudio = false;
+    const sharedAudio = new Audio();
+
+    function enableAudio() {
+      userAllowedAudio = true;
+      log("✅ Audio playback enabled.");
+      sharedAudio.play().catch(() => {}); // Unlock the audio on iOS
+    }
 
     ws.onopen = () => {
       log("✅ Connected to debate server.");
@@ -42,16 +47,41 @@
 
       if (event.data.startsWith("__AUDIO_URL__/")) {
         const audioUrl = event.data.replace("__AUDIO_URL__/", "");
-        const audio = new Audio(audioUrl);
-        audio.play().then(() => {
-          log("🔊 Playing audio...");
-        }).catch((err) => {
-          log("❌ Error playing audio: " + err.message);
-        });
+        if (userAllowedAudio) {
+          enqueueAudio(audioUrl);
+        } else {
+          log("⚠️ Tap 'Enable Audio Playback' to hear audio.");
+        }
         return;
       }
 
       log("📩 " + event.data);
+    };
+
+    function enqueueAudio(url) {
+      audioQueue.push(url);
+      if (!isPlaying) {
+        playNext();
+      }
+    }
+
+    function playNext() {
+      if (audioQueue.length === 0) {
+        isPlaying = false;
+        return;
+      }
+      isPlaying = true;
+      const nextAudio = audioQueue.shift();
+      sharedAudio.src = nextAudio;
+      sharedAudio.play().then(() => {
+        log("🔊 Playing audio...");
+      }).catch((e) => {
+        log("❌ Error playing audio: " + e.message);
+      });
+    }
+
+    sharedAudio.onended = () => {
+      playNext();
     };
 
     ws.onclose = () => {
@@ -88,108 +118,7 @@
       }
     }
 
-    function loadConfig() {
-      const fileInput = document.getElementById("configFileInput");
-      const file = fileInput.files[0];
-      if (!file) {
-        log("⚠️ No file selected.");
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = function (e) {
-        try {
-          const config = JSON.parse(e.target.result);
-          displayConfig(config);
-        } catch (err) {
-          log("❌ Error parsing JSON: " + err.message);
-        }
-      };
-      reader.readAsText(file);
-    }
-
-    function displayConfig(config) {
-      const container = document.getElementById("configDisplay");
-      container.innerHTML = "";
-
-      for (const [name, values] of Object.entries(config)) {
-        const section = document.createElement("details");
-        section.open = true;
-        const summary = document.createElement("summary");
-        summary.textContent = `Agent: ${name}`;
-        section.appendChild(summary);
-
-        const desc = document.createElement("input");
-        desc.value = values.description || "";
-        section.appendChild(document.createTextNode("Description: "));
-        section.appendChild(desc);
-        section.appendChild(document.createElement("br"));
-
-        const msg = document.createElement("textarea");
-        msg.value = values.system_message || "";
-        msg.rows = 3;
-        section.appendChild(document.createTextNode("System Message: "));
-        section.appendChild(msg);
-        section.appendChild(document.createElement("br"));
-
-        const temp = document.createElement("input");
-        temp.type = "number";
-        temp.step = "0.1";
-        temp.min = "0.0";
-        temp.max = "1.0";
-        temp.value = values.temperature || 0.7;
-        section.appendChild(document.createTextNode("Temperature: "));
-        section.appendChild(temp);
-        section.appendChild(document.createElement("br"));
-
-        const mod = document.createElement("input");
-        mod.value = values.model_client || "";
-        section.appendChild(document.createTextNode("Model: "));
-        section.appendChild(mod);
-        section.appendChild(document.createElement("br"));
-
-        const tools = document.createElement("input");
-        tools.value = values.tools || "";
-        section.appendChild(document.createTextNode("Tools: "));
-        section.appendChild(tools);
-        section.appendChild(document.createElement("br"));
-
-        container.appendChild(section);
-        container.appendChild(document.createElement("br"));
-      }
-    }
-
-    function saveConfig() {
-      const container = document.getElementById("configDisplay");
-      const details = container.querySelectorAll("details");
-
-      const config = {};
-
-      details.forEach((section) => {
-        const name = section.querySelector("summary").textContent.replace("Agent: ", "").trim();
-        const inputs = section.querySelectorAll("input, textarea");
-
-        config[name] = {
-          description: inputs[0].value,
-          system_message: inputs[1].value,
-          temperature: parseFloat(inputs[2].value),
-          model_client: inputs[3].value,
-          tools: inputs[4].value
-        };
-      });
-
-      const blob = new Blob([JSON.stringify(config, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "updated_agent_config.json";
-      a.click();
-      URL.revokeObjectURL(url);
-
-      log("✅ Configuration saved.");
-    }
-
+    // Ping to keep connection alive
     setInterval(() => {
       if (ws.readyState === WebSocket.OPEN) {
         ws.send("__ping__");
