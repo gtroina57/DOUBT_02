@@ -599,7 +599,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 break
 
     await flush_queue(user_message_queue)
-    await flush_queue(speech_queue)
+    #await flush_queue(speech_queue)
 
     await websocket.accept()
     try:
