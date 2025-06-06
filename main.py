@@ -445,7 +445,7 @@ def intervene_now(user_input):
 ##########################################################################################################
 ################################# loop for debate  #######################################################
 async def run_chat(team, websocket=None):
-    global stop_execution, image_url, task1, awaiting_user_reply, gradio_input_buffer
+    global stop_execution, image_url, task1, gradio_input_buffer
 
     async for result in team.run_stream(task=task1):
         if stop_execution:
@@ -454,32 +454,29 @@ async def run_chat(team, websocket=None):
         if hasattr(result, "content") and isinstance(result.content, str):
             text = result.content
             agent_name = result.source
-            
-            """
-            # ✅ Notify frontend if it's Giuseppe's turn
-            if agent_name == "user_proxy" and websocket:
-                awaiting_user_reply = True
-                await websocket.send_text("__USER_PROXY_TURN__")
-            """
-            
-            # ✅ Optional: log internal message history
+
+            # 🧠 Optional: log user_proxy activation (not needed for UX)
+            if agent_name == "user_proxy":
+                print("🧑 Giuseppe (user_proxy) has responded.")
+
+            # 💾 Track conversation history
             if not hasattr(team, "_message_history"):
                 team._message_history = []
             team._message_history.append({"sender": agent_name, "content": text})
 
-            # ✅ Log to console
+            # 🖨️ Log output
             print(f"👤 sender: {agent_name}")
             print(f"📝 content: {text}")
             print(f"🖼️ image_url: {image_url}")
 
-            # ✅ Add to chat log (for UI)
+            # 🧾 Optional UI buffer (for Gradio or frontend chat log)
             prefix = "🧑" if "user" in agent_name.lower() else "🤖"
             user_conversation.append(f"{prefix} {agent_name.upper()}: {text}")
 
-            # ✅ Push to speech queue
+            # 🔊 Push to speech engine
             await speech_queue.put((agent_name, text))
 
-            # ✅ Terminate if "TERMINATE" is found
+            # 🛑 Handle "TERMINATE" marker
             if "TERMINATE" in text:
                 stop_execution = True
                 await speech_queue.put(("system", "TERMINATE"))
@@ -496,12 +493,14 @@ import traceback
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    global team, agents, agent_list, stop_execution, loaded_team_state, awaiting_user_reply
+    global team, agents, agent_list, stop_execution, loaded_team_state, task1
+
     team = None
-    
-    awaiting_user_reply = False,
-    
+    stop_execution = False
+    task1 = None  # 🆕 Debate topic will be set by user
+
     user_message_queue = asyncio.Queue()
+
     async def flush_queue(queue: asyncio.Queue):
         while not queue.empty():
             try:
@@ -509,98 +508,74 @@ async def websocket_endpoint(websocket: WebSocket):
                 queue.task_done()
             except asyncio.QueueEmpty:
                 break
+
     await flush_queue(user_message_queue)
+    await flush_queue(speech_queue)
 
     await websocket.accept()
     try:
-        if not team:
-            # 🔧 Load agents from config
-            name_to_agent_skill = extract_agent_skills(CONFIG_FILE)
-            agents = build_agents_from_config(CONFIG_FILE, name_to_agent_skill, model_clients_map)
+        # ✳️ Wait for user to submit task1 before anything else
+        await websocket.send_text("📝 Please enter the debate topic and click 'Set Topic' before continuing.")
+        while task1 is None:
+            init_msg = await websocket.receive_text()
+            if init_msg.startswith("__SET_TASK1__:"):
+                task1 = init_msg.replace("__SET_TASK1__:", "").strip()
+                print(f"🟢 Debate topic set: {task1}")
+                await websocket.send_text(f"✅ Debate topic received:\n{task1}")
+            elif init_msg == "__ping__":
+                continue
+            else:
+                await websocket.send_text("⚠️ Please use the 'Set Topic' button to begin.")
 
-            # ✅ Define the input function using queue
-            async def websocket_async_input_func(*args, **kwargs):
-                global stop_execution, awaiting_user_reply
-                while True:
-                  
-                    data = await websocket.receive_text()
-                    if data == "__ping__":
-                        continue
+        # 🔧 Load agents
+        name_to_agent_skill = extract_agent_skills(CONFIG_FILE)
+        agents = build_agents_from_config(CONFIG_FILE, name_to_agent_skill, model_clients_map)
 
-                    stop_execution = False
-                    
-                    """
-                    # 🕓 Handle moderator giving floor to user
-                    if data == "__USER_PROXY_TURN__":
-                        print("🟢 Moderator has delegated to user_proxy.")
-                        awaiting_user_reply = True
+        # 🎤 User input handler
+        async def websocket_async_input_func(*args, **kwargs):
+            while True:
+                data = await websocket.receive_text()
+                if data == "__ping__":
+                    continue
+                if data.strip():
+                    return data
 
+        async def wrapped_input_func(*args, **kwargs):
+            if websocket:
+                print("🟢 UX: Sending '__USER_PROXY_TURN__'")
+                await websocket.send_text("__USER_PROXY_TURN__")
+            return await websocket_async_input_func(*args, **kwargs)
 
-                    # 🎤 User is replying during their turn
-                    if  awaiting_user_reply:
-                        print("👤 User replied:", data)
-                        await user_message_queue.put(data)
-                        awaiting_user_reply = False
-                    else:
-                        await websocket.send_text("⚠️ Not your turn yet. Please wait for the moderator.")
-                    """
-                    await user_message_queue.put(data)
-                    msg = await user_message_queue.get()
-                    if msg.strip():  # 🚫 Skip empty input
-                        return msg
-                    
+        agents["user_proxy"] = UserProxyAgent(name="user_proxy", input_func=wrapped_input_func)
 
-            # 👤 Add the user_proxy agent with the queue-based input_func
-            agents["user_proxy"] = UserProxyAgent(name="user_proxy", input_func=websocket_async_input_func)
+        agent_list = [
+            agents["moderator_agent"],
+            agents["expert_1_agent"],
+            agents["expert_2_agent"],
+            agents["hilarious_agent"],
+            agents["creative_agent"],
+            agents["user_proxy"],
+        ]
 
-            # 🧠 Define agent list
-            agent_list = [
-                agents["moderator_agent"],
-                agents["expert_1_agent"],
-                agents["expert_2_agent"],
-                agents["hilarious_agent"],
-                agents["creative_agent"],
-                agents["user_proxy"],
-            ]
+        team = SelectorGroupChat(
+            agent_list,
+            model_client=model_client_openai,
+            selector_func=dynamic_selector_func,
+            termination_condition=termination,
+            allow_repeated_speaker=True,
+        )
 
-            # 🧠 Initialize SelectorGroupChat
-            team = SelectorGroupChat(
-                agent_list,
-                model_client=model_client_openai,
-                selector_func=dynamic_selector_func,
-                termination_condition=termination,
-                allow_repeated_speaker=True,
-            )
+        if loaded_team_state:
+            await team.load_state(loaded_team_state)
+            loaded_team_state = None
 
-            if loaded_team_state:
-                await team.load_state(loaded_team_state)
-                loaded_team_state = None
+        asyncio.create_task(speak_worker())
+        await run_chat(team, websocket=websocket)
+        await speech_queue.join()
 
-            # 🚀 Start core tasks
-            #asyncio.create_task(run_chat(team))      # Debate engine
-            
-        asyncio.create_task(speak_worker())      # Audio playback
-
-        # 🔁 Main WebSocket message loop
-
-            
-        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
-        await run_chat(team)  # Run message processing
-        print("✅ Team after run chat.", team)
-        print("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY")
-        await speech_queue.join()  # Wait until all speech tasks are processed
-        print("ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ")
-        print("Notebook block executed!")
         stop_execution = True
-        print("Finished speaking.")
-        if speech_queue.empty():
-            print("✅ Queue is empty.")
-            return "✅ Notebook block executed!"
-        else:
-            print("📦 Queue has pending items.")
-            speech_queue.task_done()
-            return "✅ Notebook block executed after emptying the queue"
-        
+        return "✅ Debate complete."
+
     except WebSocketDisconnect:
         print("🔌 WebSocket disconnected")
         await speech_queue.put(("system", "TERMINATE"))
@@ -609,4 +584,4 @@ async def websocket_endpoint(websocket: WebSocket):
 
     except Exception as e:
         traceback.print_exc()
-        await websocket.send_text("⚠️ ERROR in  block")
+        await websocket.send_text("⚠️ Internal server error during debate.")
