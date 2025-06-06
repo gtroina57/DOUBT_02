@@ -2,11 +2,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Debate UI with Mic and Audio Playback Enable</title>
+  <meta charset="UTF-8">
+  <title>Debate with Audio Queue</title>
 </head>
 <body>
-  <h2>🎙️ Multi-Agent Debate UI</h2>
+  <h2>Multi-Agent Debate with Audio Queue</h2>
 
   <textarea id="log" cols="80" rows="20" readonly></textarea><br>
 
@@ -14,37 +14,43 @@
   <button onclick="setTopic()">Set Topic</button><br><br>
 
   <input id="messageInput" type="text" placeholder="Wait for your turn..." size="60" disabled />
-  <button id="sendButton" onclick="sendMessage()" disabled>Send</button>
-  <button id="micButton" onclick="startMic()" disabled>🎤 Speak</button><br><br>
+  <button id="sendButton" onclick="sendMessage()" disabled>Send</button><br><br>
 
-  <button onclick="enableAudio()">🔊 Tap here to enable audio playback</button>
+  <button onclick="enableAudio()">🔊 Enable Audio Playback</button>
 
   <script>
     const ws = new WebSocket("wss://doubt-02.onrender.com/ws");
-    let audioEnabled = false;
+    let audioQueue = [];
+    let isPlaying = false;
+    let userAllowedAudio = false;
+    const sharedAudio = new Audio();
+
+    function enableAudio() {
+      userAllowedAudio = true;
+      log("✅ Audio playback enabled.");
+      sharedAudio.play().catch(() => {}); // Unlock the audio on iOS
+    }
 
     ws.onopen = () => {
-      log("✅ Connected to server.");
+      log("✅ Connected to debate server.");
     };
 
     ws.onmessage = (event) => {
       if (event.data === "__USER_PROXY_TURN__") {
-        log("🎤 Moderator gives you the floor.");
-        document.getElementById("messageInput").disabled = false;
+        log("🎤 Moderator gives you the floor. You may speak now.");
+        const input = document.getElementById("messageInput");
+        input.disabled = false;
         document.getElementById("sendButton").disabled = false;
-        document.getElementById("micButton").disabled = false;
-        document.getElementById("messageInput").focus();
+        input.focus();
         return;
       }
 
       if (event.data.startsWith("__AUDIO_URL__/")) {
         const audioUrl = event.data.replace("__AUDIO_URL__/", "");
-        if (audioEnabled) {
-          const audio = new Audio(audioUrl);
-          audio.play().catch(err => log("❌ Error playing audio: " + err.message));
-          log("🔊 Playing audio...");
+        if (userAllowedAudio) {
+          enqueueAudio(audioUrl);
         } else {
-          log("🔇 Audio playback blocked until tap.");
+          log("⚠️ Tap 'Enable Audio Playback' to hear audio.");
         }
         return;
       }
@@ -52,8 +58,39 @@
       log("📩 " + event.data);
     };
 
-    ws.onclose = () => log("❌ Disconnected.");
-    ws.onerror = (err) => log("⚠️ WebSocket error: " + err.message);
+    function enqueueAudio(url) {
+      audioQueue.push(url);
+      if (!isPlaying) {
+        playNext();
+      }
+    }
+
+    function playNext() {
+      if (audioQueue.length === 0) {
+        isPlaying = false;
+        return;
+      }
+      isPlaying = true;
+      const nextAudio = audioQueue.shift();
+      sharedAudio.src = nextAudio;
+      sharedAudio.play().then(() => {
+        log("🔊 Playing audio...");
+      }).catch((e) => {
+        log("❌ Error playing audio: " + e.message);
+      });
+    }
+
+    sharedAudio.onended = () => {
+      playNext();
+    };
+
+    ws.onclose = () => {
+      log("❌ WebSocket disconnected.");
+    };
+
+    ws.onerror = (err) => {
+      log("⚠️ WebSocket error: " + err.message);
+    };
 
     function log(message) {
       const logArea = document.getElementById("log");
@@ -78,36 +115,10 @@
         input.value = "";
         input.disabled = true;
         document.getElementById("sendButton").disabled = true;
-        document.getElementById("micButton").disabled = true;
       }
     }
 
-    function enableAudio() {
-      const dummy = new Audio();
-      dummy.play().catch(() => {});  // dummy trigger
-      audioEnabled = true;
-      log("🔊 Audio playback enabled.");
-    }
-
-    function startMic() {
-      const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-      recognition.lang = "en-US";
-      recognition.interimResults = false;
-      recognition.maxAlternatives = 1;
-
-      recognition.onresult = (event) => {
-        const message = event.results[0][0].transcript;
-        document.getElementById("messageInput").value = message;
-        sendMessage();
-      };
-
-      recognition.onerror = (event) => {
-        log("❌ Mic error: " + event.error);
-      };
-
-      recognition.start();
-    }
-
+    // Ping to keep connection alive
     setInterval(() => {
       if (ws.readyState === WebSocket.OPEN) {
         ws.send("__ping__");
