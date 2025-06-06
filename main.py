@@ -599,7 +599,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 break
 
     await flush_queue(user_message_queue)
-    #await flush_queue(speech_queue)
+    await flush_queue(speech_queue)
 
     await websocket.accept()
     try:
@@ -658,7 +658,7 @@ async def websocket_endpoint(websocket: WebSocket):
             await team.load_state(loaded_team_state)
             loaded_team_state = None
 
-        speak_task = asyncio.create_task(speak_worker())
+        speak_task = asyncio.create_task(speak_worker(websocket))
         await run_chat(team, websocket=websocket)
         await speech_queue.join()
 
