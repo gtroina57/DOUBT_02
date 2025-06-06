@@ -1,12 +1,13 @@
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Debate with Audio Queue</title>
+  <meta charset="UTF-8" />
+  <title>Multi-Agent Debate Interface</title>
 </head>
 <body>
-  <h2>Multi-Agent Debate with Audio Queue</h2>
+  <h2>Multi-Agent Debate</h2>
 
   <textarea id="log" cols="80" rows="20" readonly></textarea><br>
 
@@ -14,22 +15,11 @@
   <button onclick="setTopic()">Set Topic</button><br><br>
 
   <input id="messageInput" type="text" placeholder="Wait for your turn..." size="60" disabled />
-  <button id="sendButton" onclick="sendMessage()" disabled>Send</button><br><br>
-
-  <button onclick="enableAudio()">🔊 Enable Audio Playback</button>
+  <button id="sendButton" onclick="sendMessage()" disabled>Send</button>
+  <button onclick="startListening()" id="micButton" disabled>🎤 Speak</button>
 
   <script>
     const ws = new WebSocket("wss://doubt-02.onrender.com/ws");
-    let audioQueue = [];
-    let isPlaying = false;
-    let userAllowedAudio = false;
-    const sharedAudio = new Audio();
-
-    function enableAudio() {
-      userAllowedAudio = true;
-      log("✅ Audio playback enabled.");
-      sharedAudio.play().catch(() => {}); // Unlock the audio on iOS
-    }
 
     ws.onopen = () => {
       log("✅ Connected to debate server.");
@@ -41,47 +31,23 @@
         const input = document.getElementById("messageInput");
         input.disabled = false;
         document.getElementById("sendButton").disabled = false;
+        document.getElementById("micButton").disabled = false;
         input.focus();
         return;
       }
 
       if (event.data.startsWith("__AUDIO_URL__/")) {
         const audioUrl = event.data.replace("__AUDIO_URL__/", "");
-        if (userAllowedAudio) {
-          enqueueAudio(audioUrl);
-        } else {
-          log("⚠️ Tap 'Enable Audio Playback' to hear audio.");
-        }
+        const audio = new Audio(audioUrl);
+        audio.play().then(() => {
+          log("🔊 Playing audio...");
+        }).catch((err) => {
+          log("❌ Error playing audio: " + err);
+        });
         return;
       }
 
       log("📩 " + event.data);
-    };
-
-    function enqueueAudio(url) {
-      audioQueue.push(url);
-      if (!isPlaying) {
-        playNext();
-      }
-    }
-
-    function playNext() {
-      if (audioQueue.length === 0) {
-        isPlaying = false;
-        return;
-      }
-      isPlaying = true;
-      const nextAudio = audioQueue.shift();
-      sharedAudio.src = nextAudio;
-      sharedAudio.play().then(() => {
-        log("🔊 Playing audio...");
-      }).catch((e) => {
-        log("❌ Error playing audio: " + e.message);
-      });
-    }
-
-    sharedAudio.onended = () => {
-      playNext();
     };
 
     ws.onclose = () => {
@@ -115,10 +81,40 @@
         input.value = "";
         input.disabled = true;
         document.getElementById("sendButton").disabled = true;
+        document.getElementById("micButton").disabled = true;
       }
     }
 
-    // Ping to keep connection alive
+    function startListening() {
+      try {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+          alert("Speech recognition not supported on this browser.");
+          return;
+        }
+
+        const recognition = new SpeechRecognition();
+        recognition.lang = "en-US";
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        recognition.onresult = function (event) {
+          const transcript = event.results[0][0].transcript;
+          document.getElementById("messageInput").value = transcript;
+        };
+
+        recognition.onerror = function (event) {
+          console.error("Speech recognition error:", event.error);
+          log("❌ Speech error: " + event.error);
+        };
+
+        recognition.start();
+      } catch (e) {
+        console.error("Speech recognition not available:", e);
+        log("❌ Speech recognition not available.");
+      }
+    }
+
     setInterval(() => {
       if (ws.readyState === WebSocket.OPEN) {
         ws.send("__ping__");
