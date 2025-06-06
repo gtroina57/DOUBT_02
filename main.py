@@ -44,6 +44,9 @@ import gc
 import json
 import re
 
+import uuid
+
+from fastapi.responses import FileResponse
 
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -96,6 +99,79 @@ loaded_team_state = None  # Will hold config if loaded before team is created
 task1 ="This is a debate on ethics and AI"
 print("✅ Environment cleared.")
 
+############################ TEXT TO SPEECH  #########################################
+# Globals
+processed_messages = set()
+stop_execution = False
+speech_queue = asyncio.Queue()
+
+client1 = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+os.makedirs("audio", exist_ok=True)  # Folder to serve audio files
+
+@app.get("/audio/{filename}")
+async def get_audio_file(filename: str):
+    filepath = os.path.join("audio", filename)
+    if os.path.exists(filepath):
+        return FileResponse(filepath, media_type="audio/mpeg")
+    return {"error": "File not found"}
+
+async def speak_worker(websocket):
+    global stop_execution
+
+    AGENT_VOICES = {
+        "moderator_agent": "onyx",
+        "expert_1_agent": "nova",
+        "expert_2_agent": "shimmer",
+        "hilarious_agent": "alloy",
+        "image_agent": "alloy",
+        "describe_agent": "nova",
+        "creative_agent": "onyx",
+        "user": "alloy"
+    }
+
+    while True:
+        item = await speech_queue.get()
+        agent_name, content = item
+
+        if item == ("system", "TERMINATE"):
+            print("🛑 speak_worker terminated")
+            speech_queue.task_done()
+            stop_execution = True
+            break
+
+        if not content.strip():
+            speech_queue.task_done()
+            continue
+
+        # Clean message
+        text = content.rsplit("XYZ", 1)[0].strip()
+        text = re.sub(r'\[.*?\]\(https?://\S+\)', 'You can find the image at the link', text)
+        text = re.sub(r'https?://\S+', 'You can find the image at the link', text)
+
+        try:
+            voice = AGENT_VOICES.get(agent_name, "onyx")
+            response = client1.audio.speech.create(
+                model="tts-1",
+                voice=voice,
+                input=text
+            )
+
+            filename = f"{uuid.uuid4().hex}.mp3"
+            filepath = os.path.join("audio", filename)
+            with open(filepath, 'wb') as f:
+                f.write(response.content)
+
+            print(f"🔊 Audio saved to {filepath}")
+
+            if websocket:
+                await websocket.send_text(f"__AUDIO_URL__/audio/{filename}")
+
+        except Exception as e:
+            print("❌ Error in speak_worker:", e)
+
+        speech_queue.task_done()
+############################ TEXT TO SPEECH  #########################################
+"""
 ############################ TEXT TO SPEECH  #########################################
 # Store already processed messages to prevent duplicates
 processed_messages = set()
@@ -156,7 +232,7 @@ async def speak_worker():
                 'You can find the image at the link',
                 text_for_audio
             )
-            """
+########################### OPTIONAL ############################################            
             # Step 4: Replace base64 image URIs (optional)
             text_for_audio = re.sub(
                 r'data:image/\w+;base64,\S+',
@@ -167,7 +243,7 @@ async def speak_worker():
             # Clean up extra spaces
             text_for_audio = re.sub(r'\s+', ' ', text_for_audio).strip()
 
-            """
+            
             response = client1.audio.speech.create(
                 model="tts-1",
                 voice=voice,
@@ -177,7 +253,9 @@ async def speak_worker():
             with open(filename, 'wb') as file:
                 file.write(response.content)
             print(f"File saved: {filename}")
-
+"""
+"""
+#########################  within COLAB ###########################################################
             # Display and play audio
             display(Audio(filename, autoplay=True))
 
@@ -186,11 +264,22 @@ async def speak_worker():
             audio_duration_seconds = len(audio_l) / 1000
 
             await asyncio.sleep(audio_duration_seconds + 1)  # ✅ Non-blocking sleep
+##############################################################################################
+
+#########################  NO COLAB  ########################################################
+
+from pydub.playback import play
+
+# Load and play audio
+audio_l = AudioSegment.from_mp3(filename)
+play(audio_l)  # 🔊 This will actually output sound
+
+##################################################################################
             os.remove(filename)
 
         print("Finished speaking.")
         speech_queue.task_done()
-
+"""
 ##########################################################################################################
 ################################# Build Agents from configuration  ####################################
 
@@ -569,7 +658,7 @@ async def websocket_endpoint(websocket: WebSocket):
             await team.load_state(loaded_team_state)
             loaded_team_state = None
 
-        asyncio.create_task(speak_worker())
+        speak_task = asyncio.create_task(speak_worker())
         await run_chat(team, websocket=websocket)
         await speech_queue.join()
 
