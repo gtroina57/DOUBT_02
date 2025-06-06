@@ -2,83 +2,69 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Debating System Interface</title>
-  <style>
-    body { font-family: sans-serif; padding: 20px; }
-    textarea { width: 100%; height: 200px; margin-bottom: 10px; }
-    input[type="text"] { width: 60%; }
-    button { margin: 5px; padding: 8px 12px; }
-  </style>
+  <title>Multi-Agent Debate Interface</title>
 </head>
 <body>
-  <h2>Debating System UI</h2>
+  <h2>Multi-Agent Debate</h2>
 
-  <!-- Set Topic -->
-  <div>
-    <h3>1. Set Debate Topic</h3>
-    <input id="topicInput" type="text" placeholder="Enter debate topic..." />
-    <button onclick="setTopic()">Set Topic</button>
-    <p id="topicStatus"></p>
-  </div>
+  <textarea id="log" cols="80" rows="20" readonly></textarea><br>
 
-  <hr>
+  <!-- Step 1: Set Topic -->
+  <input id="topicInput" type="text" placeholder="Enter debate topic..." size="60" />
+  <button onclick="setTopic()">Set Topic</button><br><br>
 
-  <!-- User Input -->
-  <div>
-    <h3>2. Your Turn to Speak</h3>
-    <input id="messageInput" type="text" placeholder="Wait for your turn..." disabled />
-    <button id="sendButton" onclick="sendMessage()" disabled>Send</button>
-  </div>
+  <!-- Step 2: User Input -->
+  <input id="messageInput" type="text" placeholder="Wait for your turn..." size="60" disabled />
+  <button id="sendButton" onclick="sendMessage()" disabled>Send</button><br><br>
 
-  <hr>
-
-  <!-- Load Agent Config -->
-  <div>
-    <h3>3. Load Agent Configuration</h3>
-    <button onclick="loadAgentConfig()">Load Config</button>
-    <pre id="agentConfigDisplay">Waiting for config...</pre>
-  </div>
-
-  <hr>
-
-  <!-- Log Output -->
-  <textarea id="log" readonly></textarea>
+  <!-- Step 3: Load Agent Config (Placeholder for now) -->
+  <button onclick="log('⚙️ Agent configuration loading is currently automatic.')">Load Agent Config</button><br><br>
 
   <script>
     const ws = new WebSocket("wss://doubt-02.onrender.com/ws");
-    const audioQueue = [];
-    let isPlaying = false;
 
-    ws.onopen = () => log("✅ Connected to debate server.");
+    ws.onopen = () => {
+      log("✅ Connected to debate server.");
+    };
 
     ws.onmessage = (event) => {
       if (event.data === "__USER_PROXY_TURN__") {
         log("🎤 Moderator gives you the floor. You may speak now.");
-        document.getElementById("messageInput").disabled = false;
+        const input = document.getElementById("messageInput");
+        input.disabled = false;
         document.getElementById("sendButton").disabled = false;
-        document.getElementById("messageInput").focus();
+        input.focus();
         return;
       }
 
       if (event.data.startsWith("__AUDIO_URL__/")) {
-        const audioUrl = event.data.replace("__AUDIO_URL__", "");
-        audioQueue.push(audioUrl);
-        playNextAudio();
-        return;
-      }
-
-      if (event.data.startsWith("__AGENT_CONFIG__")) {
-        const config = event.data.replace("__AGENT_CONFIG__", "").trim();
-        document.getElementById("agentConfigDisplay").textContent = config;
+        const relativePath = event.data.replace("__AUDIO_URL__", "");
+        const audioUrl = `/${relativePath}`;  // Ensure it starts with /
+        console.log("🔗 Audio URL:", audioUrl);
+        const audio = new Audio(audioUrl);
+        audio.play().then(() => {
+          log("🔊 Playing audio...");
+        }).catch(err => {
+          console.error("❌ Audio play error:", err);
+          log("❌ Error playing audio.");
+        });
         return;
       }
 
       log("📩 " + event.data);
     };
 
-    function log(msg) {
+    ws.onclose = () => {
+      log("❌ WebSocket disconnected.");
+    };
+
+    ws.onerror = (err) => {
+      log("⚠️ WebSocket error: " + err.message);
+    };
+
+    function log(message) {
       const logArea = document.getElementById("log");
-      logArea.value += msg + "\n";
+      logArea.value += message + "\n";
       logArea.scrollTop = logArea.scrollHeight;
     }
 
@@ -86,7 +72,6 @@
       const topic = document.getElementById("topicInput").value.trim();
       if (topic && ws.readyState === WebSocket.OPEN) {
         ws.send(`__SET_TASK1__:${topic}`);
-        document.getElementById("topicStatus").textContent = `✅ Topic set: ${topic}`;
         log("📘 Topic sent: " + topic);
       }
     }
@@ -103,46 +88,12 @@
       }
     }
 
-    function loadAgentConfig() {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send("__LOAD_CONFIG__");
-        log("🔍 Requested agent config.");
-      }
-    }
-
-    function playNextAudio() {
-      if (isPlaying || audioQueue.length === 0) return;
-      const next = audioQueue.shift();
-      const audio = new Audio(next);
-      isPlaying = true;
-      log("🔊 Playing audio...");
-      audio.onended = () => {
-        isPlaying = false;
-        playNextAudio();
-      };
-      audio.onerror = () => {
-        log("❌ Error playing audio.");
-        isPlaying = false;
-        playNextAudio();
-      };
-      audio.play();
-    }
-
-    // Ping
+    // Ping every 20s to keep WebSocket alive
     setInterval(() => {
       if (ws.readyState === WebSocket.OPEN) {
         ws.send("__ping__");
       }
     }, 20000);
   </script>
-</body>
-</html>
-
-
-  setInterval(() => {
-    if (ws.readyState === WebSocket.OPEN) ws.send("__ping__");
-  }, 20000);
-</script>
-
 </body>
 </html>
