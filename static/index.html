@@ -38,18 +38,13 @@
       }
 
       if (event.data.startsWith("__AUDIO_URL__/")) {
-        const relativePath = event.data.replace("__AUDIO_URL__", "");
-        const audioUrl = `/${relativePath}`;  // Ensure it starts with /
-        console.log("🔗 Audio URL:", audioUrl);
-        const audio = new Audio(audioUrl);
-        audio.play().then(() => {
-          log("🔊 Playing audio...");
-        }).catch(err => {
-          console.error("❌ Audio play error:", err);
-          log("❌ Error playing audio.");
-        });
-        return;
+      const audioUrl = "https://doubt-02.onrender.com/" + event.data.replace("__AUDIO_URL__/", "");
+      audioQueue.push(audioUrl);
+      if (!isPlaying) {
+        playNextAudio();
       }
+      return;
+    }
 
       log("📩 " + event.data);
     };
