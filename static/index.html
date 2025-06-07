@@ -1,9 +1,8 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>🧠 Multi-Agent Debate UI</title>
+  <title>Multi-Agent Debate with Voice + Config Editor</title>
 </head>
 <body>
   <h2>🧠 Multi-Agent Debate UI</h2>
@@ -17,14 +16,12 @@
   <button id="sendButton" onclick="sendMessage()" disabled>Send</button>
   <button id="micButton" onclick="startListening()" disabled>🎤 Voice Input</button><br><br>
 
-  <button id="audioEnableBtn" onclick="enableAudio()" style="display:none;">🔊 Enable Audio Playback</button><br><br>
+  <button onclick="enableAudio()">🔊 Enable Audio Playback</button><br><br>
 
   <hr>
   <h3>⚙️ Agent Configuration</h3>
-  <button onclick="saveConfigToServer()">💾 Save Config to Server</button>
-  
   <input type="file" id="configFileInput" accept=".json" />
-
+  <button onclick="downloadConfig()">💾 Save Config</button>
   <div id="configEditor"></div>
 
   <script>
@@ -40,15 +37,6 @@
       sharedAudio.play().catch(() => {});
     }
 
-    window.onload = () => {
-      const isiOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
-      if (isiOS) {
-        document.getElementById("audioEnableBtn").style.display = "inline";
-      } else {
-        enableAudio();
-      }
-    };
-
     ws.onopen = () => log("✅ Connected to server.");
     ws.onmessage = (event) => {
       if (event.data === "__USER_PROXY_TURN__") {
@@ -60,13 +48,12 @@
       }
 
       if (event.data.startsWith("__AUDIO_URL__/")) {
-        const audioPath = event.data.replace("__AUDIO_URL__/", "");
-        const audioUrl = "https://doubt-02.onrender.com/" + audioPath;
+        const audioUrl = event.data.replace("__AUDIO_URL__/", "");
         if (userAllowedAudio) {
           audioQueue.push(audioUrl);
           if (!isPlaying) playNextAudio();
         } else {
-          log("⚠️ Audio ready. Tap to allow audio playback.");
+          log("⚠️ Audio ready. Tap 'Enable Audio Playback'.");
         }
         return;
       }
@@ -139,26 +126,13 @@
       logArea.scrollTop = logArea.scrollHeight;
     }
 
-    function saveConfigToServer() {
-      const config = {};
-      const inputs = document.querySelectorAll("#configEditor input");
-      inputs.forEach((input) => {
-        const name = input.dataset.agent;
-        const key = input.dataset.key;
-        if (!config[name]) config[name] = {};
-        config[name][key] = key === "temperature" ? parseFloat(input.value) : input.value;
-      });
+    setInterval(() => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send("__ping__");
+      }
+    }, 20000);
 
-      fetch("/save-config", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(config)
-      })
-        .then((res) => res.json())
-        .then((data) => log(data.status))
-        .catch(() => log("❌ Failed to save config to server."));
-    }
-
+    // === Config handling ===
     document.getElementById("configFileInput").addEventListener("change", function () {
       const file = this.files[0];
       if (!file) return;
@@ -199,6 +173,21 @@
       }
     }
 
+    function downloadConfig() {
+      const config = {};
+      const inputs = document.querySelectorAll("#configEditor input");
+      inputs.forEach((input) => {
+        const name = input.dataset.agent;
+        const key = input.dataset.key;
+        if (!config[name]) config[name] = {};
+        config[name][key] = key === "temperature" ? parseFloat(input.value) : input.value;
+      });
+      const blob = new Blob([JSON.stringify(config, null, 2)], { type: "application/json" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "agent_config_updated.json";
+      link.click();
+    }
   </script>
 </body>
 </html>
