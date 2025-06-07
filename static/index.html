@@ -1,12 +1,11 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Multi-Agent Debate with Audio Queue</title>
+  <title>Multi-Agent Debate with Voice + Config Editor</title>
 </head>
 <body>
-  <h2>Multi-Agent Debate with Audio Queue</h2>
+  <h2>🧠 Multi-Agent Debate UI</h2>
 
   <textarea id="log" cols="80" rows="20" readonly></textarea><br>
 
@@ -14,10 +13,16 @@
   <button onclick="setTopic()">Set Topic</button><br><br>
 
   <input id="messageInput" type="text" placeholder="Wait for your turn..." size="60" disabled />
-  <button id="sendButton" onclick="sendMessage()" disabled>Send</button><br><br>
+  <button id="sendButton" onclick="sendMessage()" disabled>Send</button>
+  <button id="micButton" onclick="startListening()" disabled>🎤 Voice Input</button><br><br>
 
   <button onclick="enableAudio()">🔊 Enable Audio Playback</button><br><br>
-  <button onclick="startListening()" id="micButton" disabled>🎤 Voice Input</button>
+
+  <hr>
+  <h3>⚙️ Agent Configuration</h3>
+  <input type="file" id="configFileInput" accept=".json" />
+  <button onclick="downloadConfig()">💾 Save Config</button>
+  <div id="configEditor"></div>
 
   <script>
     const ws = new WebSocket("wss://doubt-02.onrender.com/ws");
@@ -32,10 +37,7 @@
       sharedAudio.play().catch(() => {});
     }
 
-    ws.onopen = () => {
-      log("✅ Connected to debate server.");
-    };
-
+    ws.onopen = () => log("✅ Connected to server.");
     ws.onmessage = (event) => {
       if (event.data === "__USER_PROXY_TURN__") {
         log("🎤 Moderator gives you the floor.");
@@ -51,7 +53,7 @@
           audioQueue.push(audioUrl);
           if (!isPlaying) playNextAudio();
         } else {
-          log("⚠️ Audio ready. Tap 'Enable Audio Playback' to hear.");
+          log("⚠️ Audio ready. Tap 'Enable Audio Playback'.");
         }
         return;
       }
@@ -101,33 +103,22 @@
     function startListening() {
       try {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) {
-          log("❌ Speech recognition not supported.");
-          return;
-        }
+        if (!SpeechRecognition) return log("❌ Speech recognition not supported.");
         const recognition = new SpeechRecognition();
         recognition.lang = "en-US";
         recognition.interimResults = false;
         recognition.maxAlternatives = 1;
-
         recognition.onresult = (event) => {
           const transcript = event.results[0][0].transcript;
           document.getElementById("messageInput").value = transcript;
           log("🎙️ Voice input: " + transcript);
         };
-
-        recognition.onerror = (event) => {
-          log("❌ Voice error: " + event.error);
-        };
-
+        recognition.onerror = (event) => log("❌ Voice error: " + event.error);
         recognition.start();
       } catch (e) {
-        log("❌ Failed to start speech recognition.");
+        log("❌ Failed to start voice recognition.");
       }
     }
-
-    ws.onclose = () => log("❌ WebSocket closed.");
-    ws.onerror = (err) => log("⚠️ WebSocket error: " + err.message);
 
     function log(msg) {
       const logArea = document.getElementById("log");
@@ -140,6 +131,63 @@
         ws.send("__ping__");
       }
     }, 20000);
+
+    // === Config handling ===
+    document.getElementById("configFileInput").addEventListener("change", function () {
+      const file = this.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        try {
+          const config = JSON.parse(e.target.result);
+          renderConfigEditor(config);
+          log("✅ Config loaded.");
+        } catch {
+          log("❌ Invalid JSON format.");
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    function renderConfigEditor(config) {
+      const container = document.getElementById("configEditor");
+      container.innerHTML = "";
+      for (const [name, settings] of Object.entries(config)) {
+        const section = document.createElement("fieldset");
+        const legend = document.createElement("legend");
+        legend.innerText = name;
+        section.appendChild(legend);
+        for (const key of ["description", "system_message", "temperature", "model_client", "tools"]) {
+          const label = document.createElement("label");
+          label.innerText = key;
+          const input = document.createElement("input");
+          input.value = settings[key];
+          input.dataset.agent = name;
+          input.dataset.key = key;
+          input.style.display = "block";
+          input.style.marginBottom = "4px";
+          section.appendChild(label);
+          section.appendChild(input);
+        }
+        container.appendChild(section);
+      }
+    }
+
+    function downloadConfig() {
+      const config = {};
+      const inputs = document.querySelectorAll("#configEditor input");
+      inputs.forEach((input) => {
+        const name = input.dataset.agent;
+        const key = input.dataset.key;
+        if (!config[name]) config[name] = {};
+        config[name][key] = key === "temperature" ? parseFloat(input.value) : input.value;
+      });
+      const blob = new Blob([JSON.stringify(config, null, 2)], { type: "application/json" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "agent_config_updated.json";
+      link.click();
+    }
   </script>
 </body>
 </html>
