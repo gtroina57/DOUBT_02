@@ -2,8 +2,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Debate with Audio Queue</title>
+  <meta charset="UTF-8" />
+  <title>Multi-Agent Debate with Audio Queue</title>
 </head>
 <body>
   <h2>Multi-Agent Debate with Audio Queue</h2>
@@ -16,7 +16,8 @@
   <input id="messageInput" type="text" placeholder="Wait for your turn..." size="60" disabled />
   <button id="sendButton" onclick="sendMessage()" disabled>Send</button><br><br>
 
-  <button onclick="enableAudio()">🔊 Enable Audio Playback</button>
+  <button onclick="enableAudio()">🔊 Enable Audio Playback</button><br><br>
+  <button onclick="startListening()" id="micButton" disabled>🎤 Voice Input</button>
 
   <script>
     const ws = new WebSocket("wss://doubt-02.onrender.com/ws");
@@ -28,7 +29,7 @@
     function enableAudio() {
       userAllowedAudio = true;
       log("✅ Audio playback enabled.");
-      sharedAudio.play().catch(() => {}); // Unlock the audio on iOS
+      sharedAudio.play().catch(() => {});
     }
 
     ws.onopen = () => {
@@ -37,20 +38,20 @@
 
     ws.onmessage = (event) => {
       if (event.data === "__USER_PROXY_TURN__") {
-        log("🎤 Moderator gives you the floor. You may speak now.");
-        const input = document.getElementById("messageInput");
-        input.disabled = false;
+        log("🎤 Moderator gives you the floor.");
+        document.getElementById("messageInput").disabled = false;
         document.getElementById("sendButton").disabled = false;
-        input.focus();
+        document.getElementById("micButton").disabled = false;
         return;
       }
 
       if (event.data.startsWith("__AUDIO_URL__/")) {
         const audioUrl = event.data.replace("__AUDIO_URL__/", "");
         if (userAllowedAudio) {
-          enqueueAudio(audioUrl);
+          audioQueue.push(audioUrl);
+          if (!isPlaying) playNextAudio();
         } else {
-          log("⚠️ Tap 'Enable Audio Playback' to hear audio.");
+          log("⚠️ Audio ready. Tap 'Enable Audio Playback' to hear.");
         }
         return;
       }
@@ -58,51 +59,29 @@
       log("📩 " + event.data);
     };
 
-    function enqueueAudio(url) {
-      audioQueue.push(url);
-      if (!isPlaying) {
-        playNext();
-      }
-    }
-
-    function playNext() {
+    function playNextAudio() {
       if (audioQueue.length === 0) {
         isPlaying = false;
         return;
       }
-      isPlaying = true;
-      const nextAudio = audioQueue.shift();
-      sharedAudio.src = nextAudio;
+      const url = audioQueue.shift();
+      sharedAudio.src = url;
       sharedAudio.play().then(() => {
+        isPlaying = true;
         log("🔊 Playing audio...");
       }).catch((e) => {
-        log("❌ Error playing audio: " + e.message);
+        log("❌ Audio error: " + e.message);
+        isPlaying = false;
       });
     }
 
-    sharedAudio.onended = () => {
-      playNext();
-    };
-
-    ws.onclose = () => {
-      log("❌ WebSocket disconnected.");
-    };
-
-    ws.onerror = (err) => {
-      log("⚠️ WebSocket error: " + err.message);
-    };
-
-    function log(message) {
-      const logArea = document.getElementById("log");
-      logArea.value += message + "\n";
-      logArea.scrollTop = logArea.scrollHeight;
-    }
+    sharedAudio.onended = () => playNextAudio();
 
     function setTopic() {
       const topic = document.getElementById("topicInput").value.trim();
       if (topic && ws.readyState === WebSocket.OPEN) {
         ws.send(`__SET_TASK1__:${topic}`);
-        log("📘 Topic sent: " + topic);
+        log("📘 Topic set: " + topic);
       }
     }
 
@@ -115,10 +94,47 @@
         input.value = "";
         input.disabled = true;
         document.getElementById("sendButton").disabled = true;
+        document.getElementById("micButton").disabled = true;
       }
     }
 
-    // Ping to keep connection alive
+    function startListening() {
+      try {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+          log("❌ Speech recognition not supported.");
+          return;
+        }
+        const recognition = new SpeechRecognition();
+        recognition.lang = "en-US";
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        recognition.onresult = (event) => {
+          const transcript = event.results[0][0].transcript;
+          document.getElementById("messageInput").value = transcript;
+          log("🎙️ Voice input: " + transcript);
+        };
+
+        recognition.onerror = (event) => {
+          log("❌ Voice error: " + event.error);
+        };
+
+        recognition.start();
+      } catch (e) {
+        log("❌ Failed to start speech recognition.");
+      }
+    }
+
+    ws.onclose = () => log("❌ WebSocket closed.");
+    ws.onerror = (err) => log("⚠️ WebSocket error: " + err.message);
+
+    function log(msg) {
+      const logArea = document.getElementById("log");
+      logArea.value += msg + "\n";
+      logArea.scrollTop = logArea.scrollHeight;
+    }
+
     setInterval(() => {
       if (ws.readyState === WebSocket.OPEN) {
         ws.send("__ping__");
