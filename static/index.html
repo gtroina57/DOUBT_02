@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -16,8 +17,6 @@
   <button id="sendButton" onclick="sendMessage()" disabled>Send</button>
   <button id="micButton" onclick="startListening()" disabled>🎤 Voice Input</button><br><br>
 
-  <button onclick="enableAudio()">🔊 Enable Audio Playback</button><br><br>
-
   <hr>
   <h3>⚙️ Agent Configuration</h3>
   <input type="file" id="configFileInput" accept=".json" />
@@ -28,14 +27,8 @@
     const ws = new WebSocket("wss://doubt-02.onrender.com/ws");
     let audioQueue = [];
     let isPlaying = false;
-    let userAllowedAudio = false;
+    let userAllowedAudio = true;  // Always enabled on desktop
     const sharedAudio = new Audio();
-
-    function enableAudio() {
-      userAllowedAudio = true;
-      log("✅ Audio playback enabled.");
-      sharedAudio.play().catch(() => {});
-    }
 
     ws.onopen = () => log("✅ Connected to server.");
     ws.onmessage = (event) => {
@@ -48,12 +41,13 @@
       }
 
       if (event.data.startsWith("__AUDIO_URL__/")) {
-        const audioUrl = event.data.replace("__AUDIO_URL__/", "");
+        const audioPath = event.data.replace("__AUDIO_URL__/", "");
+        const audioUrl = "https://doubt-02.onrender.com/" + audioPath;
         if (userAllowedAudio) {
           audioQueue.push(audioUrl);
           if (!isPlaying) playNextAudio();
         } else {
-          log("⚠️ Audio ready. Tap 'Enable Audio Playback'.");
+          log("⚠️ Audio ready. Tap to allow audio playback.");
         }
         return;
       }
