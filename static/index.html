@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Multi-Agent Debate with Voice + Config Editor</title>
+  <title>🧠 Multi-Agent Debate UI</title>
 </head>
 <body>
   <h2>🧠 Multi-Agent Debate UI</h2>
@@ -17,18 +17,34 @@
   <button id="sendButton" onclick="sendMessage()" disabled>Send</button>
   <button id="micButton" onclick="startListening()" disabled>🎤 Voice Input</button><br><br>
 
+  <button id="audioEnableBtn" onclick="enableAudio()" style="display:none;">🔊 Enable Audio Playback</button><br><br>
+
   <hr>
   <h3>⚙️ Agent Configuration</h3>
-  <input type="file" id="configFileInput" accept=".json" />
-  <button onclick="downloadConfig()">💾 Save Config</button>
+  <button onclick="saveConfigToServer()">💾 Save Config to Server</button>
   <div id="configEditor"></div>
 
   <script>
     const ws = new WebSocket("wss://doubt-02.onrender.com/ws");
     let audioQueue = [];
     let isPlaying = false;
-    let userAllowedAudio = true;  // Always enabled on desktop
+    let userAllowedAudio = false;
     const sharedAudio = new Audio();
+
+    function enableAudio() {
+      userAllowedAudio = true;
+      log("✅ Audio playback enabled.");
+      sharedAudio.play().catch(() => {});
+    }
+
+    window.onload = () => {
+      const isiOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+      if (isiOS) {
+        document.getElementById("audioEnableBtn").style.display = "inline";
+      } else {
+        enableAudio();
+      }
+    };
 
     ws.onopen = () => log("✅ Connected to server.");
     ws.onmessage = (event) => {
@@ -120,54 +136,7 @@
       logArea.scrollTop = logArea.scrollHeight;
     }
 
-    setInterval(() => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send("__ping__");
-      }
-    }, 20000);
-
-    // === Config handling ===
-    document.getElementById("configFileInput").addEventListener("change", function () {
-      const file = this.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function (e) {
-        try {
-          const config = JSON.parse(e.target.result);
-          renderConfigEditor(config);
-          log("✅ Config loaded.");
-        } catch {
-          log("❌ Invalid JSON format.");
-        }
-      };
-      reader.readAsText(file);
-    });
-
-    function renderConfigEditor(config) {
-      const container = document.getElementById("configEditor");
-      container.innerHTML = "";
-      for (const [name, settings] of Object.entries(config)) {
-        const section = document.createElement("fieldset");
-        const legend = document.createElement("legend");
-        legend.innerText = name;
-        section.appendChild(legend);
-        for (const key of ["description", "system_message", "temperature", "model_client", "tools"]) {
-          const label = document.createElement("label");
-          label.innerText = key;
-          const input = document.createElement("input");
-          input.value = settings[key];
-          input.dataset.agent = name;
-          input.dataset.key = key;
-          input.style.display = "block";
-          input.style.marginBottom = "4px";
-          section.appendChild(label);
-          section.appendChild(input);
-        }
-        container.appendChild(section);
-      }
-    }
-
-    function downloadConfig() {
+    function saveConfigToServer() {
       const config = {};
       const inputs = document.querySelectorAll("#configEditor input");
       inputs.forEach((input) => {
@@ -176,11 +145,15 @@
         if (!config[name]) config[name] = {};
         config[name][key] = key === "temperature" ? parseFloat(input.value) : input.value;
       });
-      const blob = new Blob([JSON.stringify(config, null, 2)], { type: "application/json" });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = "agent_config_updated.json";
-      link.click();
+
+      fetch("/save-config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(config)
+      })
+        .then((res) => res.json())
+        .then((data) => log(data.status))
+        .catch(() => log("❌ Failed to save config to server."));
     }
   </script>
 </body>
