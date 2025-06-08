@@ -550,7 +550,7 @@ async def run_chat(team, websocket=None):
         # 🔴 Pause if user input is pending
         if user_intervention_buffer:
             print("🧑 Pausing debate: injecting user_proxy response...")
-            await team.step("user_proxy")  # Give floor to user
+            team.append_message({"role": "user", "name": "user_proxy", "content": user_intervention_buffer})
             user_intervention_buffer = None
             continue
         
