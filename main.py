@@ -65,7 +65,6 @@ async def get_index():
     return HTMLResponse(content=html_path.read_text(encoding="utf-8"))
 
 ##################################################################################################################
-global user_intervention_pending 
 ##################################################################################################################
 #global user_proxy, team, loaded_team_state, agents, agent_list, model_client_openai, model_client_gemini
 
@@ -98,7 +97,7 @@ agent_list = []
 team = None
 loaded_team_state = None  # Will hold config if loaded before team is created
 task1 ="This is a debate on ethics and AI"
-user_intervention_pending = False
+user_intervention_buffer = None
 print("✅ Environment cleared.")
 
 ############################ TEXT TO SPEECH  #########################################
@@ -376,13 +375,14 @@ termination = text_mention_termination | max_messages_termination
 selector_prompt = """
 You are the Selector agent following strictly the instructions of the moderator and of the selector_func
 """
-
+    
 def dynamic_selector_func(thread):
-    global agent_id
+    global user_intervention_buffer, agent_id
     last_msg = thread[-1]
     last_message = last_msg.content.lower().strip()
     sender = last_msg.source.lower()
-
+    content = last_msg.content.strip().lower()
+    
     name_to_agent = {
         "alice": "expert_1_agent",
         "bob": "expert_2_agent",
@@ -392,6 +392,12 @@ def dynamic_selector_func(thread):
         "giuseppe": "user_proxy",
     }
 
+    # 🔁 Interrupt logic: if user has spoken and audio just finished
+    if user_intervention_buffer:
+        print("🧑 User wants to intervene. Routing to user_proxy.")
+        return "user_proxy"
+    
+    
     # 🔹 First user interaction → go to moderator
     if sender == "user":
         print("👤 User input detected. Moderator takes over.")
@@ -631,24 +637,34 @@ async def websocket_endpoint(websocket: WebSocket):
         agents = build_agents_from_config(CONFIG_FILE, name_to_agent_skill, model_clients_map)
 
         # 🎤 User input handler
+        
         async def websocket_async_input_func(*args, **kwargs):
-            global user_intervention_pending
+            global user_intervention_buffer
             while True:
                 data = await websocket.receive_text()
                 if data == "__ping__":
                     continue
                 if data.strip():
-                    user_intervention_pending = True
-                    return data
-        
+                    user_intervention_buffer = data.strip()
+                    print(f"🟡 UX: Buffered user message: {user_intervention_buffer}")
+                    return "__USER_PROXY_INTERRUPT__"  # Custom marker
         
         async def wrapped_input_func(*args, **kwargs):
+            global user_intervention_buffer
+            if user_intervention_buffer:
+                msg = user_intervention_buffer
+                user_intervention_buffer = None
+                print(f"🟢 UX: Delivering buffered user message: {msg}")
+                return msg
+        
             if websocket:
                 print("🟢 UX: Sending '__USER_PROXY_TURN__'")
                 await websocket.send_text("__USER_PROXY_TURN__")
+        
             return await websocket_async_input_func(*args, **kwargs)
 
         agents["user_proxy"] = UserProxyAgent(name="user_proxy", input_func=wrapped_input_func)
+
 
         agent_list = [
             agents["moderator_agent"],
