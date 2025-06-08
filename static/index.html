@@ -12,7 +12,7 @@
   <input type="text" id="topicInput" placeholder="Enter debate topic..." size="60" />
   <button onclick="setTopic()">Set Topic</button><br><br>
 
-  <input type="text" id="messageInput" placeholder="Wait for your turn..." size="60" disabled />
+  <input type="text" id="messageInput" placeholder="Speak or type message..." size="60" disabled />
   <button id="sendButton" onclick="sendMessage()" disabled>Send</button><br><br>
 
   <script>
@@ -29,7 +29,8 @@
       }
 
       if (event.data.startsWith("__AUDIO_URL__/")) {
-        const audioUrl = event.data.replace("__AUDIO_URL__/", "");
+        const audioFilename = event.data.replace("__AUDIO_URL__/", "");
+        const audioUrl = "https://doubt-02.onrender.com/audio/" + audioFilename;  // ✅ Absolute path
         audioQueue.push(audioUrl);
         if (!isPlaying) playNextAudio();
         return;
@@ -43,7 +44,7 @@
         isPlaying = false;
         return;
       }
-      const nextUrl = "/audio/" + audioQueue.shift();
+      const nextUrl = audioQueue.shift();
       audio.src = nextUrl;
       audio.play().then(() => {
         isPlaying = true;
@@ -56,7 +57,7 @@
 
     audio.onended = () => {
       isPlaying = false;
-      enableUserInput();  // ✅ Enable user input after each audio
+      enableUserInput();
       playNextAudio();
     };
 
@@ -82,7 +83,6 @@
         ws.send(message);
         log("🧑 You: " + message);
         input.value = "";
-        // Input remains enabled for further messages
       }
     }
 
