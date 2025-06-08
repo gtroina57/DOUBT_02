@@ -3,114 +3,92 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Multi-Agent Debate - Continuous Voice</title>
+  <title>Multi-Agent Debate</title>
 </head>
 <body>
-  <h2>🧠 Multi-Agent Debate UI – Continuous Voice</h2>
+  <h2>Multi-Agent Debate Interface</h2>
 
   <textarea id="log" cols="80" rows="20" readonly></textarea><br>
-  <input id="topicInput" type="text" placeholder="Enter debate topic..." size="60" />
+  <input type="text" id="topicInput" placeholder="Enter debate topic..." size="60" />
   <button onclick="setTopic()">Set Topic</button><br><br>
 
-  <button onclick="enableAudio()">🔊 Enable Audio Playback</button>
-  <button onclick="startVoiceMode()">🎤 Start Voice Mode</button><br><br>
+  <input type="text" id="messageInput" placeholder="Wait for your turn..." size="60" disabled />
+  <button id="sendButton" onclick="sendMessage()" disabled>Send</button><br><br>
 
   <script>
     const ws = new WebSocket("wss://doubt-02.onrender.com/ws");
+    const audio = new Audio();
     let audioQueue = [];
     let isPlaying = false;
-    let userAllowedAudio = false;
-    let pendingUserInput = null;
-    const sharedAudio = new Audio();
 
-    // Enable audio playback policy (iOS/Chrome)
-    function enableAudio() {
-      userAllowedAudio = true;
-      log("✅ Audio playback enabled.");
-      sharedAudio.play().catch(() => {});
-    }
-
-    // Voice recognition setup
-    let recognizer = null;
-
-    function startVoiceMode() {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SpeechRecognition) return log("❌ Speech recognition not supported.");
-
-      recognizer = new SpeechRecognition();
-      recognizer.lang = "en-US";
-      recognizer.continuous = true;
-      recognizer.interimResults = false;
-
-      recognizer.onresult = (event) => {
-        const transcript = event.results[event.results.length - 1][0].transcript;
-        log("🎙️ Detected: " + transcript);
-        pendingUserInput = transcript;
-      };
-
-      recognizer.onerror = (event) => log("❌ Voice error: " + event.error);
-      recognizer.start();
-      log("🎧 Listening continuously...");
-    }
-
-    // Handle messages
-    ws.onopen = () => log("✅ Connected to server.");
+    ws.onopen = () => log("✅ Connected.");
     ws.onmessage = (event) => {
-      if (event.data.startsWith("__AUDIO_URL__/")) {
-        const audioUrl = event.data.replace("__AUDIO_URL__/", "");
-        if (userAllowedAudio) {
-          audioQueue.push(audioUrl);
-          if (!isPlaying) playNextAudio();
-        } else {
-          log("⚠️ Audio ready. Tap 'Enable Audio Playback'.");
-        }
+      if (event.data.startsWith("__USER_PROXY_TURN__")) {
+        enableUserInput();
         return;
       }
+
+      if (event.data.startsWith("__AUDIO_URL__/")) {
+        const audioUrl = event.data.replace("__AUDIO_URL__/", "");
+        audioQueue.push(audioUrl);
+        if (!isPlaying) playNextAudio();
+        return;
+      }
+
       log("📩 " + event.data);
     };
 
     function playNextAudio() {
       if (audioQueue.length === 0) {
         isPlaying = false;
-        handleUserReplyIfAvailable();
         return;
       }
-      const url = audioQueue.shift();
-      sharedAudio.src = url;
-      sharedAudio.play().then(() => {
+      const nextUrl = "/audio/" + audioQueue.shift();
+      audio.src = nextUrl;
+      audio.play().then(() => {
         isPlaying = true;
         log("🔊 Playing audio...");
       }).catch((e) => {
         log("❌ Audio error: " + e.message);
         isPlaying = false;
-        handleUserReplyIfAvailable();
       });
     }
 
-    sharedAudio.onended = () => {
+    audio.onended = () => {
       isPlaying = false;
+      enableUserInput();  // ✅ Enable user input after each audio
       playNextAudio();
     };
 
-    function handleUserReplyIfAvailable() {
-      if (pendingUserInput && ws.readyState === WebSocket.OPEN) {
-        ws.send(pendingUserInput);
-        log("🧑 You (auto): " + pendingUserInput);
-        pendingUserInput = null;
-      }
+    function enableUserInput() {
+      const input = document.getElementById("messageInput");
+      input.disabled = false;
+      input.focus();
+      document.getElementById("sendButton").disabled = false;
     }
 
     function setTopic() {
       const topic = document.getElementById("topicInput").value.trim();
       if (topic && ws.readyState === WebSocket.OPEN) {
         ws.send(`__SET_TASK1__:${topic}`);
-        log("📘 Topic set: " + topic);
+        log("📘 Topic: " + topic);
       }
     }
 
-    function log(msg) {
+    function sendMessage() {
+      const input = document.getElementById("messageInput");
+      const message = input.value.trim();
+      if (message && ws.readyState === WebSocket.OPEN) {
+        ws.send(message);
+        log("🧑 You: " + message);
+        input.value = "";
+        // Input remains enabled for further messages
+      }
+    }
+
+    function log(message) {
       const logArea = document.getElementById("log");
-      logArea.value += msg + "\n";
+      logArea.value += message + "\n";
       logArea.scrollTop = logArea.scrollHeight;
     }
 
