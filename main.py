@@ -542,16 +542,16 @@ def intervene_now(user_input):
 ##########################################################################################################
 ################################# loop for debate  #######################################################
 async def run_chat(team, websocket=None):
-    global stop_execution, image_url, task1, gradio_input_buffer, user_intervention_pending
+    global stop_execution, image_url, task1, gradio_input_buffer, user_intervention_buffer
 
     async for result in team.run_stream(task=task1):
         if stop_execution:
             break
         # 🔴 Pause if user input is pending
-        if user_intervention_pending:
+        if user_intervention_buffer:
             print("🧑 Pausing debate: injecting user_proxy response...")
             await team.step("user_proxy")  # Give floor to user
-            user_intervention_pending = False
+            user_intervention_buffer = None
             continue
         
         if hasattr(result, "content") and isinstance(result.content, str):
