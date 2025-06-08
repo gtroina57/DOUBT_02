@@ -64,8 +64,9 @@ async def get_index():
     html_path = Path("static/index.html")
     return HTMLResponse(content=html_path.read_text(encoding="utf-8"))
 
-
-#####################################################################################################
+##################################################################################################################
+global user_intervention_pending 
+##################################################################################################################
 #global user_proxy, team, loaded_team_state, agents, agent_list, model_client_openai, model_client_gemini
 
 ################################ Create OpenAI model client   #############################
@@ -97,6 +98,7 @@ agent_list = []
 team = None
 loaded_team_state = None  # Will hold config if loaded before team is created
 task1 ="This is a debate on ethics and AI"
+user_intervention_pending = False
 print("✅ Environment cleared.")
 
 ############################ TEXT TO SPEECH  #########################################
@@ -534,12 +536,18 @@ def intervene_now(user_input):
 ##########################################################################################################
 ################################# loop for debate  #######################################################
 async def run_chat(team, websocket=None):
-    global stop_execution, image_url, task1, gradio_input_buffer
+    global stop_execution, image_url, task1, gradio_input_buffer, user_intervention_pending
 
     async for result in team.run_stream(task=task1):
         if stop_execution:
             break
-
+        # 🔴 Pause if user input is pending
+        if user_intervention_pending:
+            print("🧑 Pausing debate: injecting user_proxy response...")
+            await team.step("user_proxy")  # Give floor to user
+            user_intervention_pending = False
+            continue
+        
         if hasattr(result, "content") and isinstance(result.content, str):
             text = result.content
             agent_name = result.source
@@ -579,6 +587,8 @@ def root():
 import traceback
 
 #########
+
+
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
@@ -622,13 +632,16 @@ async def websocket_endpoint(websocket: WebSocket):
 
         # 🎤 User input handler
         async def websocket_async_input_func(*args, **kwargs):
+            global user_intervention_pending
             while True:
                 data = await websocket.receive_text()
                 if data == "__ping__":
                     continue
                 if data.strip():
+                    user_intervention_pending = True
                     return data
-
+        
+        
         async def wrapped_input_func(*args, **kwargs):
             if websocket:
                 print("🟢 UX: Sending '__USER_PROXY_TURN__'")
