@@ -395,7 +395,7 @@ def dynamic_selector_func(thread):
         print("👤 User input detected. Moderator takes over.")
         return "moderator_agent"
     
-    if sender == "moderator_agent" and not user_message_queue.empty():
+    if sender != "moderator_agent" and not user_message_queue.empty():
         return "proxy_user"
     
     
@@ -627,6 +627,7 @@ async def websocket_endpoint(websocket: WebSocket):
         # 🎤 User input handler
         # Background listener: constantly receives and queues user messages
         async def websocket_listener():
+            global user_message_queue
             while True:
                 data = await websocket.receive_text()
                 if data == "__ping__":
@@ -640,6 +641,7 @@ async def websocket_endpoint(websocket: WebSocket):
         
         # UserProxyAgent waits for next message in queue
         async def wrapped_input_func(*args, **kwargs):
+            global user_message_queue
             if websocket:
                 print("🟢 UX: Sending '__USER_PROXY_TURN__'")
                 await websocket.send_text("__USER_PROXY_TURN__")
