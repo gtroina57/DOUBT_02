@@ -1,102 +1,116 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Multi-Agent Debate</title>
 </head>
 <body>
-  <h2>Multi-Agent Debate Interface</h2>
+  <h2>Multi-Agent Debate</h2>
 
   <textarea id="log" cols="80" rows="20" readonly></textarea><br>
-  <input type="text" id="topicInput" placeholder="Enter debate topic..." size="60" />
+
+  <input id="topicInput" type="text" placeholder="Enter debate topic..." size="60" />
   <button onclick="setTopic()">Set Topic</button><br><br>
 
-  <input type="text" id="messageInput" placeholder="Speak or type message..." size="60" disabled />
-  <button id="sendButton" onclick="sendMessage()" disabled>Send</button><br><br>
+  <input id="messageInput" type="text" placeholder="Type you input..." size="60" />
+  <button id="sendButton" onclick="sendMessage()" >Send</button><br><br>
+
+  <progress id="audioProgress" value="0" max="1" style="width: 400px; display: none;"></progress>
 
   <script>
-    const ws = new WebSocket("wss://doubt-02.onrender.com/ws");
-    const audio = new Audio();
-    let audioQueue = [];
-    let isPlaying = false;
+  const ws = new WebSocket("wss://doubt-02.onrender.com/ws");
+  const audioQueue = [];
+  let isPlaying = false;
 
-    ws.onopen = () => log("✅ Connected.");
-    ws.onmessage = (event) => {
-      if (event.data.startsWith("__USER_PROXY_TURN__")) {
-        enableUserInput();
-        return;
-      }
+  ws.onopen = () => {
+    log("✅ Connected to debate server.");
+  };
 
-      if (event.data.startsWith("__AUDIO_URL__/")) {
-        const audioFilename = event.data.replace("__AUDIO_URL__/", "");
-        const audioUrl = "https://doubt-02.onrender.com/audio/" + audioFilename;  // ✅ Absolute path
-        audioQueue.push(audioUrl);
-        if (!isPlaying) playNextAudio();
-        return;
-      }
-
-      log("📩 " + event.data);
-    };
-
-    function playNextAudio() {
-      if (audioQueue.length === 0) {
-        isPlaying = false;
-        return;
-      }
-      const nextUrl = audioQueue.shift();
-      audio.src = nextUrl;
-      audio.play().then(() => {
-        isPlaying = true;
-        log("🔊 Playing audio...");
-      }).catch((e) => {
-        log("❌ Audio error: " + e.message);
-        isPlaying = false;
-      });
+  ws.onmessage = (event) => {
+    if (event.data === "__USER_PROXY_TURN__") {
+      log("🎤 Moderator gives you the floor. You may speak now.");
+      document.getElementById("messageInput").disabled = false;
+      document.getElementById("sendButton").disabled = false;
+      document.getElementById("messageInput").focus();
+      return;
     }
+
+    if (event.data.startsWith("__AUDIO_URL__/")) {
+      const audioUrl = "https://doubt-02.onrender.com/" + event.data.replace("__AUDIO_URL__/", "");
+      audioQueue.push(audioUrl);
+      if (!isPlaying) {
+        playNextAudio();
+      }
+      return;
+    }
+
+    log("📩 " + event.data);
+  };
+
+  function playNextAudio() {
+    if (audioQueue.length === 0) {
+      isPlaying = false;
+      return;
+    }
+
+    const url = audioQueue.shift();
+    const audio = new Audio(url);
+    isPlaying = true;
+    log("🔊 Playing audio from: " + url);
 
     audio.onended = () => {
       isPlaying = false;
-      enableUserInput();
       playNextAudio();
     };
 
-    function enableUserInput() {
-      const input = document.getElementById("messageInput");
-      input.disabled = false;
-      input.focus();
-      document.getElementById("sendButton").disabled = false;
-    }
+    audio.onerror = () => {
+      log("❌ Error playing audio.");
+      isPlaying = false;
+      playNextAudio();
+    };
 
-    function setTopic() {
-      const topic = document.getElementById("topicInput").value.trim();
-      if (topic && ws.readyState === WebSocket.OPEN) {
-        ws.send(`__SET_TASK1__:${topic}`);
-        log("📘 Topic: " + topic);
-      }
-    }
+    audio.play();
+  }
 
-    function sendMessage() {
-      const input = document.getElementById("messageInput");
-      const message = input.value.trim();
-      if (message && ws.readyState === WebSocket.OPEN) {
-        ws.send(message);
-        log("🧑 You: " + message);
-        input.value = "";
-      }
-    }
+  ws.onclose = () => {
+    log("❌ WebSocket disconnected.");
+  };
 
-    function log(message) {
-      const logArea = document.getElementById("log");
-      logArea.value += message + "\n";
-      logArea.scrollTop = logArea.scrollHeight;
-    }
+  ws.onerror = (err) => {
+    log("⚠️ WebSocket error: " + err.message);
+  };
 
-    setInterval(() => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send("__ping__");
-      }
-    }, 20000);
-  </script>
+  function log(message) {
+    const logArea = document.getElementById("log");
+    logArea.value += message + "\n";
+    logArea.scrollTop = logArea.scrollHeight;
+  }
+
+  function setTopic() {
+    const topic = document.getElementById("topicInput").value.trim();
+    if (topic && ws.readyState === WebSocket.OPEN) {
+      ws.send(`__SET_TASK1__:${topic}`);
+      log("📘 Topic sent: " + topic);
+    }
+  }
+
+  function sendMessage() {
+    const input = document.getElementById("messageInput");
+    const message = input.value.trim();
+    if (message && ws.readyState === WebSocket.OPEN) {
+      ws.send(message);
+      log("🧑 You: " + message);
+      input.value = "";
+      input.disabled = true;
+      document.getElementById("sendButton").disabled = true;
+    }
+  }
+
+  setInterval(() => {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send("__ping__");
+    }
+  }, 20000);
+</script>
 </body>
 </html>
