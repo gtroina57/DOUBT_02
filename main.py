@@ -376,7 +376,7 @@ You are the Selector agent following strictly the instructions of the moderator 
 """
 
 def dynamic_selector_func(thread):
-    global agent_id
+    global agent_id, user_message_queue
     last_msg = thread[-1]
     last_message = last_msg.content.lower().strip()
     sender = last_msg.source.lower()
@@ -393,8 +393,12 @@ def dynamic_selector_func(thread):
     # 🔹 First user interaction → go to moderator
     if sender == "user":
         print("👤 User input detected. Moderator takes over.")
+        return "user_proxy"
+    
+    if user.message.queue != None:
+        print("👤 User input detected.")
         return "moderator_agent"
-
+    
     # 🔹 AGENT (not moderator) just spoke
     if sender != "moderator_agent":
         if last_message.endswith("xyz"):
@@ -582,7 +586,7 @@ import traceback
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    global team, agents, agent_list, stop_execution, loaded_team_state, task1
+    global team, agents, agent_list, stop_execution, loaded_team_state, task1, user_message_queue
     
     team = None
     stop_execution = False
