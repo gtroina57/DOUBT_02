@@ -396,6 +396,12 @@ def dynamic_selector_func(thread):
         return "moderator_agent"
     
     if sender != "moderator_agent" and not user_message_queue.empty():
+        if sender == "moderator_agent":
+            print ("PIPPO1", user_message_queue)
+        else : 
+            print("PIPPO2")
+    else:
+        print ("PIPPO3", user_message_queue)
         return "proxy_user"
     
     
