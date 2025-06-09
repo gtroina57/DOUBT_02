@@ -583,7 +583,7 @@ import traceback
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     global team, agents, agent_list, stop_execution, loaded_team_state, task1
-
+    
     team = None
     stop_execution = False
     task1 = None  # 🆕 Debate topic will be set by user
@@ -621,19 +621,23 @@ async def websocket_endpoint(websocket: WebSocket):
         agents = build_agents_from_config(CONFIG_FILE, name_to_agent_skill, model_clients_map)
 
         # 🎤 User input handler
-        async def websocket_async_input_func(*args, **kwargs):
+        # Background listener: constantly receives and queues user messages
+        async def websocket_listener():
             while True:
                 data = await websocket.receive_text()
                 if data == "__ping__":
                     continue
                 if data.strip():
-                    return data
-
+                    print(f"🧑 Received user input: {data}")
+                    await user_message_queue.put(data)
+        
+        # Start the listener immediately (non-blocking)
+        asyncio.create_task(websocket_listener())
+        
+        # UserProxyAgent waits for next message in queue
         async def wrapped_input_func(*args, **kwargs):
-            if websocket:
-                print("🟢 UX: Sending '__USER_PROXY_TURN__'")
-                await websocket.send_text("__USER_PROXY_TURN__")
-            return await websocket_async_input_func(*args, **kwargs)
+            return await user_message_queue.get()
+
 
         agents["user_proxy"] = UserProxyAgent(name="user_proxy", input_func=wrapped_input_func)
 
