@@ -393,11 +393,12 @@ def dynamic_selector_func(thread):
     # 🔹 First user interaction → go to moderator
     if sender == "user":
         print("👤 User input detected. Moderator takes over.")
+        return "moderator"
+    
+    if user_message_queue != None:
+        print("👤 User input detected.")
         return "user_proxy"
     
-    if user.message.queue != None:
-        print("👤 User input detected.")
-        return "moderator_agent"
     
     # 🔹 AGENT (not moderator) just spoke
     if sender != "moderator_agent":
