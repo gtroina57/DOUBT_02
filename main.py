@@ -412,7 +412,6 @@ def dynamic_selector_func(thread):
             print("PIPPO2")
     else:
         print ("PIPPO3", user_message_queue)
-        return "user_proxy"
     
     
     # 🔹 AGENT (not moderator) just spoke
