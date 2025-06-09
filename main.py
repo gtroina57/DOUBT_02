@@ -647,10 +647,7 @@ async def websocket_endpoint(websocket: WebSocket):
         
         # UserProxyAgent waits for next message in queue
         async def wrapped_input_func(*args, **kwargs):
-            global user_message_queue
-            if websocket:
-                print("🟢 UX: Sending '__USER_PROXY_TURN__'")
-                await websocket.send_text("__USER_PROXY_TURN__")
+            global user_message_queue    
             return await user_message_queue.get()
         """
         # 🎤 User input handler
