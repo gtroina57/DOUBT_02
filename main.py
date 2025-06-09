@@ -393,7 +393,7 @@ def dynamic_selector_func(thread):
     # 🔹 First user interaction → go to moderator
     if sender == "user":
         print("👤 User input detected. Moderator takes over.")
-        return "moderator"
+        return "moderator_agent"
     
     if user_message_queue != None:
         print("👤 User input detected.")
