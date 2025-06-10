@@ -376,7 +376,7 @@ You are the Selector agent following strictly the instructions of the moderator 
 """
 
 def dynamic_selector_func(thread):
-    global agent_id, user_message_queue
+    global agent_id
     last_msg = thread[-1]
     last_message = last_msg.content.lower().strip()
     sender = last_msg.source.lower()
@@ -394,26 +394,7 @@ def dynamic_selector_func(thread):
     if sender == "user":
         print("👤 User input detected. Moderator takes over.")
         return "moderator_agent"
-    
-    if sender == "moderator_agent":
-        print ("PIPPO4")
-    else : 
-        print("PIPPO5")
-    
-    if user_message_queue.empty():
-        print ("PIPPO6")
-    else : 
-        print("PIPPO7") 
-        
-    if sender != "moderator_agent" and not user_message_queue.empty():
-        if sender == "moderator_agent":
-            print ("PIPPO1")
-        else : 
-            print("PIPPO2")
-    else:
-        print ("PIPPO3")
-    
-    
+
     # 🔹 AGENT (not moderator) just spoke
     if sender != "moderator_agent":
         if last_message.endswith("xyz"):
@@ -601,8 +582,8 @@ import traceback
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    global team, agents, agent_list, stop_execution, loaded_team_state, task1, user_message_queue
-    
+    global team, agents, agent_list, stop_execution, loaded_team_state, task1
+
     team = None
     stop_execution = False
     task1 = None  # 🆕 Debate topic will be set by user
@@ -638,30 +619,7 @@ async def websocket_endpoint(websocket: WebSocket):
         # 🔧 Load agents
         name_to_agent_skill = extract_agent_skills(CONFIG_FILE)
         agents = build_agents_from_config(CONFIG_FILE, name_to_agent_skill, model_clients_map)
-        """
-        # 🎤 User input handler
-        # Background listener: constantly receives and queues user messages
-        async def websocket_listener():
-            global user_message_queue
-            while True:
-                print ("PLUTO1")
-                data = await websocket.receive_text()
-                if data == "__ping__":
-                    continue
-                if data.strip():
-                    print ("PLUTO2")
-                    print(f"🧑 Received user input: {data}")
-                    await user_message_queue.put(data)
-        
-        # Start the listener immediately (non-blocking)
-        asyncio.create_task(websocket_listener())
-        
-        # UserProxyAgent waits for next message in queue
-        async def wrapped_input_func(*args, **kwargs):
-            global user_message_queue    
-            print ("PLUTO3")
-            return await user_message_queue.get()
-        """
+
         # 🎤 User input handler
         async def websocket_async_input_func(*args, **kwargs):
             while True:
@@ -677,7 +635,6 @@ async def websocket_endpoint(websocket: WebSocket):
                 await websocket.send_text("__USER_PROXY_TURN__")
             return await websocket_async_input_func(*args, **kwargs)
 
-        
         agents["user_proxy"] = UserProxyAgent(name="user_proxy", input_func=wrapped_input_func)
 
         agent_list = [
