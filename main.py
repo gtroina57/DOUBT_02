@@ -644,10 +644,12 @@ async def websocket_endpoint(websocket: WebSocket):
         async def websocket_listener():
             global user_message_queue
             while True:
+                print ("PLUTO1")
                 data = await websocket.receive_text()
                 if data == "__ping__":
                     continue
                 if data.strip():
+                    print ("PLUTO2")
                     print(f"🧑 Received user input: {data}")
                     await user_message_queue.put(data)
         
@@ -657,6 +659,7 @@ async def websocket_endpoint(websocket: WebSocket):
         # UserProxyAgent waits for next message in queue
         async def wrapped_input_func(*args, **kwargs):
             global user_message_queue    
+            print ("PLUTO3")
             return await user_message_queue.get()
         """
         # 🎤 User input handler
