@@ -394,7 +394,7 @@ def dynamic_selector_func(thread):
     if sender == "user":
         print("👤 User input detected. Moderator takes over.")
         return "moderator_agent"
-    
+    """
     if sender == "moderator_agent":
         print ("PIPPO4", user_message_queue)
     else : 
@@ -412,7 +412,7 @@ def dynamic_selector_func(thread):
             print("PIPPO2")
     else:
         print ("PIPPO3", user_message_queue)
-    
+    """
     
     # 🔹 AGENT (not moderator) just spoke
     if sender != "moderator_agent":
