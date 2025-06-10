@@ -396,22 +396,22 @@ def dynamic_selector_func(thread):
         return "moderator_agent"
     
     if sender == "moderator_agent":
-        print ("PIPPO4", user_message_queue)
+        print ("PIPPO4")
     else : 
-        print("PIPPO5", user_message_queue)
+        print("PIPPO5")
     
     if user_message_queue.empty():
         print ("PIPPO6")
     else : 
-        print("PIPPO7", user_message_queue) 
+        print("PIPPO7") 
         
     if sender != "moderator_agent" and not user_message_queue.empty():
         if sender == "moderator_agent":
-            print ("PIPPO1", user_message_queue)
+            print ("PIPPO1")
         else : 
             print("PIPPO2")
     else:
-        print ("PIPPO3", user_message_queue)
+        print ("PIPPO3")
     
     
     # 🔹 AGENT (not moderator) just spoke
