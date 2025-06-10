@@ -638,7 +638,7 @@ async def websocket_endpoint(websocket: WebSocket):
         # 🔧 Load agents
         name_to_agent_skill = extract_agent_skills(CONFIG_FILE)
         agents = build_agents_from_config(CONFIG_FILE, name_to_agent_skill, model_clients_map)
-
+        """
         # 🎤 User input handler
         # Background listener: constantly receives and queues user messages
         async def websocket_listener():
@@ -677,7 +677,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 await websocket.send_text("__USER_PROXY_TURN__")
             return await websocket_async_input_func(*args, **kwargs)
 
-        """
+        
         agents["user_proxy"] = UserProxyAgent(name="user_proxy", input_func=wrapped_input_func)
 
         agent_list = [
