@@ -12,8 +12,9 @@
   <input id="topicInput" type="text" placeholder="Enter debate topic..." size="60" />
   <button onclick="setTopic()">Set Topic</button><br><br>
 
-  <input id="messageInput" type="text" placeholder="Type you input..." size="60" />
-  <button id="sendButton" onclick="sendMessage()" >Send</button><br><br>
+  <input id="messageInput" type="text" placeholder="Wait for your turn..." size="60" disabled />
+  <button id="sendButton" onclick="sendMessage()" disabled>Send</button>
+  <button onclick="sendSpontaneousMessage()">Send Spontaneously</button><br><br>
 
   <progress id="audioProgress" value="0" max="1" style="width: 400px; display: none;"></progress>
 
@@ -105,6 +106,26 @@
       document.getElementById("sendButton").disabled = true;
     }
   }
+
+  function sendSpontaneousMessage() {
+    const input = document.getElementById("messageInput");
+    const message = input.value.trim();
+    if (message && ws.readyState === WebSocket.OPEN) {
+      const taggedMessage = `__SPONTANEOUS__${message}`;
+      ws.send(taggedMessage);
+      log("🧑 You (spontaneous): " + message);
+      input.value = "";
+    }
+  }
+
+  document.getElementById("messageInput").addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && e.shiftKey) {
+      sendSpontaneousMessage(); // Shift+Enter = spontaneous
+    } else if (e.key === "Enter" && !this.disabled) {
+      sendMessage(); // regular Enter
+      e.preventDefault();
+    }
+  });
 
   setInterval(() => {
     if (ws.readyState === WebSocket.OPEN) {
