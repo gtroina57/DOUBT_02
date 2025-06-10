@@ -534,12 +534,31 @@ def intervene_now(user_input):
 ##########################################################################################################
 ################################# loop for debate  #######################################################
 async def run_chat(team, websocket=None):
-    global stop_execution, image_url, task1, gradio_input_buffer
+    global stop_execution, image_url, task1, gradio_input_buffer, user_intervention_buffer, user_message_queue
 
     async for result in team.run_stream(task=task1):
         if stop_execution:
             break
+##########################################################################################################
 
+        # 💬 Inject unsolicited user message
+        if not user_intervention_buffer.empty():
+            spontaneous_msg = await user_intervention_buffer.get()
+            print("⚠️ Injecting spontaneous user_proxy message:", spontaneous_msg)
+
+            # ✅ Inject using .receive() — allowed in 0.4.9
+            await user_proxy.receive(
+                message=spontaneous_msg,
+                sender="user_proxy",
+                request_reply=True
+            )
+            continue  # Allow SelectorGroupChat to resume
+
+        # Optional log
+        if hasattr(result, "content"):
+            print(f"{result.source}: {result.content.strip()}")
+
+##########################################################################################################
         if hasattr(result, "content") and isinstance(result.content, str):
             text = result.content
             agent_name = result.source
@@ -582,13 +601,15 @@ import traceback
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    global team, agents, agent_list, stop_execution, loaded_team_state, task1
+    global team, agents, agent_list, stop_execution, loaded_team_state, task1, user_intervention_buffer, user_message_queue
 
     team = None
     stop_execution = False
     task1 = None  # 🆕 Debate topic will be set by user
 
     user_message_queue = asyncio.Queue()
+    user_intervention_buffer = asyncio.Queue()    
+
 
     async def flush_queue(queue: asyncio.Queue):
         while not queue.empty():
@@ -620,6 +641,24 @@ async def websocket_endpoint(websocket: WebSocket):
         name_to_agent_skill = extract_agent_skills(CONFIG_FILE)
         agents = build_agents_from_config(CONFIG_FILE, name_to_agent_skill, model_clients_map)
 
+        ##################################################################################
+        async def websocket_listener():
+            while True:
+                data = await websocket.receive_text()
+                if data == "__ping__":
+                    continue
+
+                if data.startswith("__SPONTANEOUS__"):
+                    await user_intervention_buffer.put(data.replace("__SPONTANEOUS__", "").strip())
+                else:
+                    await user_message_queue.put(data)
+
+        async def wrapped_input_func(*args, **kwargs):
+            print("🎙️ Moderator gave the floor to user.")
+            return await user_message_queue.get()
+
+        #################################################################################
+        """
         # 🎤 User input handler
         async def websocket_async_input_func(*args, **kwargs):
             while True:
@@ -634,7 +673,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 print("🟢 UX: Sending '__USER_PROXY_TURN__'")
                 await websocket.send_text("__USER_PROXY_TURN__")
             return await websocket_async_input_func(*args, **kwargs)
-
+        """
         agents["user_proxy"] = UserProxyAgent(name="user_proxy", input_func=wrapped_input_func)
 
         agent_list = [
