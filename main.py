@@ -648,12 +648,16 @@ async def websocket_endpoint(websocket: WebSocket):
                     print("👤 User responded:", data)
                     await user_message_queue.put(data)
         
-        
         async def wrapped_input_func(*args, **kwargs):
             global user_message_queue
             print("⏳ Waiting for user response...")
-            return await user_message_queue.get()
         
+            while True:
+                user_msg = await user_message_queue.get()
+                if user_msg and user_msg.strip():  # Reject empty messages
+                    return user_msg
+                print("⚠️ Empty user input received, waiting again...")
+
         
 ################################################################################################
         """
