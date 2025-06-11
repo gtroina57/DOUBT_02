@@ -26,7 +26,10 @@
   const audioQueue = [];
   let isPlaying = false;
   let userHasTurn = false;
-
+  
+  document.getElementById("messageInput").addEventListener("input", function () {
+      document.getElementById("sendButton").disabled = !this.value.trim();
+  
   ws.onopen = () => {
     log("✅ Connected to debate server.");
   };
