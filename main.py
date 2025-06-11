@@ -104,6 +104,9 @@ print("✅ Environment cleared.")
 processed_messages = set()
 stop_execution = False
 speech_queue = asyncio.Queue()
+user_message_queue = asyncio.Queue()
+user_intervention_buffer = None
+
 
 client1 = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 os.makedirs("audio", exist_ok=True)  # Folder to serve audio files
@@ -534,44 +537,48 @@ def intervene_now(user_input):
 ##########################################################################################################
 ################################# loop for debate  #######################################################
 async def run_chat(team, websocket=None):
-    global stop_execution, image_url, task1, gradio_input_buffer
+    global stop_execution, image_url, task1, gradio_input_buffer, user_intervention_buffer
+
+    print("🚀 Starting debate with streaming...")
 
     async for result in team.run_stream(task=task1):
         if stop_execution:
             break
 
+        # ✅ Handle spontaneous user intervention before next message
+        if user_intervention_buffer:
+            print("🚨 Injecting spontaneous input from user.")
+            team.receive_message(user_proxy, user_intervention_buffer)
+            user_intervention_buffer = None
+            # 🔁 Continue loop to avoid skipping this injection
+            continue
+
         if hasattr(result, "content") and isinstance(result.content, str):
             text = result.content
             agent_name = result.source
 
-            # 🧠 Optional: log user_proxy activation (not needed for UX)
             if agent_name == "user_proxy":
                 print("🧑 Giuseppe (user_proxy) has responded.")
 
-            # 💾 Track conversation history
             if not hasattr(team, "_message_history"):
                 team._message_history = []
             team._message_history.append({"sender": agent_name, "content": text})
 
-            # 🖨️ Log output
             print(f"👤 sender: {agent_name}")
             print(f"📝 content: {text}")
             print(f"🖼️ image_url: {image_url}")
 
-            # 🧾 Optional UI buffer (for Gradio or frontend chat log)
             prefix = "🧑" if "user" in agent_name.lower() else "🤖"
             user_conversation.append(f"{prefix} {agent_name.upper()}: {text}")
 
-            # 🔊 Push to speech engine
             await speech_queue.put((agent_name, text))
 
-            # 🛑 Handle "TERMINATE" marker
             if "TERMINATE" in text:
                 stop_execution = True
                 await speech_queue.put(("system", "TERMINATE"))
                 print("✅ Chat terminated.")
                 break
-
+            
 @app.api_route("/", methods=["GET", "HEAD"])
 def root():
     return {"status": "ok", "message": "Service is running"}
@@ -621,6 +628,35 @@ async def websocket_endpoint(websocket: WebSocket):
         agents = build_agents_from_config(CONFIG_FILE, name_to_agent_skill, model_clients_map)
 
         # 🎤 User input handler
+        
+        
+#####################################################################################################
+        async def websocket_listener():
+            global user_intervention_buffer
+            while True:
+                data = await websocket.receive_text()
+                if data == "__ping__":
+                    continue
+                if data == "__USER_PROXY_TURN__":
+                    print("🎙️ Moderator gave the floor to user.")
+                    # Wait for user input (the next message will go to the queue)
+                elif data.startswith("__SPONTANEOUS__"):
+                    message = data.replace("__SPONTANEOUS__", "")
+                    print("⚡ Spontaneous input from user:", message)
+                    user_intervention_buffer = message
+                else:
+                    print("👤 User responded:", data)
+                    await user_message_queue.put(data)
+        
+        
+        async def wrapped_input_func(*args, **kwargs):
+            global user_message_queue
+            print("⏳ Waiting for user response...")
+            return await user_message_queue.get()
+        
+        
+################################################################################################
+"""
         async def websocket_async_input_func(*args, **kwargs):
             while True:
                 data = await websocket.receive_text()
@@ -634,6 +670,9 @@ async def websocket_endpoint(websocket: WebSocket):
                 print("🟢 UX: Sending '__USER_PROXY_TURN__'")
                 await websocket.send_text("__USER_PROXY_TURN__")
             return await websocket_async_input_func(*args, **kwargs)
+"""
+#################################################################################################
+
 
         agents["user_proxy"] = UserProxyAgent(name="user_proxy", input_func=wrapped_input_func)
 
