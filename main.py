@@ -589,13 +589,11 @@ import traceback
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    global team, agents, agent_list, stop_execution, loaded_team_state, task1
+    global team, agents, agent_list, stop_execution, loaded_team_state, task1, user_message_queue
 
     team = None
     stop_execution = False
     task1 = None  # 🆕 Debate topic will be set by user
-
-    user_message_queue = asyncio.Queue()
 
     async def flush_queue(queue: asyncio.Queue):
         while not queue.empty():
@@ -632,7 +630,7 @@ async def websocket_endpoint(websocket: WebSocket):
         
 #####################################################################################################
         async def websocket_listener():
-            global user_intervention_buffer
+            global user_intervention_buffer, user_message_queue
             while True:
                 data = await websocket.receive_text()
                 if data == "__ping__":
