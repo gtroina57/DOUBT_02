@@ -544,7 +544,7 @@ async def run_chat(team, websocket=None):
     async for result in team.run_stream(task=task1):
         if stop_execution:
             break
-
+        """
         # ✅ Handle spontaneous user intervention before next message
         if user_intervention_buffer:
             print("🚨 Injecting spontaneous input from user.")
@@ -552,7 +552,15 @@ async def run_chat(team, websocket=None):
             user_intervention_buffer = None
             # 🔁 Continue loop to avoid skipping this injection
             continue
-
+        """
+        
+        if user_intervention_buffer and not user_message_queue.qsize():
+            msg = await user_intervention_buffer.get()
+            print(f"🧑 Injecting spontaneous user input: {msg}")
+            await team.inject_message({"name": "user_proxy", "content": msg})
+            continue
+        
+        
         if hasattr(result, "content") and isinstance(result.content, str):
             text = result.content
             agent_name = result.source
