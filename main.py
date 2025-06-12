@@ -632,18 +632,21 @@ async def websocket_endpoint(websocket: WebSocket):
         async def websocket_listener():
             global user_intervention_buffer, user_message_queue
             while True:
-                data = await websocket.receive_text()
+                print("PLUTO2")                data = await websocket.receive_text()
                 if data == "__ping__":
+                    print("PLUTO2")
                     continue
                 if data == "__USER_PROXY_TURN__":
                     print("🎙️ Moderator gave the floor to user.")
                     # Wait for user input (the next message will go to the queue)
                 elif data.startswith("__SPONTANEOUS__"):
+                    print("PLUTO3")
                     message = data.replace("__SPONTANEOUS__", "")
                     print("⚡ Spontaneous input from user:", message)
                     user_intervention_buffer = message
                 else:
                     print("👤 User responded:", data)
+                    print("PLUTO4")
                     await user_message_queue.put(data)
         
         async def wrapped_input_func(*args, **kwargs):
@@ -651,6 +654,7 @@ async def websocket_endpoint(websocket: WebSocket):
             print("⏳ Waiting for user response...")
         
             while True:
+                print("PLUTO5")
                 user_msg = await user_message_queue.get()
                 if user_msg and user_msg.strip():  # Reject empty messages
                     print("PLUTO1", user_msg)
