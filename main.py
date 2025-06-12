@@ -2,7 +2,7 @@
 """
 Created on Friday May 30 20:11:20 2025
 
-@author: Giuseppe
+@author: giuse
 """
 
 # main.py
@@ -50,8 +50,8 @@ from fastapi.responses import FileResponse
 
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 
-from collections import deque
 
 # Create the FastAPI app
 app = FastAPI()
@@ -76,8 +76,7 @@ if not OPENAI_API_KEY:
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 if not GOOGLE_API_KEY:
     raise RuntimeError("GOOGLE_API_KEY environment variable is not set.")
- 
- 
+    
 model_client_openai = OpenAIChatCompletionClient(
     model="gpt-4o-2024-08-06",
     api_key=OPENAI_API_KEY # Optional if you have an OPENAI_API_KEY env variable set.
@@ -105,9 +104,6 @@ print("✅ Environment cleared.")
 processed_messages = set()
 stop_execution = False
 speech_queue = asyncio.Queue()
-user_message_queue = asyncio.Queue()
-spontaneous_queue = asyncio.Queue()
-prioritized_agents = deque()
 
 client1 = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 os.makedirs("audio", exist_ok=True)  # Folder to serve audio files
@@ -174,7 +170,116 @@ async def speak_worker(websocket):
             print("❌ Error in speak_worker:", e)
 
         speech_queue.task_done()
+############################ TEXT TO SPEECH  #########################################
+"""
+############################ TEXT TO SPEECH  #########################################
+# Store already processed messages to prevent duplicates
+processed_messages = set()
+stop_execution = False  # Flag to stop when "APPROVE" is reached
 
+speech_queue = asyncio.Queue()
+
+async def speak_worker():
+    ###Processes speech requests sequentially from the queue.
+    global stop_execution
+    AGENT_VOICES = {
+    "moderator_agent": "onyx",
+    "expert_1_agent": "nova",
+    "expert_2_agent": "shimmer",
+    "hilarious_agent": "alloy",
+    "image_agent": "alloy",
+    "describe_agent": "nova",
+    "creative_agent": "onyx",
+    "user": "alloy"
+}
+    print("PIPPO10")
+    while True:
+        item = await speech_queue.get()  # Wait for a new message
+
+        agent_name, content = item  # ✅ Unpack tuple into content and source
+        if item == ("system", "TERMINATE"):
+            print("🛑 Received TERMINATE. Exiting speak_worker...")
+            speech_queue.task_done()
+            stop_execution = True
+            break
+        print ("ITEM", item)
+        if content.strip():
+            print("CONTENT CONTENT",content)
+            #print(f"DEBUG - Adding message to queue: {item}")
+            processed_messages.add(item)
+
+            # Determine the voice based on the agent
+            voice = AGENT_VOICES.get(agent_name, "onyx")  # Default to "onyx" if not found
+            filename = "temp_audio.mp3"
+            client1 = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+            #text_for_audio =content.rsplit("XYZ", 1)[0].strip()
+            #print("TEXT FOR AUDIO", text_for_audio)
+
+            # Step 1: Remove trailing "XYZ"
+            text_for_audio = content.rsplit("XYZ", 1)[0].strip()
+
+            # Step 2: Replace Markdown links like [text](https://...)
+            text_for_audio = re.sub(
+                r'\[.*?\]\(https?://\S+\)',
+                'You can find the image at the link',
+                text_for_audio
+            )
+
+            # Step 3: Replace raw URLs like https://...
+            text_for_audio = re.sub(
+                r'https?://\S+',
+                'You can find the image at the link',
+                text_for_audio
+            )
+########################### OPTIONAL ############################################            
+            # Step 4: Replace base64 image URIs (optional)
+            text_for_audio = re.sub(
+                r'data:image/\w+;base64,\S+',
+                'You can find the image at the link',
+                text_for_audio
+            )
+
+            # Clean up extra spaces
+            text_for_audio = re.sub(r'\s+', ' ', text_for_audio).strip()
+
+            
+            response = client1.audio.speech.create(
+                model="tts-1",
+                voice=voice,
+                input=text_for_audio
+            )
+            #input=content.strip()
+            with open(filename, 'wb') as file:
+                file.write(response.content)
+            print(f"File saved: {filename}")
+"""
+"""
+#########################  within COLAB ###########################################################
+            # Display and play audio
+            display(Audio(filename, autoplay=True))
+
+            # Load and play audio
+            audio_l = AudioSegment.from_mp3(filename)
+            audio_duration_seconds = len(audio_l) / 1000
+
+            await asyncio.sleep(audio_duration_seconds + 1)  # ✅ Non-blocking sleep
+##############################################################################################
+
+#########################  NO COLAB  ########################################################
+
+from pydub.playback import play
+
+# Load and play audio
+audio_l = AudioSegment.from_mp3(filename)
+play(audio_l)  # 🔊 This will actually output sound
+
+##################################################################################
+            os.remove(filename)
+
+        print("Finished speaking.")
+        speech_queue.task_done()
+"""
 ##########################################################################################################
 ################################# Build Agents from configuration  ####################################
 
@@ -271,14 +376,7 @@ You are the Selector agent following strictly the instructions of the moderator 
 """
 
 def dynamic_selector_func(thread):
-    global agent_id, prioritized_agents
-    
-    # 🧠 Force agent turn if someone is in the priority queue
-    if prioritized_agents:
-        next_priority = prioritized_agents.popleft()
-        print(f"🎯 Prioritizing agent: {next_priority}")
-        return next_priority
-    
+    global agent_id
     last_msg = thread[-1]
     last_message = last_msg.content.lower().strip()
     sender = last_msg.source.lower()
@@ -358,12 +456,14 @@ def dynamic_selector_func(thread):
 #print(dir (team))
 #print(help (team))
 
-
+####################################################################################################
+####################################################################################################
 ####################################################################################################
 # === Globals ===
 user_conversation = []
 gradio_input_buffer = {"message": None}
 agent_config_ui = {}
+## chat_log_shared = gr.Textbox(label="Conversation Log", lines=20, interactive=False)
 
 ################## SET TOPIC        ###########################################################
 def set_task_only(task_text):
@@ -436,38 +536,42 @@ def intervene_now(user_input):
 async def run_chat(team, websocket=None):
     global stop_execution, image_url, task1, gradio_input_buffer
 
-    print("🚀 Starting debate with streaming...")
-
     async for result in team.run_stream(task=task1):
         if stop_execution:
             break
-        
+
         if hasattr(result, "content") and isinstance(result.content, str):
             text = result.content
             agent_name = result.source
 
+            # 🧠 Optional: log user_proxy activation (not needed for UX)
             if agent_name == "user_proxy":
                 print("🧑 Giuseppe (user_proxy) has responded.")
 
+            # 💾 Track conversation history
             if not hasattr(team, "_message_history"):
                 team._message_history = []
             team._message_history.append({"sender": agent_name, "content": text})
 
+            # 🖨️ Log output
             print(f"👤 sender: {agent_name}")
             print(f"📝 content: {text}")
             print(f"🖼️ image_url: {image_url}")
 
+            # 🧾 Optional UI buffer (for Gradio or frontend chat log)
             prefix = "🧑" if "user" in agent_name.lower() else "🤖"
             user_conversation.append(f"{prefix} {agent_name.upper()}: {text}")
 
+            # 🔊 Push to speech engine
             await speech_queue.put((agent_name, text))
 
+            # 🛑 Handle "TERMINATE" marker
             if "TERMINATE" in text:
                 stop_execution = True
                 await speech_queue.put(("system", "TERMINATE"))
                 print("✅ Chat terminated.")
                 break
-            
+
 @app.api_route("/", methods=["GET", "HEAD"])
 def root():
     return {"status": "ok", "message": "Service is running"}
@@ -478,11 +582,13 @@ import traceback
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    global team, agents, agent_list, stop_execution, loaded_team_state, task1, user_message_queue
+    global team, agents, agent_list, stop_execution, loaded_team_state, task1
 
     team = None
     stop_execution = False
     task1 = None  # 🆕 Debate topic will be set by user
+
+    user_message_queue = asyncio.Queue()
 
     async def flush_queue(queue: asyncio.Queue):
         while not queue.empty():
@@ -515,65 +621,19 @@ async def websocket_endpoint(websocket: WebSocket):
         agents = build_agents_from_config(CONFIG_FILE, name_to_agent_skill, model_clients_map)
 
         # 🎤 User input handler
-        
-        
-#####################################################################################################
-        async def websocket_listener(websocket):
-            global user_message_queue, spontaneous_queue
+        async def websocket_async_input_func(*args, **kwargs):
             while True:
-                print("PLUTO2")                
                 data = await websocket.receive_text()
                 if data == "__ping__":
-                    print("PLUTO2")
                     continue
-                if data == "__USER_PROXY_TURN__":
-                    print("🎙️ Moderator gave the floor to user.")
-                    # Wait for user input (the next message will go to the queue)
-                
-                elif data.startswith("__SPONTANEOUS__"):
-                    message = data.replace("__SPONTANEOUS__", "").strip()
-                    print("⚡ Spontaneous input received:", message)
-                    await spontaneous_queue.put(message)
-                    continue
-                
-                elif data.startswith("__SPONTANEOUS__"):
-                    msg = data.replace("__SPONTANEOUS__", "").strip()
-                    await spontaneous_queue.put(msg)
-                    prioritized_agents.append("user_proxy")  # 🔥 Ask selector to prioritize user
-                    continue
-                
-                else:
-                    print("👤 User responded:", data)
-                    print("PLUTO4")
-                    await user_message_queue.put(data)
-        
-        """
-        async def wrapped_input_func(*args, **kwargs):
-                global  user_message_queue
-            
-            
-                # 🧑 Moderator gave the floor
-                print("⏳ Waiting for user response...")
-                while True:
-                    msg = await user_message_queue.get()
-                    if msg and msg.strip():
-                        return msg
-        """
-       
-        async def wrapped_input_func(*args, **kwargs):
-                global spontaneous_queue, user_message_queue
-            
-                if not spontaneous_queue.empty():
-                    msg = await spontaneous_queue.get()
-                    print("⚡ Using spontaneous message:", msg)
-                    return msg
-            
-                print("⏳ Waiting for user input (moderator turn)...")
-                while True:
-                    msg = await user_message_queue.get()
-                    if msg and msg.strip():
-                        return msg         
+                if data.strip():
+                    return data
 
+        async def wrapped_input_func(*args, **kwargs):
+            if websocket:
+                print("🟢 UX: Sending '__USER_PROXY_TURN__'")
+                await websocket.send_text("__USER_PROXY_TURN__")
+            return await websocket_async_input_func(*args, **kwargs)
 
         agents["user_proxy"] = UserProxyAgent(name="user_proxy", input_func=wrapped_input_func)
 
@@ -597,13 +657,9 @@ async def websocket_endpoint(websocket: WebSocket):
         if loaded_team_state:
             await team.load_state(loaded_team_state)
             loaded_team_state = None
-        
-        asyncio.create_task(websocket_listener(websocket))
-        
-        asyncio.create_task(speak_worker(websocket))
-        
+
+        speak_task = asyncio.create_task(speak_worker(websocket))
         await run_chat(team, websocket=websocket)
-        
         await speech_queue.join()
 
         stop_execution = True
