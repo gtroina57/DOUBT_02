@@ -584,7 +584,7 @@ async def handle_spontaneous(team):
 
         temp_task = {"name": "user_proxy", "content": spontaneous_msg}
 
-        async for result in team.run_stream(task=temp_task):
+        async for result in team.run_stream(task=spontaneous_msg):
             if hasattr(result, "content") and isinstance(result.content, str):
                 text = result.content
                 agent_name = result.source
