@@ -632,7 +632,8 @@ async def websocket_endpoint(websocket: WebSocket):
         async def websocket_listener():
             global user_intervention_buffer, user_message_queue
             while True:
-                print("PLUTO2")                data = await websocket.receive_text()
+                print("PLUTO2")                
+                data = await websocket.receive_text()
                 if data == "__ping__":
                     print("PLUTO2")
                     continue
