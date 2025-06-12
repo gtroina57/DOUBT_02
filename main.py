@@ -76,12 +76,17 @@ if not OPENAI_API_KEY:
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 if not GOOGLE_API_KEY:
     raise RuntimeError("GOOGLE_API_KEY environment variable is not set.")
-    
+ 
+model_client_openai = OpenAIChatCompletionClient(
+    model="gpt-3.5-turbo",
+    api_key=OPENAI_API_KEY # Optional if you have an OPENAI_API_KEY env variable set.
+ )   
+"""  
 model_client_openai = OpenAIChatCompletionClient(
     model="gpt-4o-2024-08-06",
     api_key=OPENAI_API_KEY # Optional if you have an OPENAI_API_KEY env variable set.
 )
-
+"""
 model_client_gemini = OpenAIChatCompletionClient(
     model="gemini-1.5-flash",
     api_key=GOOGLE_API_KEY
