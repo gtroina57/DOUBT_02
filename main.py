@@ -105,7 +105,7 @@ processed_messages = set()
 stop_execution = False
 speech_queue = asyncio.Queue()
 user_message_queue = asyncio.Queue()
-user_intervention_buffer = asyncio.Queue()
+pending_spontaneous_input = None
 
 client1 = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 os.makedirs("audio", exist_ok=True)  # Folder to serve audio files
@@ -536,28 +536,13 @@ def intervene_now(user_input):
 ##########################################################################################################
 ################################# loop for debate  #######################################################
 async def run_chat(team, websocket=None):
-    global stop_execution, image_url, task1, gradio_input_buffer, user_intervention_buffer
+    global stop_execution, image_url, task1, gradio_input_buffer, pending_spontaneous_input
 
     print("🚀 Starting debate with streaming...")
 
     async for result in team.run_stream(task=task1):
         if stop_execution:
             break
-        """
-        # ✅ Handle spontaneous user intervention before next message
-        if user_intervention_buffer:
-            print("🚨 Injecting spontaneous input from user.")
-            team.receive_message(user_proxy, user_intervention_buffer)
-            user_intervention_buffer = None
-            # 🔁 Continue loop to avoid skipping this injection
-            continue
-        """
-        
-        if not user_intervention_buffer.empty() and not user_message_queue.qsize():
-            msg = await user_intervention_buffer.get()
-            print(f"🧑 Injecting spontaneous user input: {msg}")
-            await team.inject_message({"name": "user_proxy", "content": msg})
-            continue
         
         if hasattr(result, "content") and isinstance(result.content, str):
             text = result.content
@@ -636,7 +621,7 @@ async def websocket_endpoint(websocket: WebSocket):
         
 #####################################################################################################
         async def websocket_listener(websocket):
-            global user_intervention_buffer, user_message_queue
+            global pending_spontaneous_input, user_message_queue
             while True:
                 print("PLUTO2")                
                 data = await websocket.receive_text()
@@ -650,26 +635,32 @@ async def websocket_endpoint(websocket: WebSocket):
                 elif data.startswith("__SPONTANEOUS__"):
                     message = data.replace("__SPONTANEOUS__", "").strip()
                     print("⚡ Spontaneous input from user:", message)
-                    await user_intervention_buffer.put(message)
+                    global pending_spontaneous_input
+                    pending_spontaneous_input = message
                 
                 else:
                     print("👤 User responded:", data)
                     print("PLUTO4")
                     await user_message_queue.put(data)
         
+        
         async def wrapped_input_func(*args, **kwargs):
-            global user_message_queue
-            print("⏳ Waiting for user response...")
-        
-            while True:
-                print("PLUTO5")
-                user_msg = await user_message_queue.get()
-                if user_msg and user_msg.strip():  # Reject empty messages
-                    print("PLUTO1", user_msg)
-                    return user_msg
-                print("⚠️ Empty user input received, waiting again...")
-
-        
+                global pending_spontaneous_input, user_message_queue
+            
+                # 🧠 Handle spontaneous input
+                if pending_spontaneous_input:
+                    msg = pending_spontaneous_input
+                    pending_spontaneous_input = None
+                    print("⚡ Using spontaneous input via input_func:", msg)
+                    return msg
+            
+                # 🧑 Moderator gave the floor
+                print("⏳ Waiting for user response...")
+                while True:
+                    msg = await user_message_queue.get()
+                    if msg and msg.strip():
+                        return msg
+                    
 ################################################################################################
         """
         async def websocket_async_input_func(*args, **kwargs):
