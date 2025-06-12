@@ -704,7 +704,9 @@ async def websocket_endpoint(websocket: WebSocket):
         if loaded_team_state:
             await team.load_state(loaded_team_state)
             loaded_team_state = None
-
+        
+        asyncio.create_task(websocket_listener(websocket))
+        
         speak_task = asyncio.create_task(speak_worker(websocket))
         await run_chat(team, websocket=websocket)
         await speech_queue.join()
