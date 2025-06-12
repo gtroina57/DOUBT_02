@@ -553,12 +553,11 @@ async def run_chat(team, websocket=None):
             continue
         """
         
-        if user_intervention_buffer and not user_message_queue.qsize():
+        if not user_intervention_buffer.empty() and not user_message_queue.qsize():
             msg = await user_intervention_buffer.get()
             print(f"🧑 Injecting spontaneous user input: {msg}")
             await team.inject_message({"name": "user_proxy", "content": msg})
             continue
-        
         
         if hasattr(result, "content") and isinstance(result.content, str):
             text = result.content
@@ -647,11 +646,12 @@ async def websocket_endpoint(websocket: WebSocket):
                 if data == "__USER_PROXY_TURN__":
                     print("🎙️ Moderator gave the floor to user.")
                     # Wait for user input (the next message will go to the queue)
+                
                 elif data.startswith("__SPONTANEOUS__"):
-                    print("PLUTO3")
-                    message = data.replace("__SPONTANEOUS__", "")
+                    message = data.replace("__SPONTANEOUS__", "").strip()
                     print("⚡ Spontaneous input from user:", message)
-                    user_intervention_buffer = message
+                    await user_intervention_buffer.put(message)
+                
                 else:
                     print("👤 User responded:", data)
                     print("PLUTO4")
