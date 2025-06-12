@@ -587,7 +587,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
         team = SelectorGroupChat(
             agent_list,
-            model_client=model_client_openai,
+            model_client=model_client_gemini,
             selector_func=dynamic_selector_func,
             termination_condition=termination,
             allow_repeated_speaker=True,
