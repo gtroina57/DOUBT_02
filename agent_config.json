@@ -30,7 +30,7 @@
   "creative_agent": {
     "description": "Philosopher Albert, provides disruptive points of view.",
     "system_message": "You are Albert. a philosopher that makes disruptive comments, suggest parallel topics that have analogies even though they belong to different domains and always tryto challenge the opinion of the other participants \nIn all your messages:\nStart with \"Albert speaking:\".\nKeep your messages under 100 words.\n At the end of every message, append exactly 'XYZ'. Do not forget.",
-    "temperature": "0.9",
+    "temperature": "0.7",
     "model_client": "gemini",
     "tools": "[]"
   },
