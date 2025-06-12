@@ -12,12 +12,8 @@
   <input id="topicInput" type="text" placeholder="Enter debate topic..." size="60" />
   <button onclick="setTopic()">Set Topic</button><br><br>
 
-  <input id="messageInput" type="text" placeholder="Type your message..." size="60" />
-  <button id="sendButton" onclick="sendMessage()">Send</button>
-  <label>
-    <input type="checkbox" id="spontaneousToggle" checked />
-    Allow spontaneous interventions
-  </label><br><br>
+  <input id="messageInput" type="text" placeholder="Wait for your turn..." size="60" disabled />
+  <button id="sendButton" onclick="sendMessage()" disabled>Send</button><br><br>
 
   <progress id="audioProgress" value="0" max="1" style="width: 400px; display: none;"></progress>
 
@@ -25,20 +21,17 @@
   const ws = new WebSocket("wss://doubt-02.onrender.com/ws");
   const audioQueue = [];
   let isPlaying = false;
-  let userHasTurn = false;
-  
-  document.getElementById("messageInput").addEventListener("input", function () {
-      document.getElementById("sendButton").disabled = !this.value.trim();
-  
+
   ws.onopen = () => {
     log("✅ Connected to debate server.");
   };
 
   ws.onmessage = (event) => {
     if (event.data === "__USER_PROXY_TURN__") {
-      userHasTurn = true;
       log("🎤 Moderator gives you the floor. You may speak now.");
-      document.getElementById("messageInput").placeholder = "Type your response...";
+      document.getElementById("messageInput").disabled = false;
+      document.getElementById("sendButton").disabled = false;
+      document.getElementById("messageInput").focus();
       return;
     }
 
@@ -103,21 +96,13 @@
 
   function sendMessage() {
     const input = document.getElementById("messageInput");
-    let message = input.value.trim();
-    const spontaneous = !userHasTurn && document.getElementById("spontaneousToggle").checked;
-
+    const message = input.value.trim();
     if (message && ws.readyState === WebSocket.OPEN) {
-      if (spontaneous) {
-        message = `__SPONTANEOUS__${message}`;
-        log("⚡ Spontaneous intervention sent.");
-      } else {
-        log("🧑 You: " + message);
-        userHasTurn = false;
-        document.getElementById("messageInput").placeholder = "Wait for your turn...";
-      }
-
       ws.send(message);
+      log("🧑 You: " + message);
       input.value = "";
+      input.disabled = true;
+      document.getElementById("sendButton").disabled = true;
     }
   }
 
