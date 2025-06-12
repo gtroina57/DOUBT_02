@@ -105,7 +105,7 @@ processed_messages = set()
 stop_execution = False
 speech_queue = asyncio.Queue()
 user_message_queue = asyncio.Queue()
-pending_spontaneous_input = None
+spontaneous_queue = asyncio.Queue()
 
 client1 = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 os.makedirs("audio", exist_ok=True)  # Folder to serve audio files
@@ -536,7 +536,7 @@ def intervene_now(user_input):
 ##########################################################################################################
 ################################# loop for debate  #######################################################
 async def run_chat(team, websocket=None):
-    global stop_execution, image_url, task1, gradio_input_buffer, pending_spontaneous_input
+    global stop_execution, image_url, task1, gradio_input_buffer
 
     print("🚀 Starting debate with streaming...")
 
@@ -573,6 +573,41 @@ async def run_chat(team, websocket=None):
 @app.api_route("/", methods=["GET", "HEAD"])
 def root():
     return {"status": "ok", "message": "Service is running"}
+
+##################################################################################
+
+async def handle_spontaneous(team):
+    global stop_execution
+    while not stop_execution:
+        spontaneous_msg = await spontaneous_queue.get()
+        print(f"⚡ Handling spontaneous input: {spontaneous_msg}")
+
+        temp_task = {"name": "user_proxy", "content": spontaneous_msg}
+
+        async for result in team.run_stream(task=temp_task):
+            if hasattr(result, "content") and isinstance(result.content, str):
+                text = result.content
+                agent_name = result.source
+
+                print(f"🤖 [Spontaneous] {agent_name}: {text}")
+
+                if not hasattr(team, "_message_history"):
+                    team._message_history = []
+                team._message_history.append({"sender": agent_name, "content": text})
+
+                prefix = "🧑" if "user" in agent_name.lower() else "🤖"
+                user_conversation.append(f"{prefix} {agent_name.upper()}: {text}")
+                
+                await speech_queue.put((agent_name, text))
+
+                if "TERMINATE" in text:
+                    stop_execution = True
+                    await speech_queue.put(("system", "TERMINATE"))
+                    print("✅ Chat terminated by spontaneous input.")
+                    return
+#################################################################################
+
+
 
 import traceback
 
@@ -621,7 +656,7 @@ async def websocket_endpoint(websocket: WebSocket):
         
 #####################################################################################################
         async def websocket_listener(websocket):
-            global pending_spontaneous_input, user_message_queue
+            global user_message_queue, spontaneous_queue
             while True:
                 print("PLUTO2")                
                 data = await websocket.receive_text()
@@ -634,9 +669,9 @@ async def websocket_endpoint(websocket: WebSocket):
                 
                 elif data.startswith("__SPONTANEOUS__"):
                     message = data.replace("__SPONTANEOUS__", "").strip()
-                    print("⚡ Spontaneous input from user:", message)
-                    global pending_spontaneous_input
-                    pending_spontaneous_input = message
+                    print("⚡ Spontaneous input received:", message)
+                    await spontaneous_queue.put(message)
+                    continue
                 
                 else:
                     print("👤 User responded:", data)
@@ -645,14 +680,8 @@ async def websocket_endpoint(websocket: WebSocket):
         
         
         async def wrapped_input_func(*args, **kwargs):
-                global pending_spontaneous_input, user_message_queue
+                global  user_message_queue
             
-                # 🧠 Handle spontaneous input
-                if pending_spontaneous_input:
-                    msg = pending_spontaneous_input
-                    pending_spontaneous_input = None
-                    print("⚡ Using spontaneous input via input_func:", msg)
-                    return msg
             
                 # 🧑 Moderator gave the floor
                 print("⏳ Waiting for user response...")
@@ -705,8 +734,12 @@ async def websocket_endpoint(websocket: WebSocket):
         
         asyncio.create_task(websocket_listener(websocket))
         
-        speak_task = asyncio.create_task(speak_worker(websocket))
+        asyncio.create_task(handle_spontaneous(team))
+        
+        asyncio.create_task(speak_worker(websocket))
+        
         await run_chat(team, websocket=websocket)
+        
         await speech_queue.join()
 
         stop_execution = True
