@@ -629,7 +629,7 @@ async def websocket_endpoint(websocket: WebSocket):
         
         
 #####################################################################################################
-        async def websocket_listener():
+        async def websocket_listener(websocket):
             global user_intervention_buffer, user_message_queue
             while True:
                 print("PLUTO2")                
