@@ -534,11 +534,6 @@ async def websocket_endpoint(websocket: WebSocket):
                     message = data.replace("__SPONTANEOUS__", "").strip()
                     print("⚡ Spontaneous input received:", message)
                     await spontaneous_queue.put(message)
-                    continue
-                
-                elif data.startswith("__SPONTANEOUS__"):
-                    msg = data.replace("__SPONTANEOUS__", "").strip()
-                    await spontaneous_queue.put(msg)
                     prioritized_agents.append("user_proxy")  # 🔥 Ask selector to prioritize user
                     continue
                 
