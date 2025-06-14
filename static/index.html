@@ -8,6 +8,7 @@
   <h2>Multi-Agent Debate</h2>
 
   <textarea id="log" cols="80" rows="20" readonly></textarea><br>
+  <button onclick="clearLog()">Clear Log</button>
 
   <input id="topicInput" type="text" placeholder="Enter debate topic..." size="80" />
   <button onclick="setTopic()">Set Topic</button><br><br>
@@ -32,13 +33,12 @@
   };
 
   ws.onmessage = (event) => {
-    if (event.data === "__USER_PROXY_TURN
- ,./.,MVBNM,./;'
-__"'
-) {
-      userHasTurn = true;
+    if (event.data === "__USER_PROXY_TURN__") {
       log("🎤 Moderator gives you the floor. You may speak now.");
-      document.getElementById("messageInput").placeholder = "Type your response...";
+      userHasTurn = true;
+      document.getElementById("messageInput").disabled = false;
+      document.getElementById("sendButton").disabled = false;
+      document.getElementById("messageInput").focus();
       return;
     }
 
@@ -64,10 +64,18 @@ __"'
   const audio = new Audio(url);
   log("🔊 Playing audio from: " + url);
 
+  
+  audio.ontimeupdate = () => {
+    const progress = document.getElementById("audioProgress");
+    progress.style.display = "block";
+    progress.value = audio.currentTime / audio.duration;
+  };
   audio.onended = () => {
     isPlaying = false;
+    document.getElementById("audioProgress").style.display = "none";
     playNextAudio();
   };
+
 
   audio.onerror = () => {
     log("❌ Error playing audio.");
@@ -78,7 +86,7 @@ __"'
   // 🔁 Delay to ensure audio file is ready before playing
   setTimeout(() => {
     audio.play();
-à  }, 300); // Adjust delay as needed
+  }, 300); // Adjust delay as needed
 }
 
   function log(message) {
@@ -128,6 +136,11 @@ __"'
       ws.send("__ping__");
     }
   }, 20000);
+
+  function clearLog() {
+    document.getElementById("log").value = "";
+  }
+
 </script>
 </body>
 </html>
