@@ -63,7 +63,6 @@
   const url = audioQueue.shift();
   const audio = new Audio(url);
   log("🔊 Playing audio from: " + url);
-  isPlaying = false;
 
   audio.ontimeupdate = () => {
     const progress = document.getElementById("audioProgress");
@@ -87,7 +86,7 @@
   // 🔁 Delay to ensure audio file is ready before playing
   setTimeout(() => {
     audio.play();
-  }, 300); // Adjust delay as needed
+  }, 2000); // Adjust delay as needed
 }
 
   function log(message) {
@@ -144,7 +143,3 @@
 </script>
 </body>
 </html>
-
-
-à
-'ù
