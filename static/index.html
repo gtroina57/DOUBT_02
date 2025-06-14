@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Multi-DOUBT</title>
+  <title>DOUBT</title>
 </head>
 <body>
   <h2>Multi-Agent Debate</h2>
@@ -63,13 +63,14 @@
   const url = audioQueue.shift();
   const audio = new Audio(url);
   log("🔊 Playing audio from: " + url);
+  isPlaying = false;
 
-  
   audio.ontimeupdate = () => {
     const progress = document.getElementById("audioProgress");
     progress.style.display = "block";
     progress.value = audio.currentTime / audio.duration;
   };
+
   audio.onended = () => {
     isPlaying = false;
     document.getElementById("audioProgress").style.display = "none";
@@ -119,7 +120,6 @@
       document.getElementById("messageInput").placeholder = "Wait for your turn...";
     }
 
- 
    ws.send(message);
     input.value = "";
     document.getElementById("sendButton").disabled = true;
@@ -131,11 +131,11 @@
     document.getElementById("sendButton").disabled = !hasText;
   });
 
-  setInterval(() => {
-    if (ws.readyState === WebSocket.OPEN) {
-      ws.send("__ping__");
-    }
-  }, 20000);
+  // setInterval(() => {
+  //  if (ws.readyState === WebSocket.OPEN) {
+  //    ws.send("__ping__");
+  //  }
+  // }, 20000);
 
   function clearLog() {
     document.getElementById("log").value = "";
