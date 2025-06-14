@@ -2,17 +2,17 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Multi-Agent Debate</title>
+  <title>Multi-DOUBT</title>
 </head>
 <body>
   <h2>Multi-Agent Debate</h2>
 
   <textarea id="log" cols="80" rows="20" readonly></textarea><br>
 
-  <input id="topicInput" type="text" placeholder="Enter debate topic..." size="60" />
+  <input id="topicInput" type="text" placeholder="Enter debate topic..." size="80" />
   <button onclick="setTopic()">Set Topic</button><br><br>
 
-  <input id="messageInput" type="text" placeholder="Type your message..." size="60" />
+  <input id="messageInput" type="text" placeholder="Type your message..." size="80" />
   <button id="sendButton" onclick="sendMessage()" disabled>Send</button>
   <label>
     <input type="checkbox" id="spontaneousToggle" checked />
@@ -32,7 +32,10 @@
   };
 
   ws.onmessage = (event) => {
-    if (event.data === "__USER_PROXY_TURN__") {
+    if (event.data === "__USER_PROXY_TURN
+ ,./.,MVBNM,./;'
+__"'
+) {
       userHasTurn = true;
       log("🎤 Moderator gives you the floor. You may speak now.");
       document.getElementById("messageInput").placeholder = "Type your response...";
@@ -52,37 +55,31 @@
   };
 
   function playNextAudio() {
-    if (audioQueue.length === 0) {
-      isPlaying = false;
-      return;
-    }
-
-    const url = audioQueue.shift();
-    const audio = new Audio(url);
-    isPlaying = true;
-    log("🔊 Playing audio from: " + url);
-
-    audio.onended = () => {
-      isPlaying = false;
-      playNextAudio();
-    };
-
-    audio.onerror = () => {
-      log("❌ Error playing audio.");
-      isPlaying = false;
-      playNextAudio();
-    };
-
-    audio.play();
+  if (audioQueue.length === 0) {
+    isPlaying = false;
+    return;
   }
+  isPlaying = true;
+  const url = audioQueue.shift();
+  const audio = new Audio(url);
+  log("🔊 Playing audio from: " + url);
 
-  ws.onclose = () => {
-    log("❌ WebSocket disconnected.");
+  audio.onended = () => {
+    isPlaying = false;
+    playNextAudio();
   };
 
-  ws.onerror = (err) => {
-    log("⚠️ WebSocket error: " + err.message);
+  audio.onerror = () => {
+    log("❌ Error playing audio.");
+    isPlaying = false;
+    playNextAudio();
   };
+
+  // 🔁 Delay to ensure audio file is ready before playing
+  setTimeout(() => {
+    audio.play();
+à  }, 300); // Adjust delay as needed
+}
 
   function log(message) {
     const logArea = document.getElementById("log");
@@ -114,7 +111,8 @@
       document.getElementById("messageInput").placeholder = "Wait for your turn...";
     }
 
-    ws.send(message);
+ 
+   ws.send(message);
     input.value = "";
     document.getElementById("sendButton").disabled = true;
   }
@@ -133,3 +131,7 @@
 </script>
 </body>
 </html>
+
+
+à
+'ù
