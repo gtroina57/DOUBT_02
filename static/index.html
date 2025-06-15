@@ -85,7 +85,9 @@
 
   // 🔁 Delay to ensure audio file is ready before playing
   //setTimeout(() => {
+  audio.oncanplaythrough = () => {
   audio.play();
+};
   //}, 2000); // Adjust delay as needed
 }
 
