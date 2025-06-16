@@ -165,8 +165,10 @@ async def speak_worker(websocket):
             with open(filepath, 'wb') as f:
                 f.write(response.content)
 
-            print(f"🔊 Audio saved to {filepath}")
-
+            ###  print(f"🔊 Audio saved to {filepath}")
+            
+            await asyncio.sleep(3.0)
+            
             if websocket:
                 await websocket.send_text(f"__AUDIO_URL__/audio/{filename}")
 
