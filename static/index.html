@@ -94,12 +94,16 @@
   // 🔁 Delay to ensure audio file is ready before playing
   //setTimeout(() => {
   log("before oncanplayTHROUGH playing audio.");
-  audio.oncanplaythrough = () => {
-  log("START playing audio.");
-  log("END playing audio.");
+  let fallbackTimeout = setTimeout(() => {
+  log("⏱️ Timeout hit. Playing audio anyway.");
   audio.play();
-};
-  //}, 2000); // Adjust delay as needed
+  }, 2000); // Wait max 2 seconds
+
+  audio.oncanplaythrough = () => {
+  clearTimeout(fallbackTimeout); // If this fires first, cancel the fallback
+  log("🎧 Audio fully buffered. Playing now.");
+  audio.play();
+  };
 }
 
   function log(message) {
