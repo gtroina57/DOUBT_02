@@ -73,14 +73,19 @@
   audio.onended = () => {
     isPlaying = false;
     document.getElementById("audioProgress").style.display = "none";
-    playNextAudio();
+
+    setTimeout(() => {
+      playNextAudio();  // Delayed next audio
+    }, 1000); // Delay in milliseconds after current audio ends
   };
 
 
   audio.onerror = () => {
     log("❌ Error playing audio.");
     isPlaying = false;
-    playNextAudio();
+    setTimeout(() => {
+      playNextAudio();  // Delayed next audio
+    }, 1000); // Delay in milliseconds after current audio ends
   };
 
   // 🔁 Delay to ensure audio file is ready before playing
