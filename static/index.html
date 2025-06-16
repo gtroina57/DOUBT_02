@@ -97,12 +97,14 @@
   let fallbackTimeout = setTimeout(() => {
   log("⏱️ Timeout hit. Playing audio anyway.");
   audio.play();
+  log("⏱️ Timeout hit. after playing audio anyway.");
   }, 2000); // Wait max 2 seconds
 
   audio.oncanplaythrough = () => {
   clearTimeout(fallbackTimeout); // If this fires first, cancel the fallback
   log("🎧 Audio fully buffered. Playing now.");
   audio.play();
+  log("🎧 After audio fully buffered. Playing now.");
   };
 }
 
