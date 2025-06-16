@@ -63,6 +63,8 @@
   const url = audioQueue.shift();
   const audio = new Audio(url);
   log("🔊 Playing audio from: " + url);
+  log("🔊 Playing audio 2 from: " + url);
+  log("🔊 Playing audio 3 from: " + url);
 
   audio.ontimeupdate = () => {
     const progress = document.getElementById("audioProgress");
@@ -91,6 +93,7 @@
 
   // 🔁 Delay to ensure audio file is ready before playing
   //setTimeout(() => {
+  log("before oncanplayTHROUGH playing audio.");
   audio.oncanplaythrough = () => {
   log("START playing audio.");
   log("END playing audio.");
