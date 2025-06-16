@@ -51,7 +51,7 @@
       return;
     }
 
-    log("📩 " + event.data);
+    // log("📩 " + event.data);
   };
 
   function playNextAudio() {
@@ -62,7 +62,6 @@
   isPlaying = true;
   const url = audioQueue.shift();
   const audio = new Audio(url);
-  log("🔊 after queue shift);
   
   audio.ontimeupdate = () => {
     const progress = document.getElementById("audioProgress");
@@ -71,17 +70,9 @@
   };
 
   audio.onended = () => {  
-    log("ONENDED playing audio.");
     isPlaying = false;
     document.getElementById("audioProgress").style.display = "none";
-
-    setTimeout(() => {
-    log("🔊 before playnext);
-
     playNextAudio();  // Delayed next audio
-    log("🔊 after play next);
-
-    }, 1000); // Delay in milliseconds after current audio ends
   };
 
 
@@ -95,18 +86,14 @@
 
   // 🔁 Delay to ensure audio file is ready before playing
   //setTimeout(() => {
-  log("before oncanplayTHROUGH playing audio.");
+  
   let fallbackTimeout = setTimeout(() => {
-  log("⏱️ Timeout hit. Playing audio anyway.");
-  audio.play();
-  log("⏱️ Timeout hit. after playing audio anyway.");
-  }, 2000); // Wait max 2 seconds
+    audio.play();
+    }, 2000); // Wait max 2 seconds
 
   audio.oncanplaythrough = () => {
   clearTimeout(fallbackTimeout); // If this fires first, cancel the fallback
-  log("🎧 Audio fully buffered. Playing now.");
   audio.play();
-  log("🎧 After audio fully buffered. Playing now.");
   };
 }
 
