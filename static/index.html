@@ -65,6 +65,7 @@
   audio.onended = () => {
     isPlaying = false;
     playNextAudio();
+    log("✅ ONENDED");
   };
 
   audio.onerror = () => {
@@ -75,8 +76,10 @@
 
   // 🔁 Delay to ensure audio file is ready before playing
   setTimeout(() => {
+    log("✅ before audio play.");
     audio.play();
-à  }, 300); // Adjust delay as needed
+    log("✅ after audio play.");
+  }, 300); // Adjust delay as needed
 }
 
   function log(message) {
