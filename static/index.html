@@ -2,13 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>DOUBT</title>
+  <title>Multi-DOUBT</title>
 </head>
 <body>
   <h2>Multi-Agent Debate</h2>
 
   <textarea id="log" cols="80" rows="20" readonly></textarea><br>
-  <button onclick="clearLog()">Clear Log</button>
 
   <input id="topicInput" type="text" placeholder="Enter debate topic..." size="80" />
   <button onclick="setTopic()">Set Topic</button><br><br>
@@ -35,7 +34,6 @@
   ws.onmessage = (event) => {
     if (event.data === "__USER_PROXY_TURN__") {
       log("🎤 Moderator gives you the floor. You may speak now.");
-      userHasTurn = true;
       document.getElementById("messageInput").disabled = false;
       document.getElementById("sendButton").disabled = false;
       document.getElementById("messageInput").focus();
@@ -60,49 +58,25 @@
     return;
   }
   isPlaying = true;
-  log("🔊 Playing audio from: " + url);
-
   const url = audioQueue.shift();
   const audio = new Audio(url);
-  
-  audio.ontimeupdate = () => {
-    const progress = document.getElementById("audioProgress");
-    progress.style.display = "block";
-    progress.value = audio.currentTime / audio.duration;
-  };
+  log("🔊 Playing audio from: " + url);
 
-  audio.onended = () => { 
-    log("✅ ONENDED");
- 
+  audio.onended = () => {
     isPlaying = false;
-    document.getElementById("audioProgress").style.display = "none";
-    playNextAudio();  // Delayed next audio
+    playNextAudio();
   };
-
 
   audio.onerror = () => {
     log("❌ Error playing audio.");
     isPlaying = false;
-    setTimeout(() => {
-      playNextAudio();  // Delayed next audio
-    }, 1000); // Delay in milliseconds after current audio ends
+    playNextAudio();
   };
 
   // 🔁 Delay to ensure audio file is ready before playing
-  //setTimeout(() => {
-  
-  let fallbackTimeout = setTimeout(() => {
-    log("✅ before timeout audio.play");
+  setTimeout(() => {
     audio.play();
-    log("✅ after timeout audio.play");
-    }, 2000); // Wait max 2 seconds
-
-  audio.oncanplaythrough = () => {
-  clearTimeout(fallbackTimeout); // If this fires first, cancel the fallback
-  log("✅ before audio.play");
-  audio.play();
-  log("✅ after audio.play");
-  };
+à  }, 300); // Adjust delay as needed
 }
 
   function log(message) {
@@ -135,6 +109,7 @@
       document.getElementById("messageInput").placeholder = "Wait for your turn...";
     }
 
+ 
    ws.send(message);
     input.value = "";
     document.getElementById("sendButton").disabled = true;
@@ -146,16 +121,15 @@
     document.getElementById("sendButton").disabled = !hasText;
   });
 
-  // setInterval(() => {
-  //  if (ws.readyState === WebSocket.OPEN) {
-  //    ws.send("__ping__");
-  //  }
-  // }, 20000);
-
-  function clearLog() {
-    document.getElementById("log").value = "";
-  }
-
+  setInterval(() => {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send("__ping__");
+    }
+  }, 20000);
 </script>
 </body>
 </html>
+
+
+à
+'ù
