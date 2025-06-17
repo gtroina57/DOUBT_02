@@ -52,7 +52,7 @@
     log("📩 " + event.data);
   };
 
-  function playNextAudio() {
+  async function playNextAudio() {
   if (audioQueue.length === 0) {
     isPlaying = false;
     return;
@@ -62,24 +62,30 @@
   const audio = new Audio(url);
   log("🔊 Playing audio from: " + url);
 
-  audio.onended = () => {
-    log("✅ ONENDED");
-    isPlaying = false;
-    playNextAudio();
-  };
+  // Define a promise that resolves when audio finishes or errors out
+  const audioFinished = new Promise((resolve) => {
+    audio.onended = () => {
+      log("✅ ONENDED");
+      resolve();
+    };
+    audio.onerror = () => {
+      log("❌ Error playing audio.");
+      resolve();
+    };
+  });
 
-  audio.onerror = () => {
-    log("❌ Error playing audio.");
-    isPlaying = false;
-    playNextAudio();
-  };
-
-  // 🔁 Delay to ensure audio file is ready before playing
-  
+  try {
     log("✅ before audio play.");
-    audio.play();
-    log("✅ after audio play.");
+    await audio.play(); // Wait for playback to start
+    log("✅ after audio play started, now waiting for it to finish.");
+    await audioFinished; // Wait for playback to finish
+  } catch (err) {
+    log("❌ Error starting playback: " + err);
   }
+
+  isPlaying = false;
+  playNextAudio();
+}
 
   function log(message) {
     const logArea = document.getElementById("log");
@@ -131,7 +137,3 @@
 </script>
 </body>
 </html>
-
-
-à
-'ù
