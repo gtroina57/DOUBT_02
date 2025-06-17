@@ -63,9 +63,9 @@
   log("🔊 Playing audio from: " + url);
 
   audio.onended = () => {
+    log("✅ ONENDED");
     isPlaying = false;
     playNextAudio();
-    log("✅ ONENDED");
   };
 
   audio.onerror = () => {
@@ -75,12 +75,11 @@
   };
 
   // 🔁 Delay to ensure audio file is ready before playing
-  setTimeout(() => {
+  
     log("✅ before audio play.");
     audio.play();
     log("✅ after audio play.");
-  }, 300); // Adjust delay as needed
-}
+  }
 
   function log(message) {
     const logArea = document.getElementById("log");
