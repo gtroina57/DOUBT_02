@@ -58,6 +58,16 @@ app = FastAPI()
 # Mount static directory
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+# Serve the index.html at root
+@app.get("/", response_class=HTMLResponse)
+async def get_index():
+    html_path = Path("static/index.html")
+    return HTMLResponse(content=html_path.read_text(encoding="utf-8"))
+
+
+#####################################################################################################
+#global user_proxy, team, loaded_team_state, agents, agent_list, model_client_openai, model_client_gemini
+
 ################################ Create OpenAI model client   #############################
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 if not OPENAI_API_KEY:
@@ -102,6 +112,13 @@ prioritized_agents = deque()
 client1 = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 os.makedirs("audio", exist_ok=True)  # Folder to serve audio files
 
+@app.get("/audio/{filename}")
+async def get_audio_file(filename: str):
+    filepath = os.path.join("audio", filename)
+    if os.path.exists(filepath):
+        return FileResponse(filepath, media_type="audio/mpeg")
+    return {"error": "File not found"}
+
 async def speak_worker(websocket):
     global stop_execution
 
@@ -125,12 +142,11 @@ async def speak_worker(websocket):
             speech_queue.task_done()
             stop_execution = True
             break
-        
-        """
+
         if not content.strip():
             speech_queue.task_done()
             continue
-        """
+
         # Clean message
         text = content.rsplit("XYZ", 1)[0].strip()
         text = re.sub(r'\[.*?\]\(https?://\S+\)', 'You can find the image at the link', text)
@@ -151,12 +167,12 @@ async def speak_worker(websocket):
 
             print(f"🔊 Audio saved to {filepath}")
             
-            ### await asyncio.sleep(2.0)
+            await asyncio.sleep(2.0)
             
             if websocket:
                 await websocket.send_text(f"__AUDIO_URL__/audio/{filename}")
 
-            await asyncio.sleep(3.0)
+            await asyncio.sleep(2.0)
             
         except Exception as e:
             print("❌ Error in speak_worker:", e)
@@ -350,7 +366,14 @@ def dynamic_selector_func(thread):
 ####################################################################################################
 # === Globals ===
 user_conversation = []
+gradio_input_buffer = {"message": None}
 agent_config_ui = {}
+
+################## SET TOPIC        ###########################################################
+def set_task_only(task_text):
+            global task1
+            task1 = task_text
+            return "✅ Debate topic set." if task_text else "❌ Topic cannot be empty."
 
 ##########################################################################################################
 ################################# Configuration File    ###################################################=
@@ -399,11 +422,23 @@ def sync_load_config():
     print("🟢 Config loaded and pending application.")
     return "🟢 Config loaded. Ready to apply when system starts."
 
+##########################################################################################################
+################################# User Intervention    ###################################################
+# === User interaction ===
+def handle_user_message(message):
+    global user_conversation, gradio_input_buffer
+    gradio_input_buffer["message"] = message
+    user_conversation.append(f"🧑 USER: {message}")
+    return "\n".join(user_conversation)
+
+def intervene_now(user_input):
+    return handle_user_message(user_input)
+
 
 ##########################################################################################################
 ################################# loop for debate  #######################################################
 async def run_chat(team, websocket=None):
-    global stop_execution, image_url, task1
+    global stop_execution, image_url, task1, gradio_input_buffer
 
     print("🚀 Starting debate with streaming...")
 
@@ -428,9 +463,9 @@ async def run_chat(team, websocket=None):
 
             prefix = "🧑" if "user" in agent_name.lower() else "🤖"
             user_conversation.append(f"{prefix} {agent_name.upper()}: {text}")
-            print ("before speech queue put *****************************")
+
             await speech_queue.put((agent_name, text))
-            print ("after speech queue put *****************************")
+
             if "TERMINATE" in text:
                 stop_execution = True
                 await speech_queue.put(("system", "TERMINATE"))
@@ -452,7 +487,7 @@ async def websocket_endpoint(websocket: WebSocket):
     team = None
     stop_execution = False
     task1 = None  # 🆕 Debate topic will be set by user
-    """
+
     async def flush_queue(queue: asyncio.Queue):
         while not queue.empty():
             try:
@@ -463,9 +498,8 @@ async def websocket_endpoint(websocket: WebSocket):
 
     await flush_queue(user_message_queue)
     await flush_queue(speech_queue)
-    """
+
     await websocket.accept()
-    
     try:
         # ✳️ Wait for user to submit task1 before anything else
         await websocket.send_text("📝 Please enter the debate topic and click 'Set Topic' before continuing.")
@@ -491,9 +525,8 @@ async def websocket_endpoint(websocket: WebSocket):
         async def websocket_listener(websocket):
             global user_message_queue, spontaneous_queue
             while True:
-                print("before websocket listener RECEIVE")                
+                print("PLUTO2")                
                 data = await websocket.receive_text()
-                print("after websocket listener RECEIVE") 
                 if data == "__ping__":
                     print("PLUTO2")
                     continue
@@ -503,17 +536,28 @@ async def websocket_endpoint(websocket: WebSocket):
                 
                 elif data.startswith("__SPONTANEOUS__"):
                     message = data.replace("__SPONTANEOUS__", "").strip()
-                    print("⚡ Spontaneous input received before put:", message)
+                    print("⚡ Spontaneous input received:", message)
                     await spontaneous_queue.put(message)
-                    print("⚡ Spontaneous input received after put:", message)
                     prioritized_agents.append("user_proxy")  # 🔥 Ask selector to prioritize user
                     continue
                 
                 else:
                     print("👤 User responded:", data)
-                    print("websocket listener before put user message")
+                    print("PLUTO4")
                     await user_message_queue.put(data)
-                    print("websocket listener after put user message")
+        
+        """
+        async def wrapped_input_func(*args, **kwargs):
+                global  user_message_queue
+            
+            
+                # 🧑 Moderator gave the floor
+                print("⏳ Waiting for user response...")
+                while True:
+                    msg = await user_message_queue.get()
+                    if msg and msg.strip():
+                        return msg
+        """
        
         async def wrapped_input_func(*args, **kwargs):
                 global spontaneous_queue, user_message_queue
@@ -525,9 +569,7 @@ async def websocket_endpoint(websocket: WebSocket):
             
                 print("⏳ Waiting for user input (moderator turn)...")
                 while True:
-                    print("wrapper before get user message")
                     msg = await user_message_queue.get()
-                    print("wrapper after get user message")
                     if msg and msg.strip():
                         return msg         
 
