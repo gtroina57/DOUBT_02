@@ -463,9 +463,11 @@ async def run_chat(team, websocket=None):
 
             prefix = "🧑" if "user" in agent_name.lower() else "🤖"
             user_conversation.append(f"{prefix} {agent_name.upper()}: {text}")
-
+            
+            print("before speech queue put")
             await speech_queue.put((agent_name, text))
-
+            print("after speech queue put")
+            
             if "TERMINATE" in text:
                 stop_execution = True
                 await speech_queue.put(("system", "TERMINATE"))
@@ -525,8 +527,9 @@ async def websocket_endpoint(websocket: WebSocket):
         async def websocket_listener(websocket):
             global user_message_queue, spontaneous_queue
             while True:
-                print("PLUTO2")                
+                print("before websocket receive")                
                 data = await websocket.receive_text()
+                print("after websocket receive")  
                 if data == "__ping__":
                     print("PLUTO2")
                     continue
@@ -543,8 +546,9 @@ async def websocket_endpoint(websocket: WebSocket):
                 
                 else:
                     print("👤 User responded:", data)
-                    print("PLUTO4")
+                    print("before message queue put")  
                     await user_message_queue.put(data)
+                    print("after message queue put")
         
         """
         async def wrapped_input_func(*args, **kwargs):
@@ -569,7 +573,9 @@ async def websocket_endpoint(websocket: WebSocket):
             
                 print("⏳ Waiting for user input (moderator turn)...")
                 while True:
+                    print("before message queue get")
                     msg = await user_message_queue.get()
+                    print("after message queue get")
                     if msg and msg.strip():
                         return msg         
 
