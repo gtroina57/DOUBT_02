@@ -63,6 +63,7 @@
   }
   isPlaying = true;
   log("✅ set to TRUE");
+  log("🔊 Playing audio from: " + url);
 
   const url = audioQueue.shift();
   const audio = new Audio(url);
@@ -74,7 +75,7 @@
   };
 
   audio.onended = () => { 
-  log("✅ ONENDED");
+    log("✅ ONENDED");
  
     isPlaying = false;
     document.getElementById("audioProgress").style.display = "none";
