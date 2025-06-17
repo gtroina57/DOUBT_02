@@ -44,8 +44,6 @@
 
     if (event.data.startsWith("__AUDIO_URL__/")) {
       const audioUrl = "https://doubt-02.onrender.com/" + event.data.replace("__AUDIO_URL__/", "");
-      log("✅ start with AUDIO_URL.");
-
       audioQueue.push(audioUrl);
       if (!isPlaying) {
         playNextAudio();
@@ -53,7 +51,7 @@
       return;
     }
 
-    log("📩 " + event.data);
+    // log("📩 " + event.data);
   };
 
   function playNextAudio() {
@@ -62,8 +60,6 @@
     return;
   }
   isPlaying = true;
-  log("✅ set to TRUE");
-
   const url = audioQueue.shift();
   const audio = new Audio(url);
   
@@ -73,9 +69,7 @@
     progress.value = audio.currentTime / audio.duration;
   };
 
-  audio.onended = () => { 
-  log("✅ ONENDED");
- 
+  audio.onended = () => {  
     isPlaying = false;
     document.getElementById("audioProgress").style.display = "none";
     playNextAudio();  // Delayed next audio
@@ -94,16 +88,12 @@
   //setTimeout(() => {
   
   let fallbackTimeout = setTimeout(() => {
-    log("✅ before timeout audio.play");
     audio.play();
-    log("✅ after timeout audio.play");
     }, 2000); // Wait max 2 seconds
 
   audio.oncanplaythrough = () => {
   clearTimeout(fallbackTimeout); // If this fires first, cancel the fallback
-  log("✅ before audio.play");
   audio.play();
-  log("✅ after audio.play");
   };
 }
 
