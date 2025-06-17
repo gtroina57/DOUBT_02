@@ -278,8 +278,8 @@ def dynamic_selector_func(thread):
     global agent_id, prioritized_agents
     
     # 🧠 Force agent turn if someone is in the priority queue
-    #    if prioritized_agents:
-    if not prioritized_agents.empty():
+    if prioritized_agents:
+    # if not prioritized_agents.empty():
         next_priority = prioritized_agents.popleft()
         print(f"🎯 Prioritizing agent: {next_priority}")
         return next_priority
