@@ -274,7 +274,7 @@ selector_prompt = """
 You are the Selector agent following strictly the instructions of the moderator and of the selector_func
 """
 
-def dynamic_selector_func(thread):
+async def dynamic_selector_func(thread):
     global agent_id, prioritized_agents
     print ("thread   *********************************  ", thread)
     # 🧠 Force agent turn if someone is in the priority queue
