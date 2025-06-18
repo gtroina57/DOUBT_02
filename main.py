@@ -280,7 +280,7 @@ def dynamic_selector_func(thread):
     # 🧠 Force agent turn if someone is in the priority queue
     
     if not prioritized_agents.empty():
-        next_priority = prioritized_agents.get()
+        next_priority = await prioritized_agents.get()
         print(f"🎯 Prioritizing agent: {next_priority}")
         return next_priority
     
@@ -542,7 +542,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     message = data.replace("__SPONTANEOUS__", "").strip()
                     print("⚡ Spontaneous input received:", message)
                     await spontaneous_queue.put(message)
-                    prioritized_agents.put("user_proxy")  # 🔥 Ask selector to prioritize user
+                    await prioritized_agents.put("user_proxy")  # 🔥 Ask selector to prioritize user
                     continue
                 
                 else:
