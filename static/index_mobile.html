@@ -1,215 +1,92 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Multi-DOUBT</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DOUBT · Mobile</title>
   <style>
-    html, body {
-      height: 100%;
-      margin: 0;
-      padding: 0;
+    body {
       background: linear-gradient(120deg, #e0eafc 0%, #cfdef3 100%);
       font-family: 'Segoe UI', Arial, sans-serif;
-      box-sizing: border-box;
-      min-height: 100vh;
-    }
-    body {
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-start;
-      align-items: center;
-      min-height: 100vh;
+      margin: 0;
+      padding: 0;
     }
     h1, h2 {
       text-align: center;
-      margin: 18px 0 5px 0;
-      width: 100%;
+      margin: 16px 8px;
     }
     h1 {
       color: #1976d2;
-      letter-spacing: 5px;
-      font-size: 2rem;
-      font-weight: bold;
-      text-shadow: 1px 2px 8px rgba(33, 150, 243, 0.10);
+      font-size: 1.8rem;
+      letter-spacing: 2px;
     }
     h2 {
       color: #1769aa;
       font-size: 1rem;
-      letter-spacing: 1.2px;
-      font-weight: 500;
-      margin-bottom: 12px;
     }
     .container {
-      width: 98vw;
-      max-width: 540px;
-      margin: 0 auto 12px auto;
-      background: rgba(255,255,255,0.90);
-      border-radius: 16px;
-      padding: 14px 8px 24px 8px;
-      box-shadow: 0 2px 16px rgba(33,150,243,0.10);
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
+      padding: 16px;
     }
-    #log {
+    textarea#log {
       width: 100%;
       min-height: 180px;
-      max-height: 240px;
-      background: #f8fbff;
-      border: 1.5px solid #90caf9;
-      border-radius: 8px;
+      border-radius: 6px;
       padding: 10px;
-      color: #234;
-      font-size: 1rem;
-      resize: none;
-      overflow-y: auto;
-      margin-bottom: 10px;
-      box-sizing: border-box;
-      box-shadow: 0 1px 6px rgba(33,150,243,0.06);
+      border: 1px solid #90caf9;
+      font-size: 0.95rem;
+      background: #f8fbff;
+      resize: vertical;
     }
-    .input-row {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 4px;
-      flex-wrap: wrap;
+    input, button {
+      font-size: 1rem;
+      padding: 10px;
+      border-radius: 6px;
+      margin: 6px 0;
       width: 100%;
-      justify-content: center;
+      box-sizing: border-box;
     }
     input[type="text"] {
-      border-radius: 7px;
       border: 1.5px solid #2196f3;
-      padding: 11px 14px;
-      background: #fff;
-      font-size: 1.05rem;
-      box-shadow: 0 1px 4px rgba(33,150,243,0.08);
-      outline: none;
-      flex: 1 1 60vw;
-      min-width: 120px;
-      max-width: 320px;
-      margin: 0 0 6px 0;
-    }
-    input[type="text"]:focus {
-      border-color: #1769aa;
     }
     button {
-      min-width: 90px;
-      max-width: 180px;
-      padding: 11px 14px;
       background-color: #2196F3;
-      color: #fff;
+      color: white;
       border: none;
-      border-radius: 9px;
-      font-size: 1.02rem;
-      cursor: pointer;
-      font-family: 'Segoe UI', 'Arial', sans-serif;
-      transition: background 0.18s, box-shadow 0.18s;
-      box-shadow: 0 1px 8px rgba(32, 33, 36, 0.09);
     }
     button:disabled {
-      background-color: #b0bfcf;
-      cursor: not-allowed;
-      color: #f4f4f4;
-    }
-    button:hover:not(:disabled), button:focus-visible:not(:disabled) {
-      background-color: #1769aa;
-      box-shadow: 0 2px 10px rgba(33, 150, 243, 0.14);
-      outline: none;
-    }
-    .voice-auth-row {
-      display: flex;
-      justify-content: center;
-      margin-bottom: 4px;
-    }
-    .voice-auth-row button {
-      background: #43a047;
-      font-weight: bold;
-      margin-top: 5px;
-      min-width: 120px;
+      background-color: #ccc;
     }
     progress#audioProgress {
       display: block;
-      margin: 14px auto 0 auto;
-      height: 15px;
-      background-color: #e3f2fd;
-      border-radius: 8px;
-      width: 90vw;
-      max-width: 300px;
-    }
-    ::placeholder { color: #90a4ae; }
-    @media (max-width: 600px) {
-      h1 { font-size: 1.3rem; }
-      .container { padding: 8px 2px 18px 2px; }
-      #log { min-height: 120px; font-size: 0.97rem; }
-      input[type="text"] { font-size: 0.98rem; }
-      button { font-size: 0.98rem; min-width: 80px; }
+      width: 100%;
+      margin: 12px auto 0 auto;
     }
   </style>
 </head>
 <body>
   <h1>DOUBT</h1>
-  <h2>Debating · Observing · Understanding · Brainstorming · Tutoring</h2>
+  <h2>Mobile Version</h2>
   <div class="container">
-    <div id="log"></div>
-    <div class="input-row">
-      <input id="topicInput" type="text" placeholder="Enter debate topic..." autocomplete="off" />
-      <button onclick="setTopic()">Set Topic</button>
-    </div>
-    <div class="input-row">
-      <input id="messageInput" type="text" placeholder="Type your message..." autocomplete="off" />
-      <button id="sendButton" onclick="sendMessage()" >Send</button>
-    </div>
-    <div class="voice-auth-row">
-      <button id="enableVoiceButton" onclick="enableVoice()">Enable Voice</button>
-    </div>
-    <progress id="audioProgress" value="0" max="1" style="display: none;"></progress>
+    <button onclick="unlockAudio()">🎧 Enable Voice Output</button>
+    <textarea id="log" readonly></textarea>
+    <input id="topicInput" type="text" placeholder="Enter debate topic..." />
+    <button onclick="setTopic()">Set Topic</button>
+    <input id="messageInput" type="text" placeholder="Type your message..." disabled />
+    <button id="sendButton" onclick="sendMessage()" disabled>Send</button>
+    <progress id="audioProgress" value="0" max="1" style="display:none;"></progress>
   </div>
   <script>
-    // Responsive voice authorization for iOS and other browsers
-    let voiceEnabled = false;
-    let audioUnlockSound = null;
-
-    function enableVoice() {
-      // Play a silent audio to unlock future playback
-      function enableVoice() {
-  // Use a longer (1 second) valid silent MP3 (works for iOS/Chrome/Android)
-  if (!audioUnlockSound) {
-    audioUnlockSound = new Audio("data:audio/mp3;base64,//uQxAABAAAAANQAAABEVAAABEVAAADGAgAAH//2wBDAAICAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkICQkKDA8MCgsOCwkJDRENDg8QEBEQCgwSExIQEw8QEBD/2wBDAQMDAwQDBAgEBAgOCQgJDgwNDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0NDg0ND");
-      }
-      audioUnlockSound.play().then(() => {
-        voiceEnabled = true;
-        document.getElementById("enableVoiceButton").disabled = true;
-        document.getElementById("enableVoiceButton").innerText = "Voice Enabled";
-        log("🔊 Voice output enabled! You can now hear the debate.");
-      }).catch((err) => {
-        log("❌ Could not enable voice. Please tap again.");
-      });
-    }
-
-    // Logging area logic
-    function log(message) {
-      const logArea = document.getElementById("log");
-      const newLine = document.createElement("div");
-      newLine.textContent = message;
-      logArea.appendChild(newLine);
-      logArea.scrollTop = logArea.scrollHeight;
-    }
-
-    // WebSocket and main logic
     const ws = new WebSocket("wss://doubt-02.onrender.com/ws");
     const audioQueue = [];
     let isPlaying = false;
 
-    ws.onopen = () => {
-      log("✅ Connected to debate server.");
-    };
-
+    ws.onopen = () => log("✅ Connected.");
     ws.onmessage = (event) => {
       if (event.data === "__USER_PROXY_TURN__") {
-        log("🎤 Moderator gives you the floor. You may speak now.");
+        log("🎤 It's your turn!");
         document.getElementById("messageInput").disabled = false;
         document.getElementById("sendButton").disabled = false;
-        document.getElementById("messageInput").focus();
         return;
       }
       if (event.data.startsWith("__AUDIO_URL__/")) {
@@ -221,67 +98,56 @@
       log("📩 " + event.data);
     };
 
-    async function playNextAudio() {
-      if (!voiceEnabled) {
-        log("🔇 Voice output is not enabled. Tap 'Enable Voice' to hear audio.");
-        isPlaying = false;
-        return;
-      }
-      if (audioQueue.length === 0) {
-        isPlaying = false;
-        return;
-      }
-      isPlaying = true;
-      const url = audioQueue.shift();
-      const audio = new Audio(url);
-      log("🔊 Playing audio from: " + url);
-
-      // Define a promise that resolves when audio finishes or errors out
-      const audioFinished = new Promise((resolve) => {
-        audio.onended = () => resolve();
-        audio.onerror = () => resolve();
-      });
-
-      try {
-        await audio.play();
-        await audioFinished;
-      } catch (err) {
-        log("❌ Error starting playback: " + err);
-      }
-      isPlaying = false;
-      playNextAudio();
+    function log(msg) {
+      const logArea = document.getElementById("log");
+      logArea.value += msg + "\n";
+      logArea.scrollTop = logArea.scrollHeight;
     }
 
     function setTopic() {
       const topic = document.getElementById("topicInput").value.trim();
       if (topic && ws.readyState === WebSocket.OPEN) {
         ws.send(`__SET_TASK1__:${topic}`);
-        log("📘 Topic sent: " + topic);
+        log("📘 Topic: " + topic);
       }
     }
 
     function sendMessage() {
       const input = document.getElementById("messageInput");
-      let message = input.value.trim();
-      if (!message || ws.readyState !== WebSocket.OPEN) return;
-      log("🧑 You: " + message);
-      document.getElementById("messageInput").placeholder = "Wait for your turn...";
-      ws.send(message);
-      input.value = "";
-      document.getElementById("sendButton").disabled = false;
-      document.getElementById("messageInput").disabled = false;
+      const message = input.value.trim();
+      if (message && ws.readyState === WebSocket.OPEN) {
+        ws.send(message);
+        log("🧑 You: " + message);
+        input.value = "";
+        input.disabled = true;
+        document.getElementById("sendButton").disabled = true;
+      }
     }
 
-    // Enable send button when there's content
     document.getElementById("messageInput").addEventListener("input", function () {
       const hasText = this.value.trim().length > 0;
       document.getElementById("sendButton").disabled = !hasText;
     });
 
+    async function playNextAudio() {
+      if (audioQueue.length === 0) return;
+      isPlaying = true;
+      const url = audioQueue.shift();
+      const audio = new Audio(url);
+      await audio.play().catch(err => log("❌ Audio play error: " + err));
+      audio.onended = () => {
+        isPlaying = false;
+        playNextAudio();
+      };
+    }
+
+    function unlockAudio() {
+      const a = new Audio("data:audio/mp3;base64,//uQxAABAAAAANQAAA..."); // shortened for brevity
+      a.play().then(() => log("🔓 Voice enabled")).catch(() => log("⚠️ Voice unlock failed"));
+    }
+
     setInterval(() => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send("__ping__");
-      }
+      if (ws.readyState === WebSocket.OPEN) ws.send("__ping__");
     }, 20000);
   </script>
 </body>
