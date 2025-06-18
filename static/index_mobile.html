@@ -82,10 +82,8 @@
     const audioQueue = [];
     let isPlaying = false;
 
-    ws.onopen = () => log("✅ Connected.");
     ws.onmessage = (event) => {
       if (event.data === "__USER_PROXY_TURN__") {
-        log("🎤 It's your turn!");
         document.getElementById("messageInput").disabled = false;
         document.getElementById("sendButton").disabled = false;
         return;
@@ -96,10 +94,8 @@
         if (!isPlaying) playNextAudio();
         return;
       }
-      log("📩 " + event.data);
     };
 
-    function log(msg) {
       const logArea = document.getElementById("log");
       logArea.value += msg + "\n";
       logArea.scrollTop = logArea.scrollHeight;
@@ -109,7 +105,6 @@
       const topic = document.getElementById("topicInput").value.trim();
       if (topic && ws.readyState === WebSocket.OPEN) {
         ws.send(`__SET_TASK1__:${topic}`);
-        log("📘 Topic: " + topic);
       }
     }
 
@@ -118,7 +113,6 @@
       const message = input.value.trim();
       if (message && ws.readyState === WebSocket.OPEN) {
         ws.send(message);
-        log("🧑 You: " + message);
         input.value = "";
         input.disabled = false;
         document.getElementById("sendButton").disabled = true;
@@ -135,18 +129,12 @@
       isPlaying = true;
       const url = audioQueue.shift();
       const audio = new Audio(url);
-      await audio.play().catch(err => log("❌ Audio play error: " + err));
       audio.onended = () => {
         isPlaying = false;
         playNextAudio();
       };
     }
 
-      const audio = new Audio("/audio/silent.mp3");
-      audio.play().then(() => {
-        log("🔓 Voice output enabled");
-       }).catch(err => {
-        log("⚠️ Voice unlock failed: " + err);
        });
     }
 
