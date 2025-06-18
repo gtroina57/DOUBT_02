@@ -142,8 +142,12 @@
     }
 
     function unlockAudio() {
-      const a = new Audio("data:audio/mp3;base64,//uQxAABAAAAANQAAA..."); // shortened for brevity
-      a.play().then(() => log("🔓 Voice enabled")).catch(() => log("⚠️ Voice unlock failed"));
+      const audio = new Audio("/audio/silent.mp3");
+      audio.play().then(() => {
+        log("🔓 Voice output enabled");
+       }).catch(err => {
+        log("⚠️ Voice unlock failed: " + err);
+       });
     }
 
     setInterval(() => {
