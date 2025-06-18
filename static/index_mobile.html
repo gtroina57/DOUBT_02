@@ -139,6 +139,15 @@ function log(msg) {
         isPlaying = false;
         playNextAudio();
       };
+
+       try {
+         await audio.play();
+         log("🔊 Playing audio...");
+         } catch (e) {
+         log("❌ Audio playback failed: " + e.message);
+         isPlaying = false;
+         playNextAudio(); // skip if failed
+        }
     }
 
     setInterval(() => {
