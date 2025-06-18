@@ -51,12 +51,24 @@ from fastapi.responses import FileResponse
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
-from collections import deque
-
 # Create the FastAPI app
 app = FastAPI()
 # Mount static directory
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+from fastapi import Request
+
+app = FastAPI()
+
+@app.get("/")
+async def root(request: Request):
+    user_agent = request.headers.get('user-agent', '').lower()
+    if any(x in user_agent for x in ['iphone', 'android', 'ipad', 'mobile']):
+        return FileResponse("static/index_mobile.html")
+    else:
+        return FileResponse("static/index.html")
+
+
 
 # Serve the index.html at root
 @app.get("/", response_class=HTMLResponse)
