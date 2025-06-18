@@ -276,7 +276,7 @@ You are the Selector agent following strictly the instructions of the moderator 
 
 def dynamic_selector_func(thread):
     global agent_id, prioritized_agents
-    
+    print ("thread   *********************************  ", thread)
     # 🧠 Force agent turn if someone is in the priority queue
     if prioritized_agents:
     # if not prioritized_agents.empty():
