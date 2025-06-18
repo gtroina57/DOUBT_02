@@ -1,11 +1,12 @@
 
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DOUBT · Mobile</title>
-  <style>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>DOUBT · Mobile</title>
+<style>
     body {
       background: linear-gradient(120deg, #e0eafc 0%, #cfdef3 100%);
       font-family: 'Segoe UI', Arial, sans-serif;
@@ -65,18 +66,18 @@
   </style>
 </head>
 <body>
-  <h1>DOUBT</h1>
-  <h2>Mobile Version</h2>
-  <div class="container">
-    <button onclick="unlockAudio()">🎧 Enable Voice Output</button>
-    <textarea id="log" readonly></textarea>
-    <input id="topicInput" type="text" placeholder="Enter debate topic..." />
-    <button onclick="setTopic()">Set Topic</button>
-    <input id="messageInput" type="text" placeholder="Type your message..."  />
-    <button id="sendButton" onclick="sendMessage()" disabled >Send</button>
-    <progress id="audioProgress" value="0" max="1" style="display:none;"></progress>
-  </div>
-  <script>
+<h1>DOUBT</h1>
+<h2>Mobile Version</h2>
+<div class="container">
+<button onclick="const a=new Audio('/audio/silent.mp3');a.play().then(()=&gt;log('🔓 Voice output enabled')).catch(e=&gt;log('❌ Audio error: ' + e.message));">🎧 Enable Voice Output</button>
+<textarea id="log" readonly=""></textarea>
+<input id="topicInput" placeholder="Enter debate topic..." type="text"/>
+<button onclick="setTopic()">Set Topic</button>
+<input id="messageInput" placeholder="Type your message..." type="text"/>
+<button disabled="" id="sendButton" onclick="sendMessage()">Send</button>
+<progress id="audioProgress" max="1" style="display:none;" value="0"></progress>
+</div>
+<script>
     const ws = new WebSocket("wss://doubt-02.onrender.com/ws");
     const audioQueue = [];
     let isPlaying = false;
@@ -141,7 +142,6 @@
       };
     }
 
-    function unlockAudio() {
       const audio = new Audio("/audio/silent.mp3");
       audio.play().then(() => {
         log("🔓 Voice output enabled");
