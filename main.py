@@ -107,7 +107,7 @@ stop_execution = False
 speech_queue = asyncio.Queue()
 user_message_queue = asyncio.Queue()
 spontaneous_queue = asyncio.Queue()
-prioritized_agents = deque()
+prioritized_agents = asyncio.Queue()
 
 client1 = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 os.makedirs("audio", exist_ok=True)  # Folder to serve audio files
@@ -278,9 +278,9 @@ def dynamic_selector_func(thread):
     global agent_id, prioritized_agents
     print ("thread   *********************************  ", thread)
     # 🧠 Force agent turn if someone is in the priority queue
-    if prioritized_agents:
-    # if not prioritized_agents.empty():
-        next_priority = prioritized_agents.popleft()
+    
+    if not prioritized_agents.empty():
+        next_priority = prioritized_agents.get()
         print(f"🎯 Prioritizing agent: {next_priority}")
         return next_priority
     
@@ -526,7 +526,7 @@ async def websocket_endpoint(websocket: WebSocket):
         
 #####################################################################################################
         async def websocket_listener(websocket):
-            global user_message_queue, spontaneous_queue
+            global user_message_queue, spontaneous_queue, prioritized_agents
             while True:
                 print("before websocket receive")                
                 data = await websocket.receive_text()
@@ -542,7 +542,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     message = data.replace("__SPONTANEOUS__", "").strip()
                     print("⚡ Spontaneous input received:", message)
                     await spontaneous_queue.put(message)
-                    prioritized_agents.append("user_proxy")  # 🔥 Ask selector to prioritize user
+                    prioritized_agents.put("user_proxy")  # 🔥 Ask selector to prioritize user
                     continue
                 
                 else:
