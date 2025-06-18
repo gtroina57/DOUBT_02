@@ -69,7 +69,9 @@
 <h1>DOUBT</h1>
 <h2>Mobile Version</h2>
 <div class="container">
-<button onclick="const a=new Audio('/audio/silent.mp3');a.play().then(()=&gt;log('🔓 Voice output enabled')).catch(e=&gt;log('❌ Audio error: ' + e.message));">🎧 Enable Voice Output</button>
+<button onclick="const a=new Audio('/audio/silent.mp3'); a.play().then(()=>log('🔓 Voice output enabled')).catch(e=>log('❌ Audio error: ' + e.message));">
+  🎧 Enable Voice Output
+</button>
 <textarea id="log" readonly=""></textarea>
 <input id="topicInput" placeholder="Enter debate topic..." type="text"/>
 <button onclick="setTopic()">Set Topic</button>
@@ -83,7 +85,6 @@ function log(msg) {
   logArea.value += msg + "\n";
   logArea.scrollTop = logArea.scrollHeight;
 }
-</script><script>
     const ws = new WebSocket("wss://doubt-02.onrender.com/ws");
     const audioQueue = [];
     let isPlaying = false;
@@ -100,19 +101,18 @@ function log(msg) {
         if (!isPlaying) playNextAudio();
         return;
       }
-    };
-
-      const logArea = document.getElementById("log");
-      logArea.value += msg + "\n";
-      logArea.scrollTop = logArea.scrollHeight;
     }
 
     function setTopic() {
       const topic = document.getElementById("topicInput").value.trim();
-      if (topic && ws.readyState === WebSocket.OPEN) {
-        ws.send(`__SET_TASK1__:${topic}`);
-      }
-    }
+    if (topic && ws.readyState === WebSocket.OPEN) {
+    const message = `__SET_TASK1__:${topic}`;
+    ws.send(message);
+    log(`📨 Sent topic: ${topic}`);
+  } else {
+    log("⚠️ Cannot set topic — empty or WebSocket not open.");
+  }
+ }
 
     function sendMessage() {
       const input = document.getElementById("messageInput");
@@ -139,9 +139,6 @@ function log(msg) {
         isPlaying = false;
         playNextAudio();
       };
-    }
-
-       });
     }
 
     setInterval(() => {
