@@ -123,7 +123,11 @@ prioritized_agents = asyncio.Queue()
 
 client1 = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 os.makedirs("audio", exist_ok=True)  # Folder to serve audio files
-
+"""
+silent_path = "audio/silent.mp3"
+if not os.path.exists(silent_path):
+    AudioSegment.silent(duration=1000).export(silent_path, format="mp3")
+"""  
 @app.get("/audio/{filename}")
 async def get_audio_file(filename: str):
     filepath = os.path.join("audio", filename)
