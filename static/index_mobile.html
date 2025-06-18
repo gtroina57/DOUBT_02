@@ -156,8 +156,8 @@
       <button onclick="setTopic()">Set Topic</button>
     </div>
     <div class="input-row">
-      <input id="messageInput" type="text" placeholder="Type your message..." autocomplete="off" disabled />
-      <button id="sendButton" onclick="sendMessage()" disabled>Send</button>
+      <input id="messageInput" type="text" placeholder="Type your message..." autocomplete="off"  />
+      <button id="sendButton" onclick="sendMessage()" >Send</button>
     </div>
     <div class="voice-auth-row">
       <button id="enableVoiceButton" onclick="enableVoice()">Enable Voice</button>
@@ -176,7 +176,7 @@
       }
       audioUnlockSound.play().then(() => {
         voiceEnabled = true;
-        document.getElementById("enableVoiceButton").disabled = true;
+        document.getElementById("enableVoiceButton").disabled = false;
         document.getElementById("enableVoiceButton").innerText = "Voice Enabled";
         log("🔊 Voice output enabled! You can now hear the debate.");
       }).catch((err) => {
@@ -266,8 +266,8 @@
       document.getElementById("messageInput").placeholder = "Wait for your turn...";
       ws.send(message);
       input.value = "";
-      document.getElementById("sendButton").disabled = true;
-      document.getElementById("messageInput").disabled = true;
+      document.getElementById("sendButton").disabled = false;
+      document.getElementById("messageInput").disabled = false;
     }
 
     // Enable send button when there's content
