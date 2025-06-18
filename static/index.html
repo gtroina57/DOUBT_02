@@ -215,24 +215,16 @@
     function sendMessage() {
       const input = document.getElementById("messageInput");
       let message = input.value.trim();
-      // If spontaneous toggle exists, use it, otherwise fallback
-      const spontaneous = typeof document.getElementById("spontaneousToggle") !== 'undefined'
-        && document.getElementById("spontaneousToggle").checked;
-
+      
       if (!message || ws.readyState !== WebSocket.OPEN) return;
 
-      if (spontaneous) {
-        message = `__SPONTANEOUS__${message}`;
-        log("⚡ Spontaneous intervention sent.");
-      } else {
-        log("🧑 You: " + message);
-        userHasTurn = false;
-        document.getElementById("messageInput").placeholder = "Wait for your turn...";
-      }
-
+      log("🧑 You: " + message);
+      userHasTurn = false;
+      document.getElementById("messageInput").placeholder = "Wait for your turn...";
+      
       ws.send(message);
       input.value = "";
-      document.getElementById("sendButton").disabled = false;
+      document.getElementById("sendButton").disabled = true;
     }
 
     // Prevent sending empty messages and enable button when there's content
