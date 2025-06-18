@@ -78,6 +78,12 @@
 <progress id="audioProgress" max="1" style="display:none;" value="0"></progress>
 </div>
 <script>
+function log(msg) {
+  const logArea = document.getElementById("log");
+  logArea.value += msg + "\n";
+  logArea.scrollTop = logArea.scrollHeight;
+}
+</script><script>
     const ws = new WebSocket("wss://doubt-02.onrender.com/ws");
     const audioQueue = [];
     let isPlaying = false;
