@@ -131,24 +131,39 @@ function log(msg) {
     });
 
     async function playNextAudio() {
-      if (audioQueue.length === 0) return;
-      isPlaying = true;
-      const url = audioQueue.shift();
-      const audio = new Audio(url);
-      audio.onended = () => {
-        isPlaying = false;
-        playNextAudio();
-      };
+  if (audioQueue.length === 0) {
+    isPlaying = false;
+    return;
+  }
+  isPlaying = true;
+  const url = audioQueue.shift();
+  const audio = new Audio(url);
+  log("🔊 Playing audio from: " + url);
 
-       try {
-         await audio.play();
-         log("🔊 Playing audio...");
-         } catch (e) {
-         log("❌ Audio playback failed: " + e.message);
-         isPlaying = false;
-         playNextAudio(); // skip if failed
-        }
-    }
+  // Define a promise that resolves when audio finishes or errors out
+  const audioFinished = new Promise((resolve) => {
+    audio.onended = () => {
+      log("✅ ONENDED");
+      resolve();
+    };
+    audio.onerror = () => {
+      log("❌ Error playing audio.");
+      resolve();
+    };
+  });
+
+  try {
+    log("✅ before audio play.");
+    await audio.play(); // Wait for playback to start
+    log("✅ after audio play started, now waiting for it to finish.");
+    await audioFinished; // Wait for playback to finish
+  } catch (err) {
+    log("❌ Error starting playback: " + err);
+  }
+
+  isPlaying = false;
+  playNextAudio();
+}
 
     setInterval(() => {
       if (ws.readyState === WebSocket.OPEN) ws.send("__ping__");
