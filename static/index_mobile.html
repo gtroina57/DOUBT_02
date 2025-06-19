@@ -135,30 +135,47 @@ function log(msg) {
     isPlaying = false;
     return;
   }
+
   isPlaying = true;
   const url = audioQueue.shift();
-  const audio = new Audio(url);
-  log("🔊 Playing audio from: " + url);
+  const maxRetries = 3;
+  let attempt = 0;
+  let success = false;
 
-  // Define a promise that resolves when audio finishes or errors out
-  const audioFinished = new Promise((resolve) => {
-    audio.onended = () => {
-      log("✅ ONENDED");
-      resolve();
-    };
-    audio.onerror = () => {
-      log("❌ Error playing audio.");
-      resolve();
-    };
-  });
+  while (attempt < maxRetries && !success) {
+    attempt++;
+    log(`🔁 Attempt ${attempt} to play: ${url}`);
+    const audio = new Audio(url);
 
-  try {
-    log("✅ before audio play.");
-    await audio.play(); // Wait for playback to start
-    log("✅ after audio play started, now waiting for it to finish.");
-    await audioFinished; // Wait for playback to finish
-  } catch (err) {
-    log("❌ Error starting playback: " + err);
+    const audioFinished = new Promise((resolve) => {
+      audio.onended = () => {
+        log("✅ ONENDED");
+        success = true;
+        resolve();
+      };
+      audio.onerror = () => {
+        log("❌ Error playing audio.");
+        resolve(); // Still resolve, so we can retry or exit
+      };
+    });
+
+    try {
+      log("✅ before audio play.");
+      await audio.play(); // This might fail due to autoplay restrictions
+      log("✅ after audio play started, now waiting for it to finish.");
+      await audioFinished;
+    } catch (err) {
+      log("❌ Error starting playback: " + err);
+    }
+
+    if (!success && attempt < maxRetries) {
+      log("🔁 Retrying...");
+      await new Promise((r) => setTimeout(r, 500)); // brief wait before retry
+    }
+  }
+
+  if (!success) {
+    log("❌ Failed to play audio after 3 attempts: " + url);
   }
 
   isPlaying = false;
