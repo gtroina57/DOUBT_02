@@ -1,12 +1,10 @@
-
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>DOUBT · Mobile</title>
-<style>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+  <title>DOUBT · Mobile</title>
+  <style>
     body {
       background: linear-gradient(120deg, #e0eafc 0%, #cfdef3 100%);
       font-family: 'Segoe UI', Arial, sans-serif;
@@ -66,28 +64,42 @@
   </style>
 </head>
 <body>
-<h1>DOUBT</h1>
-<h2>Mobile Version</h2>
-<div class="container">
-<button onclick="const a=new Audio('/audio/silent.mp3'); a.play().then(()=>log('🔓 Voice output enabled')).catch(e=>log('❌ Audio error: ' + e.message));">
-  🎧 Enable Voice Output
-</button>
-<textarea id="log" readonly=""></textarea>
-<input id="topicInput" placeholder="Enter debate topic..." type="text"/>
-<button onclick="setTopic()">Set Topic</button>
-<input id="messageInput" placeholder="Type your message..." type="text"/>
-<button disabled="" id="sendButton" onclick="sendMessage()">Send</button>
-<progress id="audioProgress" max="1" style="display:none;" value="0"></progress>
-</div>
-<script>
-function log(msg) {
-  const logArea = document.getElementById("log");
-  logArea.value += msg + "\n";
-  logArea.scrollTop = logArea.scrollHeight;
-}
+  <h1>DOUBT</h1>
+  <h2>Mobile Version</h2>
+  <div class="container">
+    <button onclick="enableVoiceOutput()">🎧 Enable Voice Output</button>
+    <textarea id="log" readonly></textarea>
+    <input id="topicInput" placeholder="Enter debate topic..." type="text" />
+    <button onclick="setTopic()">Set Topic</button>
+    <input id="messageInput" placeholder="Type your message..." type="text" />
+    <button disabled id="sendButton" onclick="sendMessage()">Send</button>
+    <progress id="audioProgress" max="1" style="display:none;" value="0"></progress>
+  </div>
+
+  <script>
     const ws = new WebSocket("wss://doubt-02.onrender.com/ws");
     const audioQueue = [];
     let isPlaying = false;
+    window.voiceUnlocked = false;
+
+    function log(msg) {
+      const logArea = document.getElementById("log");
+      logArea.value += msg + "\n";
+      logArea.scrollTop = logArea.scrollHeight;
+    }
+
+    function enableVoiceOutput() {
+      const a = new Audio('/audio/silent.mp3');
+      a.play().then(() => {
+        log("🔓 Voice output enabled");
+        window.voiceUnlocked = true;
+        if (!isPlaying && audioQueue.length > 0) {
+          playNextAudio();
+        }
+      }).catch(e => {
+        log("❌ Audio error: " + e.message);
+      });
+    }
 
     ws.onmessage = (event) => {
       if (event.data === "__USER_PROXY_TURN__") {
@@ -98,21 +110,20 @@ function log(msg) {
       if (event.data.startsWith("__AUDIO_URL__/")) {
         const audioUrl = "https://doubt-02.onrender.com/" + event.data.replace("__AUDIO_URL__/", "");
         audioQueue.push(audioUrl);
-        if (!isPlaying) playNextAudio();
+        if (!isPlaying && window.voiceUnlocked) playNextAudio();
         return;
       }
-    }
+    };
 
     function setTopic() {
       const topic = document.getElementById("topicInput").value.trim();
-    if (topic && ws.readyState === WebSocket.OPEN) {
-    const message = `__SET_TASK1__:${topic}`;
-    ws.send(message);
-    log(`📨 Sent topic: ${topic}`);
-  } else {
-    log("⚠️ Cannot set topic — empty or WebSocket not open.");
-  }
- }
+      if (topic && ws.readyState === WebSocket.OPEN) {
+        ws.send(`__SET_TASK1__:${topic}`);
+        log("📨 Sent topic: " + topic);
+      } else {
+        log("⚠️ Cannot set topic — empty or WebSocket not open.");
+      }
+    }
 
     function sendMessage() {
       const input = document.getElementById("messageInput");
@@ -131,23 +142,47 @@ function log(msg) {
     });
 
     async function playNextAudio() {
-      if (audioQueue.length === 0) return;
+      if (audioQueue.length === 0) {
+        isPlaying = false;
+        return;
+      }
+
+      if (!window.voiceUnlocked) {
+        log("🔒 Voice not unlocked. Tap 'Enable Voice Output' first.");
+        return;
+      }
+
       isPlaying = true;
       const url = audioQueue.shift();
       const audio = new Audio(url);
-      audio.onended = () => {
-        isPlaying = false;
-        playNextAudio();
-      };
+      log("🔊 Playing audio from: " + url);
 
-       try {
-         await audio.play();
-         log("🔊 Playing audio...");
-         } catch (e) {
-         log("❌ Audio playback failed: " + e.message);
-         isPlaying = false;
-         playNextAudio(); // skip if failed
-        }
+      const audioFinished = new Promise((resolve) => {
+        audio.oncanplaythrough = () => {
+          log("📶 Audio buffered. Ready to play.");
+        };
+        audio.onended = () => {
+          log("✅ ONENDED");
+          resolve();
+        };
+        audio.onerror = () => {
+          log("❌ Error playing audio.");
+          resolve();
+        };
+      });
+
+      try {
+        await new Promise(r => setTimeout(r, 200));  // optional iOS delay
+        log("✅ before audio.play()");
+        await audio.play();
+        log("✅ after audio.play(), now waiting for it to finish.");
+        await audioFinished;
+      } catch (e) {
+        log("❌ Error during audio.play(): " + e.message);
+      }
+
+      isPlaying = false;
+      playNextAudio();
     }
 
     setInterval(() => {
