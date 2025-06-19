@@ -141,69 +141,74 @@
       document.getElementById("sendButton").disabled = !hasText;
     });
 
-    async function playNextAudio() {
-  if (audioQueue.length === 0) {
-    isPlaying = false;
-    return;
-  }
-
-  if (!window.voiceUnlocked) {
-    log("🔒 Voice not unlocked. Tap 'Enable Voice Output' first.");
-    return;
-  }
-
-  isPlaying = true;
-  const url = audioQueue.shift();
-  let attempt = 0;
-  let maxAttempts = 3;
-  let success = false;
-
-  while (attempt < maxAttempts && !success) {
-    attempt++;
-    const audio = new Audio(url);
-    log(`🔁 Attempt ${attempt} to play: ${url}`);
-
-    const audioFinished = new Promise((resolve) => {
-      audio.oncanplaythrough = () => {
-        log("📶 Audio buffered.");
-      };
-      audio.onended = () => {
-        log("✅ Audio ended.");
-        success = true;
-        resolve();
-      };
-      audio.onerror = () => {
-        log("❌ Audio error on attempt " + attempt);
-        resolve(); // allow retry
-      };
-    });
-
-    try {
-      await new Promise(r => setTimeout(r, 300)); // iOS delay
-      await audio.play();
-      log("▶️ Playing started.");
-      await audioFinished;
-    } catch (e) {
-      log("❌ play() exception: " + e.message);
-    }
-
-    if (!success) {
-      log("⏳ Retrying after short delay...");
-      await new Promise(r => setTimeout(r, 500));
-    }
-  }
-
-  if (!success) {
-    log("⚠️ Failed after all attempts: " + url);
-  }
-
-  isPlaying = false;
-  playNextAudio();
-}
+    
 
     setInterval(() => {
       if (ws.readyState === WebSocket.OPEN) ws.send("__ping__");
     }, 20000);
   </script>
+
+<script>
+let audioQueue = [];
+let isPlaying = false;
+let voiceUnlocked = false;
+
+function enableVoiceOutput() {
+  const a = new Audio('/audio/silent.mp3');
+  a.play().then(() => {
+    voiceUnlocked = true;
+    log("🔓 Voice output enabled");
+    playNextAudio();
+  }).catch((e) => {
+    log("❌ Failed to unlock voice playback: " + e.message);
+  });
+}
+
+function playNextAudio() {
+  if (!voiceUnlocked) {
+    log("🔒 Voice output not unlocked yet.");
+    return;
+  }
+
+  if (audioQueue.length === 0 || isPlaying) return;
+
+  const url = audioQueue.shift();
+  const audio = new Audio(url);
+  let attempt = 0;
+  const maxRetries = 3;
+
+  audio.onended = () => {
+    isPlaying = false;
+    document.getElementById("audioProgress").style.display = "none";
+    playNextAudio();
+  };
+
+  audio.onerror = () => {
+    log("❌ Error playing audio. Retrying...");
+    isPlaying = false;
+    attempt++;
+    if (attempt < maxRetries) {
+      setTimeout(() => playNextAudio(), 500);
+    } else {
+      log("❌ Audio permanently failed: " + url);
+    }
+  };
+
+  audio.oncanplaythrough = () => {
+    document.getElementById("audioProgress").style.display = "block";
+    isPlaying = true;
+    audio.play().catch((e) => {
+      log("❌ Play error: " + e.message);
+      isPlaying = false;
+      setTimeout(() => playNextAudio(), 500);
+    });
+  };
+
+  audio.onplay = () => log("▶️ Playing: " + url);
+  audio.onpause = () => log("⏸️ Paused: " + url);
+  audio.onloadedmetadata = () => log("ℹ️ Metadata loaded for: " + url);
+}
+</script>
+
 </body>
 </html>
