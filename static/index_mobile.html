@@ -1,6 +1,4 @@
-
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
@@ -63,74 +61,92 @@
       width: 100%;
       margin: 12px auto 0 auto;
     }
-  </style>
+</style>
 </head>
 <body>
 <h1>DOUBT</h1>
 <h2>Mobile Version</h2>
 <div class="container">
-<button onclick="const a=new Audio('/audio/silent.mp3'); a.play().then(()=>log('🔓 Voice output enabled')).catch(e=>log('❌ Audio error: ' + e.message));">
-  🎧 Enable Voice Output
-</button>
-<textarea id="log" readonly=""></textarea>
-<input id="topicInput" placeholder="Enter debate topic..." type="text"/>
-<button onclick="setTopic()">Set Topic</button>
-<input id="messageInput" placeholder="Type your message..." type="text"/>
-<button disabled="" id="sendButton" onclick="sendMessage()">Send</button>
-<progress id="audioProgress" max="1" style="display:none;" value="0"></progress>
+  <button onclick="enableVoiceOutput()">🎧 Enable Voice Output</button>
+  <textarea id="log" readonly=""></textarea>
+  <input id="topicInput" placeholder="Enter debate topic..." type="text"/>
+  <button onclick="setTopic()">Set Topic</button>
+  <input id="messageInput" placeholder="Type your message..." type="text"/>
+  <button disabled="" id="sendButton" onclick="sendMessage()">Send</button>
+  <progress id="audioProgress" max="1" style="display:none;" value="0"></progress>
 </div>
+
 <script>
 function log(msg) {
   const logArea = document.getElementById("log");
   logArea.value += msg + "\n";
   logArea.scrollTop = logArea.scrollHeight;
 }
-    const ws = new WebSocket("wss://doubt-02.onrender.com/ws");
-    const audioQueue = [];
-    let isPlaying = false;
 
-    ws.onmessage = (event) => {
-      if (event.data === "__USER_PROXY_TURN__") {
-        document.getElementById("messageInput").disabled = false;
-        document.getElementById("sendButton").disabled = false;
-        return;
-      }
-      if (event.data.startsWith("__AUDIO_URL__/")) {
-        const audioUrl = "https://doubt-02.onrender.com/" + event.data.replace("__AUDIO_URL__/", "");
-        audioQueue.push(audioUrl);
-        if (!isPlaying) playNextAudio();
-        return;
-      }
-    }
+// 🔓 Global unlock flag
+window.voiceUnlocked = false;
 
-    function setTopic() {
-      const topic = document.getElementById("topicInput").value.trim();
-    if (topic && ws.readyState === WebSocket.OPEN) {
+function enableVoiceOutput() {
+  const a = new Audio('/audio/silent.mp3');
+  a.play()
+    .then(() => {
+      log("🔓 Voice output enabled");
+      window.voiceUnlocked = true;
+      if (!isPlaying && audioQueue.length > 0) {
+        playNextAudio(); // Resume if queue exists
+      }
+    })
+    .catch(e => {
+      log("❌ Audio error: " + e.message);
+    });
+}
+
+const ws = new WebSocket("wss://doubt-02.onrender.com/ws");
+const audioQueue = [];
+let isPlaying = false;
+
+ws.onmessage = (event) => {
+  if (event.data === "__USER_PROXY_TURN__") {
+    document.getElementById("messageInput").disabled = false;
+    document.getElementById("sendButton").disabled = false;
+    return;
+  }
+  if (event.data.startsWith("__AUDIO_URL__/")) {
+    const audioUrl = "https://doubt-02.onrender.com/" + event.data.replace("__AUDIO_URL__/", "");
+    audioQueue.push(audioUrl);
+    if (!isPlaying) playNextAudio();
+    return;
+  }
+}
+
+function setTopic() {
+  const topic = document.getElementById("topicInput").value.trim();
+  if (topic && ws.readyState === WebSocket.OPEN) {
     const message = `__SET_TASK1__:${topic}`;
     ws.send(message);
     log(`📨 Sent topic: ${topic}`);
   } else {
     log("⚠️ Cannot set topic — empty or WebSocket not open.");
   }
- }
+}
 
-    function sendMessage() {
-      const input = document.getElementById("messageInput");
-      const message = input.value.trim();
-      if (message && ws.readyState === WebSocket.OPEN) {
-        ws.send(message);
-        input.value = "";
-        input.disabled = false;
-        document.getElementById("sendButton").disabled = true;
-      }
-    }
+function sendMessage() {
+  const input = document.getElementById("messageInput");
+  const message = input.value.trim();
+  if (message && ws.readyState === WebSocket.OPEN) {
+    ws.send(message);
+    input.value = "";
+    input.disabled = false;
+    document.getElementById("sendButton").disabled = true;
+  }
+}
 
-    document.getElementById("messageInput").addEventListener("input", function () {
-      const hasText = this.value.trim().length > 0;
-      document.getElementById("sendButton").disabled = !hasText;
-    });
+document.getElementById("messageInput").addEventListener("input", function () {
+  const hasText = this.value.trim().length > 0;
+  document.getElementById("sendButton").disabled = !hasText;
+});
 
-    async function playNextAudio() {
+async function playNextAudio() {
   if (audioQueue.length === 0) {
     isPlaying = false;
     return;
@@ -155,13 +171,18 @@ function log(msg) {
       };
       audio.onerror = () => {
         log("❌ Error playing audio.");
-        resolve(); // Still resolve, so we can retry or exit
+        resolve(); // allow retry
       };
     });
 
     try {
+      if (!window.voiceUnlocked) {
+        log("🔒 Voice output not enabled. Tap 'Enable Voice Output' first.");
+        break; // skip playback until unlocked
+      }
+
       log("✅ before audio play.");
-      await audio.play(); // This might fail due to autoplay restrictions
+      await audio.play();
       log("✅ after audio play started, now waiting for it to finish.");
       await audioFinished;
     } catch (err) {
@@ -170,7 +191,7 @@ function log(msg) {
 
     if (!success && attempt < maxRetries) {
       log("🔁 Retrying...");
-      await new Promise((r) => setTimeout(r, 500)); // brief wait before retry
+      await new Promise((r) => setTimeout(r, 500));
     }
   }
 
@@ -182,9 +203,9 @@ function log(msg) {
   playNextAudio();
 }
 
-    setInterval(() => {
-      if (ws.readyState === WebSocket.OPEN) ws.send("__ping__");
-    }, 20000);
-  </script>
+setInterval(() => {
+  if (ws.readyState === WebSocket.OPEN) ws.send("__ping__");
+}, 20000);
+</script>
 </body>
 </html>
