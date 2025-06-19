@@ -142,48 +142,64 @@
     });
 
     async function playNextAudio() {
-      if (audioQueue.length === 0) {
-        isPlaying = false;
-        return;
-      }
+  if (audioQueue.length === 0) {
+    isPlaying = false;
+    return;
+  }
 
-      if (!window.voiceUnlocked) {
-        log("🔒 Voice not unlocked. Tap 'Enable Voice Output' first.");
-        return;
-      }
+  if (!window.voiceUnlocked) {
+    log("🔒 Voice not unlocked. Tap 'Enable Voice Output' first.");
+    return;
+  }
 
-      isPlaying = true;
-      const url = audioQueue.shift();
-      const audio = new Audio(url);
-      log("🔊 Playing audio from: " + url);
+  isPlaying = true;
+  const url = audioQueue.shift();
+  let attempt = 0;
+  let maxAttempts = 3;
+  let success = false;
 
-      const audioFinished = new Promise((resolve) => {
-        audio.oncanplaythrough = () => {
-          log("📶 Audio buffered. Ready to play.");
-        };
-        audio.onended = () => {
-          log("✅ ONENDED");
-          resolve();
-        };
-        audio.onerror = () => {
-          log("❌ Error playing audio.");
-          resolve();
-        };
-      });
+  while (attempt < maxAttempts && !success) {
+    attempt++;
+    const audio = new Audio(url);
+    log(`🔁 Attempt ${attempt} to play: ${url}`);
 
-      try {
-        await new Promise(r => setTimeout(r, 200));  // optional iOS delay
-        log("✅ before audio.play()");
-        await audio.play();
-        log("✅ after audio.play(), now waiting for it to finish.");
-        await audioFinished;
-      } catch (e) {
-        log("❌ Error during audio.play(): " + e.message);
-      }
+    const audioFinished = new Promise((resolve) => {
+      audio.oncanplaythrough = () => {
+        log("📶 Audio buffered.");
+      };
+      audio.onended = () => {
+        log("✅ Audio ended.");
+        success = true;
+        resolve();
+      };
+      audio.onerror = () => {
+        log("❌ Audio error on attempt " + attempt);
+        resolve(); // allow retry
+      };
+    });
 
-      isPlaying = false;
-      playNextAudio();
+    try {
+      await new Promise(r => setTimeout(r, 300)); // iOS delay
+      await audio.play();
+      log("▶️ Playing started.");
+      await audioFinished;
+    } catch (e) {
+      log("❌ play() exception: " + e.message);
     }
+
+    if (!success) {
+      log("⏳ Retrying after short delay...");
+      await new Promise(r => setTimeout(r, 500));
+    }
+  }
+
+  if (!success) {
+    log("⚠️ Failed after all attempts: " + url);
+  }
+
+  isPlaying = false;
+  playNextAudio();
+}
 
     setInterval(() => {
       if (ws.readyState === WebSocket.OPEN) ws.send("__ping__");
