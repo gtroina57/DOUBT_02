@@ -141,7 +141,7 @@
       document.getElementById("sendButton").disabled = !hasText;
     });
 
-    async function waitForAudioToBeReady(audio, timeout = 4000) {
+    async function waitForAudioToBeReady(audio, timeout = 8000) {
   return new Promise((resolve, reject) => {
     const start = Date.now();
     const check = () => {
@@ -150,7 +150,7 @@
       } else if (Date.now() - start > timeout) {
         reject(new Error("Timeout waiting for audio to be ready"));
       } else {
-        setTimeout(check, 100);
+        setTimeout(check, 8000);
       }
     };
     check();
