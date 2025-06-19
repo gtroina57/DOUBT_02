@@ -141,62 +141,49 @@
       document.getElementById("sendButton").disabled = !hasText;
     });
 
-    async function waitForAudioToBeReady(audio, timeout = 8000) {
-  return new Promise((resolve, reject) => {
-    const start = Date.now();
-    const check = () => {
-      if (audio.readyState >= 3) {
-        resolve();
-      } else if (Date.now() - start > timeout) {
-        reject(new Error("Timeout waiting for audio to be ready"));
-      } else {
-        setTimeout(check, 8000);
+    async function playNextAudio() {
+      if (audioQueue.length === 0) {
+        isPlaying = false;
+        return;
       }
-    };
-    check();
-  });
-}
 
-async function playNextAudio() {
-  if (audioQueue.length === 0) {
-    isPlaying = false;
-    return;
-  }
+      if (!window.voiceUnlocked) {
+        log("🔒 Voice not unlocked. Tap 'Enable Voice Output' first.");
+        return;
+      }
 
-  if (!window.voiceUnlocked) {
-    log("🔒 Voice not unlocked. Tap 'Enable Voice Output' first.");
-    return;
-  }
+      isPlaying = true;
+      const url = audioQueue.shift();
+      const audio = new Audio(url);
+      log("🔊 Playing audio from: " + url);
 
-  isPlaying = true;
-  const url = audioQueue.shift();
-  const audio = new Audio(url);
-  log("🔊 Playing audio from: " + url);
+      const audioFinished = new Promise((resolve) => {
+        audio.oncanplaythrough = () => {
+          log("📶 Audio buffered. Ready to play.");
+        };
+        audio.onended = () => {
+          log("✅ ONENDED");
+          resolve();
+        };
+        audio.onerror = () => {
+          log("❌ Error playing audio.");
+          resolve();
+        };
+      });
 
-  const audioFinished = new Promise((resolve) => {
-    audio.onended = () => {
-      log("✅ ONENDED");
-      resolve();
-    };
-    audio.onerror = () => {
-      log("❌ Error playing audio.");
-      resolve();
-    };
-  });
+      try {
+        await new Promise(r => setTimeout(r, 200));  // optional iOS delay
+        log("✅ before audio.play()");
+        await audio.play();
+        log("✅ after audio.play(), now waiting for it to finish.");
+        await audioFinished;
+      } catch (e) {
+        log("❌ Error during audio.play(): " + e.message);
+      }
 
-  try {
-    log("⏳ Waiting for audio to be ready...");
-    await waitForAudioToBeReady(audio);
-    log("📶 Audio is ready — starting playback.");
-    await audio.play();
-    await audioFinished;
-  } catch (e) {
-    log("❌ Playback error: " + e.message);
-  }
-
-  isPlaying = false;
-  playNextAudio();
-}
+      isPlaying = false;
+      playNextAudio();
+    }
 
     setInterval(() => {
       if (ws.readyState === WebSocket.OPEN) ws.send("__ping__");
