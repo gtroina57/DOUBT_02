@@ -160,7 +160,23 @@
       }
     }
 
+    function unlockAudio() {
+      if (!voiceUnlocked) {
+        const a = new Audio('/audio/silent.mp3');
+        a.play().then(() => {
+          voiceUnlocked = true;
+          log("🔓 Voice unlocked.");
+        }).catch(e => {
+          voiceUnlocked = false;
+          log("❌ Failed to unlock: " + e.message);
+        });
+      }
+    }
+
+
+
     function sendMessage() {
+      unlockAudio();
       const input = document.getElementById("messageInput");
       let message = input.value.trim();
       
