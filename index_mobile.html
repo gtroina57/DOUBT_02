@@ -1,0 +1,137 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>DOUBT · Mobile</title>
+<style>
+    body {
+      background: linear-gradient(120deg, #e0eafc 0%, #cfdef3 100%);
+      font-family: 'Segoe UI', Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    h1, h2 {
+      text-align: center;
+      margin: 16px 8px;
+    }
+    h1 {
+      color: #1976d2;
+      font-size: 1.8rem;
+      letter-spacing: 2px;
+    }
+    h2 {
+      color: #1769aa;
+      font-size: 1rem;
+    }
+    .container {
+      padding: 16px;
+    }
+    textarea#log {
+      width: 100%;
+      min-height: 180px;
+      border-radius: 6px;
+      padding: 10px;
+      border: 1px solid #90caf9;
+      font-size: 0.95rem;
+      background: #f8fbff;
+      resize: vertical;
+    }
+    input, button {
+      font-size: 1rem;
+      padding: 10px;
+      border-radius: 6px;
+      margin: 6px 0;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    input[type="text"] {
+      border: 1.5px solid #2196f3;
+    }
+    button {
+      background-color: #2196F3;
+      color: white;
+      border: none;
+    }
+    button:disabled {
+      background-color: #ccc;
+    }
+    progress#audioProgress {
+      display: block;
+      width: 100%;
+      margin: 12px auto 0 auto;
+    }
+  </style>
+</head>
+<body>
+<h1>DOUBT</h1>
+<h2>Mobile Version</h2>
+<div class="container">
+<button onclick="enableVoiceOutput()">
+  🎧 Enable Voice Output
+</button>
+<textarea id="log" readonly=""></textarea>
+<input id="topicInput" placeholder="Enter debate topic..." type="text"/>
+<button onclick="setTopic()">Set Topic</button>
+<input id="messageInput" placeholder="Type your message..." type="text"/>
+<button disabled="" id="sendButton" onclick="sendMessage()">Send</button>
+<progress id="audioProgress" max="1" style="display:none;" value="0"></progress>
+</div>
+<script>
+let voiceUnlocked = false;
+let sharedAudio = null;
+
+function enableVoiceOutput() {
+  sharedAudio = new Audio('/audio/silent.mp3');
+  sharedAudio.play().then(() => {
+    log("🔓 Voice output enabled");
+    voiceUnlocked = true;
+  }).catch(e => {
+    log("❌ Audio error: " + e.message);
+  });
+}
+
+async function playNextAudio() {
+  if (!voiceUnlocked) {
+    log("🔒 Voice not yet unlocked by user.");
+    return;
+  }
+  if (audioQueue.length === 0) {
+    isPlaying = false;
+    return;
+  }
+  isPlaying = true;
+  const url = audioQueue.shift();
+  log("🔊 Downloading audio: " + url);
+
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    const audio = new Audio(URL.createObjectURL(blob));
+    log("🎧 Starting local playback");
+
+    const audioFinished = new Promise((resolve) => {
+      audio.onended = () => {
+        log("✅ Playback complete");
+        resolve();
+      };
+      audio.onerror = () => {
+        log("❌ Playback failed");
+        resolve();
+      };
+    });
+
+    await audio.play();
+    await audioFinished;
+  } catch (err) {
+    log("❌ Error during playback: " + err.message);
+  }
+
+  isPlaying = false;
+  playNextAudio();
+}
+</script>
+</body>
+</html>
