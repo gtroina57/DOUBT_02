@@ -111,36 +111,40 @@
     };
 
     async function playNextAudio() {
-  if (audioQueue.length === 0) {
-    isPlaying = false;
-    return;
-  }
+      if (audioQueue.length === 0) {
+        isPlaying = false;
+        return;
+      }
+      isPlaying = true;
+      const url = audioQueue.shift();
+      const audio = new Audio(url);
+      log("🔊 Playing audio from: " + url);
 
-  isPlaying = true;
-  const url = audioQueue.shift();
-  const audio = new Audio(url);
-  log("🔊 Playing audio from: " + url);
+      // Define a promise that resolves when audio finishes or errors out
+      const audioFinished = new Promise((resolve) => {
+        audio.onended = () => {
+          log("✅ ONENDED");
+          resolve();
+        };
+        audio.onerror = () => {
+          log("❌ Error playing audio.");
+          resolve();
+        };
+      });
 
-  audio.onended = () => {
-    log("✅ Finished");
-    isPlaying = false;
-    playNextAudio();
-  };
+      try {
+        log("✅ before audio play.");
+        await audio.play(); // Wait for playback to start
+        log("✅ after audio play started, now waiting for it to finish.");
+        await audioFinished; // Wait for playback to finish
+      } catch (err) {
+        log("❌ Error starting playback: " + err);
+      }
 
-  audio.onerror = () => {
-    log("❌ Audio error occurred");
-    isPlaying = false;
-    playNextAudio();
-  };
+      isPlaying = false;
+      playNextAudio();
+    }
 
-  try {
-    await audio.play();
-  } catch (err) {
-    log("❌ play() failed: " + err.message);
-    isPlaying = false;
-    playNextAudio();
-  }
-}
 
     function log(message) {
       const logArea = document.getElementById("log");
