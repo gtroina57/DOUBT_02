@@ -79,7 +79,7 @@
 <button disabled="" id="sendButton" onclick="sendMessage()">Send</button>
 <progress id="audioProgress" max="1" style="display:none;" value="0"></progress>
 </div>
- <script>
+<script>
     const ws = new WebSocket("wss://doubt-02.onrender.com/ws");
     const audioQueue = [];
     let isPlaying = false;
@@ -111,39 +111,59 @@
     };
 
     async function playNextAudio() {
-      if (audioQueue.length === 0) {
-        isPlaying = false;
-        return;
-      }
-      isPlaying = true;
-      const url = audioQueue.shift();
-      const audio = new Audio(url);
-      log("🔊 Playing audio from: " + url);
+  if (audioQueue.length === 0) {
+    isPlaying = false;
+    return;
+  }
 
-      // Define a promise that resolves when audio finishes or errors out
-      const audioFinished = new Promise((resolve) => {
-        audio.onended = () => {
-          log("✅ ONENDED");
-          resolve();
-        };
-        audio.onerror = () => {
-          log("❌ Error playing audio.");
-          resolve();
-        };
-      });
+  isPlaying = true;
+  const url = audioQueue.shift();
+  const audio = new Audio(url);
+  log("🔊 Preparing to play audio from: " + url);
 
-      try {
-        log("✅ before audio play.");
-        await audio.play(); // Wait for playback to start
-        log("✅ after audio play started, now waiting for it to finish.");
-        await audioFinished; // Wait for playback to finish
-      } catch (err) {
-        log("❌ Error starting playback: " + err);
-      }
+  // Create a promise that resolves when audio is ready to play or times out
+  const waitForCanPlay = new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      audio.oncanplaythrough = null;
+      audio.onerror = null;
+      reject(new Error("⏱️ Timeout: canplaythrough not fired"));
+    }, 8000); // 8 second timeout
 
-      isPlaying = false;
-      playNextAudio();
-    }
+    audio.oncanplaythrough = () => {
+      clearTimeout(timeout);
+      resolve();
+    };
+
+    audio.onerror = () => {
+      clearTimeout(timeout);
+      reject(new Error("❌ Error loading audio"));
+    };
+  });
+
+  try {
+    await waitForCanPlay;
+    log("▶️ Audio ready, starting playback...");
+    await audio.play();
+
+    const audioFinished = new Promise((resolve) => {
+      audio.onended = () => {
+        log("✅ Playback finished.");
+        resolve();
+      };
+      audio.onerror = () => {
+        log("❌ Playback error during playing.");
+        resolve(); // Resolve to proceed with next audio
+      };
+    });
+
+    await audioFinished;
+  } catch (err) {
+    log("⚠️ Playback skipped: " + err.message);
+  }
+
+  isPlaying = false;
+  playNextAudio();
+}
 
     function log(message) {
       const logArea = document.getElementById("log");
