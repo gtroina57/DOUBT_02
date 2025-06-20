@@ -117,8 +117,10 @@
       if (audio.readyState >= 3) {
         resolve();
       } else if (Date.now() - start > timeout) {
+	log("⏳ Timeout waiting for audio to be ready");
         reject(new Error("Timeout waiting for audio to be ready"));
       } else {
+	log("⏳ check timeout");
         setTimeout(check, 100);
       }
     };
