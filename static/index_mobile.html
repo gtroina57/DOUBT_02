@@ -79,7 +79,7 @@
 <button disabled="" id="sendButton" onclick="sendMessage()">Send</button>
 <progress id="audioProgress" max="1" style="display:none;" value="0"></progress>
 </div>
-<script>
+ <script>
     const ws = new WebSocket("wss://doubt-02.onrender.com/ws");
     const audioQueue = [];
     let isPlaying = false;
@@ -145,7 +145,6 @@
       playNextAudio();
     }
 
-
     function log(message) {
       const logArea = document.getElementById("log");
       logArea.value += message + "\n";
@@ -160,23 +159,7 @@
       }
     }
 
-    function unlockAudio() {
-      if (!voiceUnlocked) {
-        const a = new Audio('/audio/silent.mp3');
-        a.play().then(() => {
-          voiceUnlocked = true;
-          log("🔓 Voice unlocked.");
-        }).catch(e => {
-          voiceUnlocked = false;
-          log("❌ Failed to unlock: " + e.message);
-        });
-      }
-    }
-
-
-
     function sendMessage() {
-      unlockAudio();
       const input = document.getElementById("messageInput");
       let message = input.value.trim();
       
