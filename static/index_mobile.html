@@ -110,7 +110,7 @@
       log("📩 " + event.data);
     };
 
-    async function playNextAudio() {
+   async function playNextAudio() {
   if (audioQueue.length === 0) {
     isPlaying = false;
     return;
@@ -119,46 +119,45 @@
   isPlaying = true;
   const url = audioQueue.shift();
   const audio = new Audio(url);
-  log("🔊 Preparing to play audio from: " + url);
+  log("🔊 Attempting to play: " + url);
 
-  // Create a promise that resolves when audio is ready to play or times out
-  const waitForCanPlay = new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      audio.oncanplaythrough = null;
-      audio.onerror = null;
-      reject(new Error("⏱️ Timeout: canplaythrough not fired"));
-    }, 8000); // 8 second timeout
-
-    audio.oncanplaythrough = () => {
-      clearTimeout(timeout);
-      resolve();
-    };
-
-    audio.onerror = () => {
-      clearTimeout(timeout);
-      reject(new Error("❌ Error loading audio"));
-    };
-  });
+  let audioFinished;
 
   try {
-    await waitForCanPlay;
-    log("▶️ Audio ready, starting playback...");
-    await audio.play();
+    // Optional preload hint (has minimal effect but worth setting)
+    audio.preload = "auto";
+    audio.load();
 
-    const audioFinished = new Promise((resolve) => {
+    // Wait a bit to let iOS start buffering
+    await new Promise(r => setTimeout(r, 500));
+
+    // Try to play
+    await audio.play();
+    log("▶️ Playback started.");
+
+    // Listen for end or error
+    audioFinished = new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        log("⏱️ Timeout: audio may have failed silently.");
+        resolve();
+      }, 10000); // 10s timeout fallback
+
       audio.onended = () => {
+        clearTimeout(timeout);
         log("✅ Playback finished.");
         resolve();
       };
+
       audio.onerror = () => {
-        log("❌ Playback error during playing.");
-        resolve(); // Resolve to proceed with next audio
+        clearTimeout(timeout);
+        log("❌ Playback error during audio.");
+        resolve();
       };
     });
 
     await audioFinished;
   } catch (err) {
-    log("⚠️ Playback skipped: " + err.message);
+    log("❌ Audio play() error: " + err.message);
   }
 
   isPlaying = false;
