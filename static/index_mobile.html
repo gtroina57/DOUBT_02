@@ -118,29 +118,25 @@
 
   isPlaying = true;
   const url = audioQueue.shift();
-  const audio = new Audio(url);
-  log("🔊 Attempting to play: " + url);
-
-  let audioFinished;
+  log("📥 Downloading audio: " + url);
 
   try {
-    // Optional preload hint (has minimal effect but worth setting)
-    audio.preload = "auto";
-    audio.load();
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error("Failed to fetch audio file");
+    }
 
-    // Wait a bit to let iOS start buffering
-    await new Promise(r => setTimeout(r, 500));
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const audio = new Audio(objectUrl);
 
-    // Try to play
-    await audio.play();
-    log("▶️ Playback started.");
+    log("🎧 Starting local playback");
 
-    // Listen for end or error
-    audioFinished = new Promise((resolve) => {
+    const audioFinished = new Promise((resolve) => {
       const timeout = setTimeout(() => {
-        log("⏱️ Timeout: audio may have failed silently.");
+        log("⏱️ Timeout: No end detected");
         resolve();
-      }, 10000); // 10s timeout fallback
+      }, 15000);
 
       audio.onended = () => {
         clearTimeout(timeout);
@@ -150,14 +146,15 @@
 
       audio.onerror = () => {
         clearTimeout(timeout);
-        log("❌ Playback error during audio.");
+        log("❌ Playback error");
         resolve();
       };
     });
 
+    await audio.play();
     await audioFinished;
   } catch (err) {
-    log("❌ Audio play() error: " + err.message);
+    log("❌ Error during playback: " + err.message);
   }
 
   isPlaying = false;
