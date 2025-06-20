@@ -69,9 +69,6 @@
 <h1>DOUBT</h1>
 <h2>Mobile Version</h2>
 <div class="container">
-<button onclick="enableVoiceOutput()">
-  🎧 Enable Voice Output
-</button>
 <textarea id="log" readonly=""></textarea>
 <input id="topicInput" placeholder="Enter debate topic..." type="text"/>
 <button onclick="setTopic()">Set Topic</button>
@@ -81,59 +78,14 @@
 </div>
 <script>
 let voiceUnlocked = false;
-let sharedAudio = null;
-
-function enableVoiceOutput() {
-  sharedAudio = new Audio('/audio/silent.mp3');
-  sharedAudio.play().then(() => {
-    log("🔓 Voice output enabled");
+function unlockAudio() {
+  if (voiceUnlocked) return;
+  const a = new Audio('/audio/silent.mp3');
+  a.play().then(() => {
     voiceUnlocked = true;
-  }).catch(e => {
-    log("❌ Audio error: " + e.message);
-  });
+    log("🔓 Voice unlocked by user gesture");
+  }).catch(e => log("❌ Unlock error: " + e.message));
 }
-
-async function playNextAudio() {
-  if (!voiceUnlocked) {
-    log("🔒 Voice not yet unlocked by user.");
-    return;
-  }
-  if (audioQueue.length === 0) {
-    isPlaying = false;
-    return;
-  }
-  isPlaying = true;
-  const url = audioQueue.shift();
-  log("🔊 Downloading audio: " + url);
-
-  try {
-    const response = await fetch(url);
-    const blob = await response.blob();
-    const audio = new Audio(URL.createObjectURL(blob));
-    log("🎧 Starting local playback");
-
-    const audioFinished = new Promise((resolve) => {
-      audio.onended = () => {
-        log("✅ Playback complete");
-        resolve();
-      };
-      audio.onerror = () => {
-        log("❌ Playback failed");
-        resolve();
-      };
-    });
-
-    await audio.play();
-    await audioFinished;
-  } catch (err) {
-    log("❌ Error during playback: " + err.message);
-  }
-
-  isPlaying = false;
-  playNextAudio();
-}
-
-// Append the patched logic to the original script
 
     const ws = new WebSocket("wss://doubt-02.onrender.com/ws");
     const audioQueue = [];
@@ -202,12 +154,11 @@ async function playNextAudio() {
 
     function log(message) {
       const logArea = document.getElementById("log");
-      logArea.value += message + "
-";
+      logArea.value += message + "\n";
       logArea.scrollTop = logArea.scrollHeight;
     }
 
-    function setTopic() {
+    function setTopic() { unlockAudio();
       const topic = document.getElementById("topicInput").value.trim();
       if (topic && ws.readyState === WebSocket.OPEN) {
         ws.send(`__SET_TASK1__:${topic}`);
@@ -215,7 +166,7 @@ async function playNextAudio() {
       }
     }
 
-    function sendMessage() {
+    function sendMessage() { unlockAudio();
       const input = document.getElementById("messageInput");
       let message = input.value.trim();
       
@@ -241,7 +192,6 @@ async function playNextAudio() {
         ws.send("__ping__");
       }
     }, 20000);
-  
-</script>
+  </script>
 </body>
 </html>
