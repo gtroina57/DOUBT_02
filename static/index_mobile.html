@@ -110,40 +110,57 @@
       log("📩 " + event.data);
     };
 
-    async function playNextAudio() {
-      if (audioQueue.length === 0) {
-        isPlaying = false;
-        return;
+    async function waitForAudioToBeReady(audio, timeout = 4000) {
+  return new Promise((resolve, reject) => {
+    const start = Date.now();
+    const check = () => {
+      if (audio.readyState >= 3) {
+        resolve();
+      } else if (Date.now() - start > timeout) {
+        reject(new Error("Timeout waiting for audio to be ready"));
+      } else {
+        setTimeout(check, 100);
       }
-      isPlaying = true;
-      const url = audioQueue.shift();
-      const audio = new Audio(url);
-      log("🔊 Playing audio from: " + url);
+    };
+    check();
+  });
+}
 
-      // Define a promise that resolves when audio finishes or errors out
-      const audioFinished = new Promise((resolve) => {
-        audio.onended = () => {
-          log("✅ ONENDED");
-          resolve();
-        };
-        audio.onerror = () => {
-          log("❌ Error playing audio.");
-          resolve();
-        };
-      });
+async function playNextAudio() {
+  if (audioQueue.length === 0) {
+    isPlaying = false;
+    return;
+  }
 
-      try {
-        log("✅ before audio play.");
-        await audio.play(); // Wait for playback to start
-        log("✅ after audio play started, now waiting for it to finish.");
-        await audioFinished; // Wait for playback to finish
-      } catch (err) {
-        log("❌ Error starting playback: " + err);
-      }
+  isPlaying = true;
+  const url = audioQueue.shift();
+  const audio = new Audio(url);
+  log("🔊 Playing audio from: " + url);
 
-      isPlaying = false;
-      playNextAudio();
-    }
+  const audioFinished = new Promise((resolve) => {
+    audio.onended = () => {
+      log("✅ ONENDED");
+      resolve();
+    };
+    audio.onerror = () => {
+      log("❌ Error playing audio.");
+      resolve();
+    };
+  });
+
+  try {
+    log("⏳ Waiting for audio to buffer...");
+    await waitForAudioToBeReady(audio);  // <-- NEW
+    log("▶️ Playing now...");
+    await audio.play();
+    await audioFinished;
+  } catch (err) {
+    log("❌ Error: " + err.message);
+  }
+
+  isPlaying = false;
+  playNextAudio();
+}
 
     function log(message) {
       const logArea = document.getElementById("log");
