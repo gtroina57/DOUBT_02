@@ -273,16 +273,22 @@
   // Watchdog for stalled audio
   
   setInterval(() => {
-    if (!isPlaying && audioQueue.length > 0 && userEnabledAudio) {
-      log("🔁 Watchdog restarting audio.");
-      playNextAudio();
-    }
+  if (!isPlaying && audioQueue.length > 0 && userEnabledAudio) {
+    log("🔁 Watchdog restarting audio.");
+    playNextAudio();
+  }
 
-    if (audioContext.state === "suspended" && userEnabledAudio) {
+  // Force resume attempt to detect suspension
+  if (userEnabledAudio) {
+    audioContext.resume().then(() => {
+      document.getElementById("resumeAudioButton").style.display = "none";
+      updateAudioStatus();
+    }).catch(() => {
       document.getElementById("resumeAudioButton").style.display = "block";
-      log("⚠️ AudioContext suspended — tap 'Resume Audio' to continue.");
-    }
-  }, 5000);
+      log("⚠️ AudioContext likely suspended — tap 'Resume Audio' to continue.");
+    });
+  }
+}, 5000);
 
   // Start audio system
 
