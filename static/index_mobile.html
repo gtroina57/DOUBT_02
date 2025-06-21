@@ -82,6 +82,14 @@
 
 </div>
 <script>
+
+  document.addEventListener("click", () => {
+  audioContext.resume().then(() => {
+    log("🔓 AudioContext resumed on user tap.");
+    updateAudioStatus();
+  });
+});
+
   const audioContext = new (window.AudioContext || window.webkitAudioContext)();
   const audioQueue = []; // Each item: { url, agent }
   let isPlaying = false;
