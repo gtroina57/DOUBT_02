@@ -100,6 +100,8 @@
     if (document.getElementById("audioStatus")) {
       document.getElementById("audioStatus").textContent = audioContext.state;
     }
+  }
+
   async function manualResumeAudio() {
     try {
       await audioContext.resume();
@@ -112,8 +114,6 @@
     } catch (e) {
       log("❌ Manual resume failed: " + e.message);
     }
-  }
-
   }
 
   function updateSpeaker(agent) {
