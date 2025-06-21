@@ -77,19 +77,8 @@
 <input id="messageInput" placeholder="Type your message..." type="text"/>
 <button disabled="" id="sendButton" onclick="sendMessage()">Send</button>
 <progress id="audioProgress" max="1" style="display:none;" value="0"></progress>
-
-<button id="resumeAudioButton" onclick="manualResumeAudio()" style="display: none; background-color: #43a047; color: white; font-weight: bold;">🔊 Resume Audio</button>
-
 </div>
 <script>
-
-  document.addEventListener("click", () => {
-  audioContext.resume().then(() => {
-    log("🔓 AudioContext resumed on user tap.");
-    updateAudioStatus();
-  });
-});
-
   const audioContext = new (window.AudioContext || window.webkitAudioContext)();
   const audioQueue = []; // Each item: { url, agent }
   let isPlaying = false;
@@ -107,20 +96,6 @@
   function updateAudioStatus() {
     if (document.getElementById("audioStatus")) {
       document.getElementById("audioStatus").textContent = audioContext.state;
-    }
-  }
-
-  async function manualResumeAudio() {
-    try {
-      await audioContext.resume();
-      log("🔊 Audio manually resumed.");
-      updateAudioStatus();
-      document.getElementById("resumeAudioButton").style.display = "none";
-      if (!isPlaying && audioQueue.length > 0) {
-        playNextAudio();
-      }
-    } catch (e) {
-      log("❌ Manual resume failed: " + e.message);
     }
   }
 
@@ -263,19 +238,12 @@
   });
 
   // Watchdog for stalled audio
-  
   setInterval(() => {
     if (!isPlaying && audioQueue.length > 0 && userEnabledAudio) {
       log("🔁 Watchdog restarting audio.");
       playNextAudio();
     }
-
-    if (audioContext.state === "suspended" && userEnabledAudio) {
-      document.getElementById("resumeAudioButton").style.display = "block";
-      log("⚠️ AudioContext suspended — tap 'Resume Audio' to continue.");
-    }
   }, 5000);
-
 
   // Start audio system
   enableAudio();
