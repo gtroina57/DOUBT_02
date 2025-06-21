@@ -90,6 +90,15 @@
 
   const ws = new WebSocket("wss://doubt-02.onrender.com/ws");
 
+  ws.onclose = (event) => {
+  log(`🔌 WebSocket closed: ${event.code}`);
+  setTimeout(() => {
+    log("🔄 Attempting to reconnect...");
+    location.reload(); // or recreate the WebSocket connection
+  }, 3000);
+  };
+
+
   function log(message) {
     const logArea = document.getElementById("log");
     logArea.value += message + "\n";
