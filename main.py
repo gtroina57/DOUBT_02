@@ -28,7 +28,6 @@ from autogen_core.tools import FunctionTool
 from typing import Sequence
 from typing import Any, Dict, List
 
-
 import playwright
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from openai import OpenAI
@@ -68,17 +67,11 @@ async def root(request: Request):
     else:
         return FileResponse("static/index.html")
 
-
-
 # Serve the index.html at root
 @app.get("/", response_class=HTMLResponse)
 async def get_index():
     html_path = Path("static/index.html")
     return HTMLResponse(content=html_path.read_text(encoding="utf-8"))
-
-
-#####################################################################################################
-#global user_proxy, team, loaded_team_state, agents, agent_list, model_client_openai, model_client_gemini
 
 ################################ Create OpenAI model client   #############################
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -88,7 +81,6 @@ if not OPENAI_API_KEY:
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 if not GOOGLE_API_KEY:
     raise RuntimeError("GOOGLE_API_KEY environment variable is not set.")
- 
  
 model_client_openai = OpenAIChatCompletionClient(
     model="gpt-4o-2024-08-06",
@@ -100,8 +92,6 @@ model_client_gemini = OpenAIChatCompletionClient(
     api_key=GOOGLE_API_KEY
 )
 
-#####################################################################################################
-image_url = None
 #########################################################################################################
 ################################## Initialize variables   ##################################################
 CONFIG_FILE = "agent_config.json"
@@ -118,8 +108,7 @@ processed_messages = set()
 stop_execution = False
 speech_queue = asyncio.Queue()
 user_message_queue = asyncio.Queue()
-spontaneous_queue = asyncio.Queue()
-prioritized_agents = asyncio.Queue()
+
 
 client1 = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 os.makedirs("audio", exist_ok=True)  # Folder to serve audio files
@@ -197,7 +186,6 @@ async def speak_worker(websocket):
 
 ##########################################################################################################
 ################################# Build Agents from configuration  ####################################
-
 model_clients_map = {
     "openai": model_client_openai,
     "gemini": model_client_gemini
@@ -291,13 +279,9 @@ You are the Selector agent following strictly the instructions of the moderator 
 """
 
 async def dynamic_selector_func(thread):
-    global agent_id, prioritized_agents
+    global agent_id
     # 🧠 Force agent turn if someone is in the priority queue
     
-    if not prioritized_agents.empty():
-        next_priority = await prioritized_agents.get()
-        print(f"🎯 Prioritizing agent: {next_priority}")
-        return next_priority
     
     last_msg = thread[-1]
     last_message = last_msg.content.lower().strip()
@@ -378,18 +362,11 @@ async def dynamic_selector_func(thread):
 #print(dir (team))
 #print(help (team))
 
-
 ####################################################################################################
 # === Globals ===
 user_conversation = []
 gradio_input_buffer = {"message": None}
 agent_config_ui = {}
-
-################## SET TOPIC        ###########################################################
-def set_task_only(task_text):
-            global task1
-            task1 = task_text
-            return "✅ Debate topic set." if task_text else "❌ Topic cannot be empty."
 
 ##########################################################################################################
 ################################# Configuration File    ###################################################=
@@ -439,22 +416,9 @@ def sync_load_config():
     return "🟢 Config loaded. Ready to apply when system starts."
 
 ##########################################################################################################
-################################# User Intervention    ###################################################
-# === User interaction ===
-def handle_user_message(message):
-    global user_conversation, gradio_input_buffer
-    gradio_input_buffer["message"] = message
-    user_conversation.append(f"🧑 USER: {message}")
-    return "\n".join(user_conversation)
-
-def intervene_now(user_input):
-    return handle_user_message(user_input)
-
-
-##########################################################################################################
 ################################# loop for debate  #######################################################
 async def run_chat(team, websocket=None):
-    global stop_execution, image_url, task1, gradio_input_buffer
+    global stop_execution, task1, gradio_input_buffer
 
     print("🚀 Starting debate with streaming...")
 
@@ -475,7 +439,6 @@ async def run_chat(team, websocket=None):
 
             print(f"👤 sender: {agent_name}")
             print(f"📝 content: {text}")
-            print(f"🖼️ image_url: {image_url}")
 
             prefix = "🧑" if "user" in agent_name.lower() else "🤖"
             user_conversation.append(f"{prefix} {agent_name.upper()}: {text}")
@@ -541,7 +504,7 @@ async def websocket_endpoint(websocket: WebSocket):
         
 #####################################################################################################
         async def websocket_listener(websocket):
-            global user_message_queue, spontaneous_queue, prioritized_agents
+            global user_message_queue
             while True:
                 print("before websocket receive")                
                 data = await websocket.receive_text()
@@ -549,43 +512,19 @@ async def websocket_endpoint(websocket: WebSocket):
                 if data == "__ping__":
                     print("PLUTO2")
                     continue
-                if data == "__USER_PROXY_TURN__":
-                    print("🎙️ Moderator gave the floor to user.")
-                    # Wait for user input (the next message will go to the queue)
                 
-                elif data.startswith("__SPONTANEOUS__"):
-                    message = data.replace("__SPONTANEOUS__", "").strip()
-                    print("⚡ Spontaneous input received:", message)
-                    await spontaneous_queue.put(message)
-                    await prioritized_agents.put("user_proxy")  # 🔥 Ask selector to prioritize user
-                    continue
-                
-                else:
+                elif data.startswith("__PROXY__"):
+                    data = data.replace("__PROXY__", "").strip()
                     print("👤 User responded:", data)
                     print("before message queue put")  
                     await user_message_queue.put(data)
                     print("after message queue put")
-        
-        """
-        async def wrapped_input_func(*args, **kwargs):
-                global  user_message_queue
-            
-            
-                # 🧑 Moderator gave the floor
-                print("⏳ Waiting for user response...")
-                while True:
-                    msg = await user_message_queue.get()
-                    if msg and msg.strip():
-                        return msg
-        """
+                
+                else:
+                    continue
        
         async def wrapped_input_func(*args, **kwargs):
-                global spontaneous_queue, user_message_queue
-            
-                if not spontaneous_queue.empty():
-                    msg = await spontaneous_queue.get()
-                    print("⚡ Using spontaneous message:", msg)
-                    return msg
+                global  user_message_queue
             
                 print("⏳ Waiting for user input (moderator turn)...")
                 while True:
@@ -594,7 +533,6 @@ async def websocket_endpoint(websocket: WebSocket):
                     print("after message queue get")
                     if msg and msg.strip():
                         return msg         
-
 
         agents["user_proxy"] = UserProxyAgent(name="user_proxy", input_func=wrapped_input_func)
 
