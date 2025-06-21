@@ -153,15 +153,18 @@
   }
 
   async function enableAudio() {
-    try {
-      await audioContext.resume();
-      userEnabledAudio = true;
-      log("🔓 AudioContext enabled.");
-      updateAudioStatus();
-    } catch (err) {
-      log("❌ Failed to enable audio: " + err.message);
+  try {
+    await audioContext.resume();
+    userEnabledAudio = true;
+    log("🔓 AudioContext resumed after user interaction.");
+    updateAudioStatus();
+    if (!isPlaying && audioQueue.length > 0) {
+      playNextAudio();
     }
+  } catch (err) {
+    log("❌ Failed to enable audio: " + err.message);
   }
+}
 
   async function playNextAudio() {
     if (audioQueue.length === 0) {
@@ -304,16 +307,10 @@
   }
 }, 5000);
 
-  // Start audio system
-
-  document.addEventListener("click", () => {
-  audioContext.resume().then(() => {
-    log("🔓 AudioContext resumed after user tap.");
-    updateAudioStatus();
-  });
-  }, { once: true });
-
+  // Start audio system AFTER first valid user interaction
+document.addEventListener("click", () => {
   enableAudio();
+}, { once: true });
 </script>
 </body>
 </html>
