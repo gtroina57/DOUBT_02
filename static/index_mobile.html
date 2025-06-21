@@ -141,13 +141,11 @@
   async function enableAudio() {
   try {
     await audioContext.resume();
-    userEnabledAudio = true;
-    log("🔓 AudioContext enabled.");
-    updateAudioStatus();
-
-    if (!isPlaying && audioQueue.length > 0) {
-      playNextAudio();
+    if (!userEnabledAudio) {
+      log("🔓 AudioContext enabled.");
     }
+    userEnabledAudio = true;
+    updateAudioStatus();
   } catch (err) {
     log("❌ Failed to enable audio: " + err.message);
   }
@@ -296,8 +294,14 @@
 
   // Start audio system
 
-  document.addEventListener("click", () => {
-  enableAudio();
+  document.addEventListener("click", async () => {
+  await enableAudio();
+  setTimeout(() => {
+    if (!isPlaying && audioQueue.length > 0) {
+      log("🔁 Triggered delayed audio replay after user interaction.");
+      playNextAudio();
+    }
+  }, 500);  // Small delay to make sure audioContext is fully resumed
 }, { once: true });
 
 </script>
