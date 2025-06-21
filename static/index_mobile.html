@@ -285,6 +285,14 @@
   }, 5000);
 
   // Start audio system
+
+  document.addEventListener("click", () => {
+  audioContext.resume().then(() => {
+    log("🔓 AudioContext resumed after user tap.");
+    updateAudioStatus();
+  });
+  }, { once: true });
+
   enableAudio();
 </script>
 </body>
