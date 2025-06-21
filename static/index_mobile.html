@@ -69,6 +69,8 @@
 <h1>DOUBT</h1>
 <h2>Mobile Version</h2>
 <div class="container">
+<p><strong>🗣️ Speaking Agent:</strong> <span id="currentSpeaker">None</span></p>
+<p><strong>🎛️ AudioContext State:</strong> <span id="audioStatus">unknown</span></p>
 <textarea id="log" readonly=""></textarea>
 <input id="topicInput" placeholder="Enter debate topic..." type="text"/>
 <button onclick="setTopic()">Set Topic</button>
@@ -77,121 +79,174 @@
 <progress id="audioProgress" max="1" style="display:none;" value="0"></progress>
 </div>
 <script>
-let voiceUnlocked = false;
-function unlockAudio() {
-  if (voiceUnlocked) return;
-  const a = new Audio('/audio/silent.mp3');
-  a.play().then(() => {
-    voiceUnlocked = true;
-    log("🔓 Voice unlocked by user gesture");
-  }).catch(e => log("❌ Unlock error: " + e.message));
-}
+  const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  const audioQueue = []; // Each item: { url, agent }
+  let isPlaying = false;
+  let userEnabledAudio = false;
+  let userHasTurn = false;
 
-    const ws = new WebSocket("wss://doubt-02.onrender.com/ws");
-    const audioQueue = [];
-    let isPlaying = false;
-    let userHasTurn = false;
+  const ws = new WebSocket("wss://doubt-02.onrender.com/ws");
 
-    ws.onopen = () => {
-      log("✅ Connected to debate server.");
-    };
+  function log(message) {
+    const logArea = document.getElementById("log");
+    logArea.value += message + "\n";
+    logArea.scrollTop = logArea.scrollHeight;
+  }
 
-    ws.onmessage = (event) => {
-      if (event.data === "__USER_PROXY_TURN__") {
-        log("🎤 Moderator gives you the floor. You may speak now.");
-        document.getElementById("messageInput").disabled = false;
-        document.getElementById("sendButton").disabled = false;
-        document.getElementById("messageInput").focus();
-        return;
-      }
+  function updateAudioStatus() {
+    if (document.getElementById("audioStatus")) {
+      document.getElementById("audioStatus").textContent = audioContext.state;
+    }
+  }
 
-      if (event.data.startsWith("__AUDIO_URL__/")) {
-        const audioUrl = "https://doubt-02.onrender.com/" + event.data.replace("__AUDIO_URL__/", "");
-        audioQueue.push(audioUrl);
-        if (!isPlaying) {
-          playNextAudio();
-        }
-        return;
-      }
+  function updateSpeaker(agent) {
+    if (document.getElementById("currentSpeaker")) {
+      document.getElementById("currentSpeaker").textContent = agent || "None";
+    }
+  }
 
-      log("📩 " + event.data);
-    };
+  async function enableAudio() {
+    try {
+      await audioContext.resume();
+      userEnabledAudio = true;
+      log("🔓 AudioContext enabled.");
+      updateAudioStatus();
+    } catch (err) {
+      log("❌ Failed to enable audio: " + err.message);
+    }
+  }
 
-    async function playNextAudio() {
-      if (audioQueue.length === 0) {
+  async function playNextAudio() {
+    if (audioQueue.length === 0) {
+      isPlaying = false;
+      return;
+    }
+
+    isPlaying = true;
+    const { url, agent } = audioQueue.shift();
+    log(`🔊 Playing audio from ${agent}: ${url}`);
+    updateSpeaker(agent);
+
+    try {
+      const response = await fetch(url);
+      const arrayBuffer = await response.arrayBuffer();
+      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+      const source = audioContext.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(audioContext.destination);
+
+      source.onended = () => {
+        log(`✅ Finished audio for ${agent}`);
+        updateSpeaker("None");
         isPlaying = false;
-        return;
-      }
-      isPlaying = true;
-      const url = audioQueue.shift();
-      const audio = new Audio(url);
-      log("🔊 Playing audio from: " + url);
+        playNextAudio();
+      };
 
-      // Define a promise that resolves when audio finishes or errors out
-      const audioFinished = new Promise((resolve) => {
-        audio.onended = () => {
-          log("✅ ONENDED");
-          resolve();
-        };
-        audio.onerror = () => {
-          log("❌ Error playing audio.");
-          resolve();
-        };
-      });
-
-      try {
-        log("✅ before audio play.");
-        await audio.play(); // Wait for playback to start
-        log("✅ after audio play started, now waiting for it to finish.");
-        await audioFinished; // Wait for playback to finish
-      } catch (err) {
-        log("❌ Error starting playback: " + err);
+      if (audioContext.state === "suspended") {
+        await audioContext.resume();
+        updateAudioStatus();
       }
 
+      source.start(0);
+    } catch (err) {
+      log("❌ Error playing audio: " + err.message);
+      updateSpeaker("None");
       isPlaying = false;
       playNextAudio();
     }
+  }
 
-    function log(message) {
-      const logArea = document.getElementById("log");
-      logArea.value += message + "\n";
-      logArea.scrollTop = logArea.scrollHeight;
+  window.enqueueAudio = function (url, agent = "Unknown") {
+    audioQueue.push({ url, agent });
+    if (!isPlaying) {
+      playNextAudio();
+    }
+  };
+
+  ws.onopen = async () => {
+    log("✅ Connected to debate server.");
+    if (userEnabledAudio && audioContext.state === "suspended") {
+      await audioContext.resume();
+      updateAudioStatus();
+    }
+  };
+
+  ws.onmessage = (event) => {
+    const data = event.data;
+
+    if (data === "__USER_PROXY_TURN__") {
+      log("🎤 Moderator gives you the floor. You may speak now.");
+      const msgInput = document.getElementById("messageInput");
+      msgInput.disabled = false;
+      document.getElementById("sendButton").disabled = false;
+      msgInput.focus();
+      return;
     }
 
-    function setTopic() { unlockAudio();
-      const topic = document.getElementById("topicInput").value.trim();
-      if (topic && ws.readyState === WebSocket.OPEN) {
-        ws.send(`__SET_TASK1__:${topic}`);
-        log("📘 Topic sent: " + topic);
-      }
+    if (data.startsWith("__AUDIO_URL__/")) {
+      const payload = data.replace("__AUDIO_URL__/", "");
+      const [relativePath, agent = "Unknown"] = payload.split("|");
+      const audioUrl = "https://doubt-02.onrender.com/" + relativePath;
+      log(`🎵 Received audio from ${agent}: ${audioUrl}`);
+      enqueueAudio(audioUrl, agent);
+      return;
     }
 
-    function sendMessage() { unlockAudio();
-      const input = document.getElementById("messageInput");
-      let message = input.value.trim();
-      
-      if (!message || ws.readyState !== WebSocket.OPEN) return;
+    log("📩 " + data);
+  };
 
-      log("🧑 You: " + message);
-      userHasTurn = false;
-      document.getElementById("messageInput").placeholder = "Wait for your turn...";
-      
-      ws.send(message);
-      input.value = "";
-      document.getElementById("sendButton").disabled = true;
+  document.getElementById("messageInput").addEventListener("input", function () {
+    const hasText = this.value.trim().length > 0;
+    document.getElementById("sendButton").disabled = !hasText;
+  });
+
+  function setTopic() {
+    const topic = document.getElementById("topicInput").value.trim();
+    if (topic && ws.readyState === WebSocket.OPEN) {
+      ws.send(`__SET_TASK1__:${topic}`);
+      log("📘 Topic sent: " + topic);
     }
+  }
 
-    // Prevent sending empty messages and enable button when there's content
-    document.getElementById("messageInput").addEventListener("input", function () {
-      const hasText = this.value.trim().length > 0;
-      document.getElementById("sendButton").disabled = !hasText;
-    });
+  function sendMessage() {
+    const input = document.getElementById("messageInput");
+    let message = input.value.trim();
+    if (!message || ws.readyState !== WebSocket.OPEN) return;
+    log("🧑 You: " + message);
+    userHasTurn = false;
+    input.placeholder = "Wait for your turn...";
+    ws.send(message);
+    input.value = "";
+    document.getElementById("sendButton").disabled = true;
+  }
 
-    setInterval(() => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send("__ping__");
-      }
-    }, 20000);
-  </script>
+  // Periodic ping
+  setInterval(() => {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send("__ping__");
+    }
+  }, 20000);
+
+  // Resume on visibility change
+  document.addEventListener("visibilitychange", async () => {
+    if (document.visibilityState === "visible" && audioContext.state === "suspended") {
+      await audioContext.resume();
+      log("🔁 Resumed AudioContext after visibility change.");
+      updateAudioStatus();
+    }
+  });
+
+  // Watchdog for stalled audio
+  setInterval(() => {
+    if (!isPlaying && audioQueue.length > 0 && userEnabledAudio) {
+      log("🔁 Watchdog restarting audio.");
+      playNextAudio();
+    }
+  }, 5000);
+
+  // Start audio system
+  enableAudio();
+</script>
 </body>
 </html>
