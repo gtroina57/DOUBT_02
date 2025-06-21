@@ -69,7 +69,7 @@
 <h1>DOUBT</h1>
 <h2>Mobile Version</h2>
 <div class="container">
-<button onclick="enableVoiceOutput()">
+<button onclick="const a=new Audio('/audio/silent.mp3'); a.play().then(()=>log('🔓 Voice output enabled')).catch(e=>log('❌ Audio error: ' + e.message));">
   🎧 Enable Voice Output
 </button>
 <textarea id="log" readonly=""></textarea>
@@ -80,58 +80,79 @@
 <progress id="audioProgress" max="1" style="display:none;" value="0"></progress>
 </div>
 <script>
-let voiceUnlocked = false;
-let sharedAudio = null;
-
-function enableVoiceOutput() {
-  sharedAudio = new Audio('/audio/silent.mp3');
-  sharedAudio.play().then(() => {
-    log("🔓 Voice output enabled");
-    voiceUnlocked = true;
-  }).catch(e => {
-    log("❌ Audio error: " + e.message);
-  });
+function log(msg) {
+  const logArea = document.getElementById("log");
+  logArea.value += msg + "\n";
+  logArea.scrollTop = logArea.scrollHeight;
 }
+    const ws = new WebSocket("wss://doubt-02.onrender.com/ws");
+    const audioQueue = [];
+    let isPlaying = false;
 
-async function playNextAudio() {
-  if (!voiceUnlocked) {
-    log("🔒 Voice not yet unlocked by user.");
-    return;
+    ws.onmessage = (event) => {
+      if (event.data === "__USER_PROXY_TURN__") {
+        document.getElementById("messageInput").disabled = false;
+        document.getElementById("sendButton").disabled = false;
+        return;
+      }
+      if (event.data.startsWith("__AUDIO_URL__/")) {
+        const audioUrl = "https://doubt-02.onrender.com/" + event.data.replace("__AUDIO_URL__/", "");
+        audioQueue.push(audioUrl);
+        if (!isPlaying) playNextAudio();
+        return;
+      }
+    }
+
+    function setTopic() {
+      const topic = document.getElementById("topicInput").value.trim();
+    if (topic && ws.readyState === WebSocket.OPEN) {
+    const message = `__SET_TASK1__:${topic}`;
+    ws.send(message);
+    log(`📨 Sent topic: ${topic}`);
+  } else {
+    log("⚠️ Cannot set topic — empty or WebSocket not open.");
   }
-  if (audioQueue.length === 0) {
-    isPlaying = false;
-    return;
-  }
-  isPlaying = true;
-  const url = audioQueue.shift();
-  log("🔊 Downloading audio: " + url);
+ }
 
-  try {
-    const response = await fetch(url);
-    const blob = await response.blob();
-    const audio = new Audio(URL.createObjectURL(blob));
-    log("🎧 Starting local playback");
+    function sendMessage() {
+      const input = document.getElementById("messageInput");
+      const message = input.value.trim();
+      if (message && ws.readyState === WebSocket.OPEN) {
+        ws.send(message);
+        input.value = "";
+        input.disabled = false;
+        document.getElementById("sendButton").disabled = true;
+      }
+    }
 
-    const audioFinished = new Promise((resolve) => {
-      audio.onended = () => {
-        log("✅ Playback complete");
-        resolve();
-      };
-      audio.onerror = () => {
-        log("❌ Playback failed");
-        resolve();
-      };
+    document.getElementById("messageInput").addEventListener("input", function () {
+      const hasText = this.value.trim().length > 0;
+      document.getElementById("sendButton").disabled = !hasText;
     });
 
-    await audio.play();
-    await audioFinished;
-  } catch (err) {
-    log("❌ Error during playback: " + err.message);
-  }
+    async function playNextAudio() {
+      if (audioQueue.length === 0) return;
+      isPlaying = true;
+      const url = audioQueue.shift();
+      const audio = new Audio(url);
+      audio.onended = () => {
+        isPlaying = false;
+        playNextAudio();
+      };
 
-  isPlaying = false;
-  playNextAudio();
-}
-</script>
+       try {
+         await audio.play();
+         log("🔊 Playing audio...");
+         } catch (e) {
+         log("❌ Audio playback failed: " + e.message);
+         isPlaying = false;
+         playNextAudio(); // skip if failed
+        }
+    }
+
+    setInterval(() => {
+      if (ws.readyState === WebSocket.OPEN) ws.send("__ping__");
+    }, 20000);
+  </script>
 </body>
 </html>
