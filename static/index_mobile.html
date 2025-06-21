@@ -118,17 +118,19 @@
     updateAudioStatus();
     document.getElementById("resumeAudioButton").style.display = "none";
 
-    // 🛠️ Force restart playback if stuck
+    // ✅ Force a fresh restart no matter what
+    isPlaying = false;
+
     if (audioQueue.length > 0) {
-      isPlaying = false;  // 🔁 Reset even if already "true"
       playNextAudio();
     } else {
-      log("ℹ️ No audio in queue to play.");
+      log("ℹ️ No audio currently in queue. Will resume on next audio message.");
     }
   } catch (e) {
     log("❌ Manual resume failed: " + e.message);
   }
 }
+
 
 
   function updateSpeaker(agent) {
@@ -198,8 +200,9 @@
   window.enqueueAudio = function (url, agent = "Unknown") {
     audioQueue.push({ url, agent });
     if (!isPlaying) {
-      playNextAudio();
-    }
+  log("🔁 Triggering playback from enqueueAudio().");
+  playNextAudio();
+}
   };
 
   ws.onopen = async () => {
