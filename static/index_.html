@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <meta charset="utf-8"/>
+  <title>
+   Multi-DOUBT
+  </title>
+  <style>
+   body {
+      background: linear-gradient(120deg, #e0eafc 0%, #cfdef3 100%);
+      font-family: 'Segoe UI', Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    h1, h2 {
+      text-align: center;
+      margin-top: 24px;
+      margin-bottom: 8px;
+    }
+    h1 {
+      color: #1976d2;
+      letter-spacing: 8px;
+      font-size: 2.5rem;
+      font-weight: bold;
+      text-shadow: 1px 2px 8px rgba(33, 150, 243, 0.10);
+      margin-bottom: 6px;
+    }
+    h2 {
+      color: #1769aa;
+      font-size: 1.25rem;
+      letter-spacing: 2px;
+      font-weight: 500;
+      margin-bottom: 24px;
+    }
+    .container {
+      max-width: 860px;
+      margin: 0 auto 24px auto;
+      background: rgba(255,255,255,0.82);
+      border-radius: 18px;
+      padding: 28px 34px 32px 34px;
+      box-shadow: 0 4px 24px rgba(33,150,243,0.10);
+    }
+    textarea#log {
+      display: block;
+      margin: 0 auto 16px auto;
+      border-radius: 8px;
+      border: 1.5px solid #90caf9;
+      background: #f8fbff;
+      color: #234;
+      box-shadow: 0 1px 8px rgba(33,150,243,0.06);
+      resize: vertical;
+      font-size: 1rem;
+      width: 100%;
+      max-width: 800px;
+      min-height: 200px;
+      padding: 12px;
+    }
+    .input-row {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    input[type="text"] {
+      border-radius: 6px;
+      border: 1.5px solid #2196f3;
+      padding: 9px 12px;
+      background: #fff;
+      font-size: 1rem;
+      box-shadow: 0 1px 5px rgba(33,150,243,0.08);
+      outline: none;
+      transition: border 0.15s;
+      min-width: 240px;
+      flex: 1 1 340px;
+      max-width: 600px;
+    }
+    input[type="text"]:focus {
+      border-color: #1769aa;
+    }
+    button {
+      min-width: 120px;
+      max-width: 220px;
+      padding: 10px 24px;
+      margin: 8px 4px;
+      background-color: #2196F3;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-family: 'Segoe UI', 'Arial', sans-serif;
+      cursor: pointer;
+      transition: background 0.18s, box-shadow 0.18s;
+      box-shadow: 0 1px 6px rgba(32, 33, 36, 0.08);
+    }
+    button:disabled {
+      background-color: #b0bfcf;
+      cursor: not-allowed;
+      color: #f4f4f4;
+    }
+    button:hover:not(:disabled),
+    button:focus-visible:not(:disabled) {
+      background-color: #1769aa;
+      box-shadow: 0 2px 12px rgba(33, 150, 243, 0.12);
+      outline: none;
+    }
+    progress#audioProgress {
+      display: block;
+      margin: 18px auto 0 auto;
+      height: 20px;
+      background-color: #e3f2fd;
+      border-radius: 8px;
+      width: 400px;
+      max-width: 80vw;
+    }
+    ::-webkit-input-placeholder { color: #90a4ae; }
+    ::-moz-placeholder { color: #90a4ae; }
+    :-ms-input-placeholder { color: #90a4ae; }
+    ::placeholder { color: #90a4ae; }
+  
+
+    body {
+      background: linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%);
+      color: #102a43;
+    }
+    .container {
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid #90caf9;
+    }
+    h3 {
+      color: #0d47a1;
+      margin-top: 28px;
+      margin-bottom: 12px;
+    }
+    select#configSelector {
+      padding: 10px;
+      border-radius: 6px;
+      border: 1.5px solid #2196f3;
+      font-size: 1rem;
+      background-color: #f5faff;
+      box-shadow: 0 1px 5px rgba(33,150,243,0.08);
+    }
+  
+
+    .container {
+      padding: 18px 24px 22px 24px;
+      margin-bottom: 12px;
+    }
+    textarea#log {
+      min-height: 160px;
+    }
+    h1 {
+      font-size: 2.2rem;
+      color: #1e88e5;
+      text-shadow: 1px 1px 10px rgba(30, 136, 229, 0.2);
+    }
+    h2 {
+      color: #0d47a1;
+      font-weight: 600;
+    }
+    body {
+      background: linear-gradient(145deg, #f0f7ff 0%, #e1f5fe 100%);
+      font-family: 'Segoe UI', 'Helvetica Neue', sans-serif;
+    }
+    button {
+      background: linear-gradient(to right, #42a5f5, #1e88e5);
+      font-weight: bold;
+    }
+    button:hover {
+      background: linear-gradient(to right, #1e88e5, #1976d2);
+    }
+    select#configSelector {
+      background-color: #e3f2fd;
+      font-weight: 500;
+    }
+    input[type="text"] {
+      background: #ffffff;
+      border-color: #64b5f6;
+    }
+    input[type="text"]:focus {
+      border-color: #1565c0;
+    }
+  </style>
+ </head>
+ <body>
+  <h1>
+   DOUBT
+  </h1>
+  <h2>
+   Debating · Observing · Understanding · Brainstorming · Tutoring
+  </h2>
+  <div class="container">
+   <div>
+    <h3>
+     Choose Agent Configuration
+    </h3>
+    <select id="configSelector" onchange="setConfig()">
+     <option value="">
+      Loading configurations...
+     </option>
+    </select>
+   </div>
+   <div>
+    <h3>
+     Set Debate Topic
+    </h3>
+    <div class="input-row">
+     <input id="topicInput" placeholder="Enter debate topic..." type="text"/>
+     <button onclick="setTopic()">
+      🎯 Set Topic
+     </button>
+    </div>
+   </div>
+   <div>
+    <h3>
+     Debate Log
+    </h3>
+    <textarea id="log" placeholder="Debate log will appear here..." readonly="True" style="width:100%;height:250px;border-radius:10px;padding:12px;border:1.5px solid #90caf9;background:#f0f8ff;box-shadow:0 1px 8px rgba(33,150,243,0.06);color:#234;font-size:1rem;resize:vertical;"></textarea>
+   </div>
+   <div>
+    <h3>
+     Your Input
+    </h3>
+    <div class="input-row">
+     <input id="messageInput" placeholder="Your response..." type="text"/>
+     <button id="sendButton" onclick="sendMessage()">
+      📤 Send
+     </button>
+     <button onclick="startVoiceInput()">
+      🎙 Voice Input
+     </button>
+    </div>
+   </div>
+   <div>
+    <div class="progress-bar" id="audioProgress" style="display:none;">
+     🔊 Playing...
+    </div>
+   </div>
+  </div>
+  <script>
+   const ws = new WebSocket("wss://doubt-02.onrender.com/ws");
+    const audioQueue = [];
+    let isPlaying = false;
+    let userHasTurn = false;
+
+    ws.onopen = () => {
+      log("✅ Connected to debate server.");
+    };
+
+    ws.onmessage = (event) => {
+      if (event.data === "__USER_PROXY_TURN__") {
+        log("🎤 Moderator gives you the floor. You may speak now.");
+        document.getElementById("messageInput").disabled = false;
+        document.getElementById("sendButton").disabled = false;
+        document.getElementById("messageInput").focus();
+        return;
+      }
+
+      if (event.data.startsWith("__AUDIO_URL__/")) {
+        const audioUrl = "https://doubt-02.onrender.com/" + event.data.replace("__AUDIO_URL__/", "");
+        audioQueue.push(audioUrl);
+        if (!isPlaying) {
+          playNextAudio();
+        }
+        return;
+      }
+
+      log("📩 " + event.data);
+    };
+
+    async function playNextAudio() {
+      if (audioQueue.length === 0) {
+        isPlaying = false;
+        return;
+      }
+      isPlaying = true;
+      const url = audioQueue.shift();
+      const audio = new Audio(url);
+      log("🔊 Playing audio from: " + url);
+
+      // Define a promise that resolves when audio finishes or errors out
+      const audioFinished = new Promise((resolve) => {
+        audio.onended = () => {
+          log("✅ ONENDED");
+          resolve();
+        };
+        audio.onerror = () => {
+          log("❌ Error playing audio.");
+          resolve();
+        };
+      });
+
+      try {
+        log("✅ before audio play.");
+        await audio.play(); // Wait for playback to start
+        log("✅ after audio play started, now waiting for it to finish.");
+        await audioFinished; // Wait for playback to finish
+      } catch (err) {
+        log("❌ Error starting playback: " + err);
+      }
+
+      isPlaying = false;
+      playNextAudio();
+    }
+
+    function log(message) {
+      const logArea = document.getElementById("log");
+      logArea.value += message + "\n";
+      logArea.scrollTop = logArea.scrollHeight;
+    }
+
+    function setTopic() {
+      const topic = document.getElementById("topicInput").value.trim();
+      if (topic && ws.readyState === WebSocket.OPEN) {
+        ws.send(`__SET_TASK1__:${topic}`);
+        log("📘 Topic sent: " + topic);
+      }
+    }
+
+    function sendMessage() {
+      const input = document.getElementById("messageInput");
+      let message = input.value.trim();
+      
+      if (!message || ws.readyState !== WebSocket.OPEN) return;
+
+      log("🧑 You: " + message);
+      userHasTurn = false;
+      document.getElementById("messageInput").placeholder = "Wait for your turn...";
+      
+      ws.send(message + " XYZ" );
+      input.value = "";
+      document.getElementById("sendButton").disabled = true;
+    }
+
+    function startVoiceInput() {
+  if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+    log("❌ Speech recognition not supported in this browser.");
+    return;
+  }
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const recognition = new SpeechRecognition();
+
+  recognition.lang = 'en-US';
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+
+  recognition.onstart = () => {
+    log("🎤 Listening...");
+  };
+
+  recognition.onerror = (event) => {
+    log("❌ Voice input error: " + event.error);
+  };
+
+  recognition.onresult = (event) => {
+    const speechResult = event.results[0][0].transcript.trim();
+    log("🗣 You said: " + speechResult);
+    const fullMessage = "Giuseppe: " + speechResult;
+
+    // Set the recognized speech into the input box
+    document.getElementById("messageInput").value = fullMessage;
+
+    // Send as if it were typed
+    sendMessage();
+  };
+
+  recognition.start();
+}
+
+    
+    async function loadConfigOptions() {
+      const res = await fetch("/list_configs");
+      const data = await res.json();
+      const selector = document.getElementById("configSelector");
+      selector.innerHTML = data.configs.map(name => 
+        `<option value="${name}">${name}</option>`).join("");
+    }
+
+    async function setConfig() {
+      const selected = document.getElementById("configSelector").value;
+      if (!selected) return;
+      const res = await fetch("/set_config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: selected })
+      });
+      const result = await res.json();
+      log("🛠️ Config selected: " + result.selected);
+    }
+
+    window.onload = () => {
+      loadConfigOptions();
+    };
+    
+// Prevent sending empty messages and enable button when there's content
+    document.getElementById("messageInput").addEventListener("input", function () {
+      const hasText = this.value.trim().length > 0;
+      document.getElementById("sendButton").disabled = !hasText;
+    });
+
+    setInterval(() => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send("__ping__");
+      }
+    }, 20000);
+  </script>
+ </body>
+</html>
