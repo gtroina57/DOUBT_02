@@ -249,7 +249,7 @@
     log("🧑 You: " + message);
     userHasTurn = false;
     input.placeholder = "Wait for your turn...";
-    ws.send(message);
+    ws.send(message + " XYZ");
     input.value = "";
     document.getElementById("sendButton").disabled = true;
   }
