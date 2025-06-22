@@ -76,7 +76,6 @@
 <button onclick="setTopic()">Set Topic</button>
 <input id="messageInput" placeholder="Type your message..." type="text"/>
 <button disabled="" id="sendButton" onclick="sendMessage()">Send</button>
-
 <button id="speakButton" onclick="startVoiceInput()" style="background-color:#ff9800; color:white;">🎙 Speak</button>
 
 <progress id="audioProgress" max="1" style="display:none;" value="0"></progress>
@@ -257,7 +256,7 @@
     document.getElementById("sendButton").disabled = true;
   }
 
-function startVoiceInput() {
+   function startVoiceInput() {
   if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
     log("❌ Speech recognition not supported in this browser.");
     return;
@@ -279,21 +278,18 @@ function startVoiceInput() {
   };
 
   recognition.onresult = (event) => {
-  const speechResult = event.results[0][0].transcript.trim();
-  log("🗣 You said: " + speechResult);
+    const speechResult = event.results[0][0].transcript.trim();
+    log("🗣 You said: " + speechResult);
 
-  // Fill the input, but delay sending slightly to avoid mobile race conditions
-  const input = document.getElementById("messageInput");
-  input.value = speechResult;
+    // Set the recognized speech into the input box
+    document.getElementById("messageInput").value = speechResult;
 
-  setTimeout(() => {
+    // Send as if it were typed
     sendMessage();
-  }, 300);  // delay ensures state/UI stability
-};
+  };
 
   recognition.start();
 }
-
 
   // Periodic ping
   setInterval(() => {
