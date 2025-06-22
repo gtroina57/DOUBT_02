@@ -1,13 +1,13 @@
-
 <!DOCTYPE html>
-
 <html lang="en">
-<head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>DOUBT · Mobile</title>
-<style>
-    body {
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>
+   DOUBT · Mobile
+  </title>
+  <style>
+   body {
       background: linear-gradient(120deg, #e0eafc 0%, #cfdef3 100%);
       font-family: 'Segoe UI', Arial, sans-serif;
       margin: 0;
@@ -64,27 +64,71 @@
       margin: 12px auto 0 auto;
     }
   </style>
-</head>
-<body>
-<h1>DOUBT</h1>
-<h2>Mobile Version</h2>
-<div class="container">
-<p><strong>🗣️ Speaking Agent:</strong> <span id="currentSpeaker">None</span></p>
-<p><strong>🎛️ AudioContext State:</strong> <span id="audioStatus">unknown</span></p>
-<textarea id="log" readonly=""></textarea>
-<input id="topicInput" placeholder="Enter debate topic..." type="text"/>
-<button onclick="setTopic()">Set Topic</button>
-<input id="messageInput" placeholder="Type your message..." type="text"/>
-<button disabled="" id="sendButton" onclick="sendMessage()">Send</button>
-<button id="speakButton" onclick="startVoiceInput()" style="background-color:#ff9800; color:white;">🎙 Speak</button>
-
-<progress id="audioProgress" max="1" style="display:none;" value="0"></progress>
-
-<button id="resumeAudioButton" onclick="manualResumeAudio()" style="display: none; background-color: #43a047; color: white; font-weight: bold;">🔊 Resume Audio</button>
-</div>
-
-<script>
-  const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+ </head>
+ <body>
+  <h1>
+   DOUBT
+  </h1>
+  <h2>
+   Mobile Version
+  </h2>
+  <div class="container">
+   <h3>
+    🎛️ Configuration
+   </h3>
+   <select id="configSelector" onchange="setConfig()">
+    <option value="">
+     Loading configurations...
+    </option>
+   </select>
+   <h3>
+    🎯 Debate Topic
+   </h3>
+   <input id="topicInput" placeholder="Enter debate topic..." type="text"/>
+   <button onclick="setTopic()">
+    Set Topic
+   </button>
+   <h3>
+    🗣️ Current Speaker
+   </h3>
+   <p>
+    <strong>
+     Agent:
+    </strong>
+    <span id="currentSpeaker">
+     None
+    </span>
+   </p>
+   <p>
+    <strong>
+     AudioContext:
+    </strong>
+    <span id="audioStatus">
+     unknown
+    </span>
+   </p>
+   <h3>
+    📜 Debate Log
+   </h3>
+   <textarea id="log" readonly=""></textarea>
+   <h3>
+    💬 Your Message
+   </h3>
+   <input id="messageInput" placeholder="Type your message..." type="text"/>
+   <button disabled="" id="sendButton" onclick="sendMessage()">
+    Send
+   </button>
+   <button id="speakButton" onclick="startVoiceInput()" style="background-color:#ff9800; color:white;">
+    🎙 Voice Input
+   </button>
+   <progress id="audioProgress" max="1" style="display:none;" value="0">
+   </progress>
+   <button id="resumeAudioButton" onclick="manualResumeAudio()" style="display: none; background-color: #43a047; color: white; font-weight: bold;">
+    🔊 Resume Audio
+   </button>
+  </div>
+  <script>
+   const audioContext = new (window.AudioContext || window.webkitAudioContext)();
   const audioQueue = []; // Each item: { url, agent }
   let isPlaying = false;
   let userEnabledAudio = false;
@@ -364,6 +408,6 @@ async function loadConfigOptions() {
   }, { once: true });
 
   enableAudio();
-</script>
-</body>
+  </script>
+ </body>
 </html>

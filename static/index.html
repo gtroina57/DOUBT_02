@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Multi-DOUBT</title>
+ <head>
+  <meta charset="utf-8"/>
+  <title>
+   Multi-DOUBT
+  </title>
   <style>
-    body {
+   body {
       background: linear-gradient(120deg, #e0eafc 0%, #cfdef3 100%);
       font-family: 'Segoe UI', Arial, sans-serif;
       margin: 0;
@@ -116,32 +118,65 @@
     :-ms-input-placeholder { color: #90a4ae; }
     ::placeholder { color: #90a4ae; }
   </style>
-</head>
-<body>
-  <h1>DOUBT</h1>
-  <h2>Debating · Observing · Understanding · Brainstorming · Tutoring</h2>
+ </head>
+ <body>
+  <h1>
+   DOUBT
+  </h1>
+  <h2>
+   Debating &middot; Observing &middot; Understanding &middot; Brainstorming &middot; Tutoring
+  </h2>
   <div class="container">
-    <textarea id="log" cols="120" rows="20" readonly></textarea><br>
+   <div>
+    <h3>
+     Choose Agent Configuration
+    </h3>
+    <select id="configSelector" onchange="setConfig()">
+     <option value="">
+      Loading configurations...
+     </option>
+    </select>
+   </div>
+   <div>
+    <h3>
+     Set Debate Topic
+    </h3>
     <div class="input-row">
-      <select id="configSelector" onchange="setConfig()">
-        <option value="">Loading configurations...</option>
-      </select>
-      <input id="topicInput" type="text" placeholder="Enter debate topic..." size="60" />
-      <button onclick="setTopic()">Set Topic</button>
+     <input id="topicInput" placeholder="Enter debate topic..." type="text"/>
+     <button onclick="setTopic()">
+      🎯 Set Topic
+     </button>
     </div>
+   </div>
+   <div>
+    <h3>
+     Debate Log
+    </h3>
+    <div id="log">
+    </div>
+   </div>
+   <div>
+    <h3>
+     Your Input
+    </h3>
     <div class="input-row">
-      <select id="configSelector" onchange="setConfig()">
-        <option value="">Loading configurations...</option>
-      </select>
-      <input id="messageInput" type="text" placeholder="Type your message..." size="60" />
-      <button id="sendButton" onclick="sendMessage()" disabled>Send</button>
-      <button id="speakButton" onclick="startVoiceInput()" style="background-color:#ff9800; color:white;">🎙 Speak</button>
-
+     <input id="messageInput" placeholder="Your response..." type="text"/>
+     <button id="sendButton" onclick="sendMessage()">
+      📤 Send
+     </button>
+     <button onclick="startVoiceInput()">
+      🎙 Voice Input
+     </button>
     </div>
-    <progress id="audioProgress" value="0" max="1" style="display: none;"></progress>
+   </div>
+   <div>
+    <div class="progress-bar" id="audioProgress" style="display:none;">
+     🔊 Playing...
+    </div>
+   </div>
   </div>
   <script>
-    const ws = new WebSocket("wss://doubt-02.onrender.com/ws");
+   const ws = new WebSocket("wss://doubt-02.onrender.com/ws");
     const audioQueue = [];
     let isPlaying = false;
     let userHasTurn = false;
@@ -308,5 +343,5 @@
       }
     }, 20000);
   </script>
-</body>
+ </body>
 </html>
