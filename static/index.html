@@ -123,10 +123,16 @@
   <div class="container">
     <textarea id="log" cols="120" rows="20" readonly></textarea><br>
     <div class="input-row">
+      <select id="configSelector" onchange="setConfig()">
+        <option value="">Loading configurations...</option>
+      </select>
       <input id="topicInput" type="text" placeholder="Enter debate topic..." size="60" />
       <button onclick="setTopic()">Set Topic</button>
     </div>
     <div class="input-row">
+      <select id="configSelector" onchange="setConfig()">
+        <option value="">Loading configurations...</option>
+      </select>
       <input id="messageInput" type="text" placeholder="Type your message..." size="60" />
       <button id="sendButton" onclick="sendMessage()" disabled>Send</button>
       <button id="speakButton" onclick="startVoiceInput()" style="background-color:#ff9800; color:white;">🎙 Speak</button>
@@ -265,7 +271,32 @@
   recognition.start();
 }
 
-    // Prevent sending empty messages and enable button when there's content
+    
+    async function loadConfigOptions() {
+      const res = await fetch("/list_configs");
+      const data = await res.json();
+      const selector = document.getElementById("configSelector");
+      selector.innerHTML = data.configs.map(name => 
+        `<option value="${name}">${name}</option>`).join("");
+    }
+
+    async function setConfig() {
+      const selected = document.getElementById("configSelector").value;
+      if (!selected) return;
+      const res = await fetch("/set_config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: selected })
+      });
+      const result = await res.json();
+      log("🛠️ Config selected: " + result.selected);
+    }
+
+    window.onload = () => {
+      loadConfigOptions();
+    };
+    
+// Prevent sending empty messages and enable button when there's content
     document.getElementById("messageInput").addEventListener("input", function () {
       const hasText = this.value.trim().length > 0;
       document.getElementById("sendButton").disabled = !hasText;

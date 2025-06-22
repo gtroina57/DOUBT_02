@@ -292,6 +292,32 @@
   recognition.start();
 }
 
+async function loadConfigOptions() {
+      const res = await fetch("/list_configs");
+      const data = await res.json();
+      const selector = document.getElementById("configSelector");
+      selector.innerHTML = data.configs.map(name => 
+        `<option value="${name}">${name}</option>`).join("");
+    }
+
+    async function setConfig() {
+      const selected = document.getElementById("configSelector").value;
+      if (!selected) return;
+      const res = await fetch("/set_config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: selected })
+      });
+      const result = await res.json();
+      log("🛠️ Config selected: " + result.selected);
+    }
+
+    window.onload = () => {
+      loadConfigOptions();
+    };
+
+
+
   // Periodic ping
   setInterval(() => {
     if (ws.readyState === WebSocket.OPEN) {
