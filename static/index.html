@@ -222,7 +222,7 @@
       userHasTurn = false;
       document.getElementById("messageInput").placeholder = "Wait for your turn...";
       
-      ws.send(message + "XYZ");
+      ws.send(message);
       input.value = "";
       document.getElementById("sendButton").disabled = true;
     }
