@@ -319,8 +319,8 @@ async def dynamic_selector_func(thread):
 
     # 🔹 AGENT (not moderator) just spoke
     if sender != "moderator_agent":
-        if last_message.endswith("xyz"):
-            focus_area = last_message.rsplit("xyz", 1)[0].strip()
+        if last_message.endswith("XYZ"):
+            focus_area = last_message.rsplit("XYZ", 1)[0].strip()
             pattern = r'\b(' + '|'.join(map(re.escape, name_to_agent.keys())) + r')\b'
             matches = re.findall(pattern, focus_area)
             unique_mentions = set(matches)
@@ -336,16 +336,16 @@ async def dynamic_selector_func(thread):
             elif len(unique_mentions) > 1:
                 print(f"📣 Agent '{sender}' mentioned multiple agents. Moderator should intervene.")
                 return "moderator_agent"
-        # No 'xyz' or no mentions → let agent continue
+        # No "XYZ" or no mentions → let agent continue
         print(f"⏭ Agent '{sender}' keeps the floor.")
         return sender
 
     # 🔹 MODERATOR just spoke
-    if not last_message.endswith("xyz"):
-        print("⚠️ Moderator message incomplete (no 'xyz'). Staying with Moderator.")
+    if not last_message.endswith("XYZ"):
+        print("⚠️ Moderator message incomplete (no 'XYZ'). Staying with Moderator.")
         return "moderator_agent"
 
-    focus_area = last_message.rsplit("xyz", 1)[0].strip()
+    focus_area = last_message.rsplit("XYZ", 1)[0].strip()
     pattern = r'\b(' + '|'.join(map(re.escape, name_to_agent.keys())) + r')\b'
     matches = list(re.finditer(pattern, focus_area))
 
