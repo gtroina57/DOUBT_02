@@ -112,26 +112,18 @@
   }
 
   async function manualResumeAudio() {
-  try {
-    await audioContext.resume();
-    log("🔊 Audio manually resumed.");
-    updateAudioStatus();
-    document.getElementById("resumeAudioButton").style.display = "none";
-
-    // 🛠 Force reset and check for new audio
-    isPlaying = false;
-
-    if (audioQueue.length > 0) {
-      log("▶️ Resume button triggers audio restart.");
-      playNextAudio();
-    } else {
-      log("ℹ️ No audio currently in queue.");
+    try {
+      await audioContext.resume();
+      log("🔊 Audio manually resumed.");
+      updateAudioStatus();
+      document.getElementById("resumeAudioButton").style.display = "none";
+      if (!isPlaying && audioQueue.length > 0) {
+        playNextAudio();
+      }
+    } catch (e) {
+      log("❌ Manual resume failed: " + e.message);
     }
-  } catch (e) {
-    log("❌ Manual resume failed: " + e.message);
   }
-}
-
 
 
   function updateSpeaker(agent) {
@@ -200,11 +192,9 @@
 
   window.enqueueAudio = function (url, agent = "Unknown") {
     audioQueue.push({ url, agent });
-    if (!isPlaying || audioContext.state === "suspended") {
-  log("🔁 Enqueue triggers playback (isPlaying=" + isPlaying + ", audioContext=" + audioContext.state + ").");
-  isPlaying = false; // reset if system was stuck
-  playNextAudio();
-}
+    if (!isPlaying) {
+      playNextAudio();
+    }
   };
 
   ws.onopen = async () => {
@@ -283,16 +273,10 @@
   // Watchdog for stalled audio
   
   setInterval(() => {
-  if (audioQueue.length > 0 && userEnabledAudio) {
-  if (!isPlaying) {
+  if (!isPlaying && audioQueue.length > 0 && userEnabledAudio) {
     log("🔁 Watchdog restarting audio.");
     playNextAudio();
   }
-  // Handle case where isPlaying is stuck
-  if (audioContext.state === "running" && isPlaying && document.hidden === false) {
-    document.getElementById("resumeAudioButton").style.display = "none";
-  }
-}
 
   // Force resume attempt to detect suspension
   if (userEnabledAudio) {
