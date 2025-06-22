@@ -129,6 +129,8 @@
     <div class="input-row">
       <input id="messageInput" type="text" placeholder="Type your message..." size="60" />
       <button id="sendButton" onclick="sendMessage()" disabled>Send</button>
+<button id="speakButton" onclick="startVoiceInput()" style="background-color:#ff9800; color:white;">🎙 Speak</button>
+
     </div>
     <progress id="audioProgress" value="0" max="1" style="display: none;"></progress>
   </div>
@@ -226,6 +228,42 @@
       input.value = "";
       document.getElementById("sendButton").disabled = true;
     }
+
+    function startVoiceInput() {
+  if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+    log("❌ Speech recognition not supported in this browser.");
+    return;
+  }
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const recognition = new SpeechRecognition();
+
+  recognition.lang = 'en-US';
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+
+  recognition.onstart = () => {
+    log("🎤 Listening...");
+  };
+
+  recognition.onerror = (event) => {
+    log("❌ Voice input error: " + event.error);
+  };
+
+  recognition.onresult = (event) => {
+    const speechResult = event.results[0][0].transcript.trim();
+    log("🗣 You said: " + speechResult);
+
+    // Set the recognized speech into the input box
+    document.getElementById("messageInput").value = speechResult;
+
+    // Send as if it were typed
+    sendMessage();
+  };
+
+  recognition.start();
+}
+
 
     // Prevent sending empty messages and enable button when there's content
     document.getElementById("messageInput").addEventListener("input", function () {
