@@ -279,15 +279,17 @@ function startVoiceInput() {
   };
 
   recognition.onresult = (event) => {
-    const speechResult = event.results[0][0].transcript.trim();
-    log("🗣 You said: " + speechResult);
+  const speechResult = event.results[0][0].transcript.trim();
+  log("🗣 You said: " + speechResult);
 
-    // Set the recognized speech into the input box
-    document.getElementById("messageInput").value = speechResult;
+  // Fill the input, but delay sending slightly to avoid mobile race conditions
+  const input = document.getElementById("messageInput");
+  input.value = speechResult;
 
-    // Send as if it were typed
+  setTimeout(() => {
     sendMessage();
-  };
+  }, 300);  // delay ensures state/UI stability
+};
 
   recognition.start();
 }
