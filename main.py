@@ -639,3 +639,29 @@ async def websocket_endpoint(websocket: WebSocket):
     except Exception as e:
         traceback.print_exc()
         await websocket.send_text("⚠️ Internal server error during debate.")
+
+
+from fastapi.responses import JSONResponse
+
+CONFIG_DIR = "config"
+
+@app.get("/list_configs")
+def list_configs():
+    try:
+        configs = [f for f in os.listdir(CONFIG_DIR) if f.endswith(".json")]
+        return JSONResponse(content={"configs": configs})
+    except Exception as e:
+        return JSONResponse(content={"configs": [], "error": str(e)})
+
+@app.post("/set_config")
+async def set_config(payload: dict):
+    global CONFIG_FILE
+    name = payload.get("name")
+    if not name:
+        return {"status": "error", "message": "Missing config name"}
+    path = os.path.join(CONFIG_DIR, name)
+    if os.path.exists(path):
+        CONFIG_FILE = path
+        print("🧩 CONFIG_FILE updated to:", CONFIG_FILE)
+        return {"status": "ok", "selected": name}
+    return {"status": "error", "message": "Config not found"}
