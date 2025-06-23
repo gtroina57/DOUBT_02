@@ -28,7 +28,6 @@ from autogen_core.tools import FunctionTool
 from typing import Sequence
 from typing import Any, Dict, List
 
-
 import playwright
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from openai import OpenAI
@@ -38,18 +37,16 @@ from pydub import AudioSegment
 from pydub.playback import play  # ✅ Import play() to actually play audio
 import time
 import pprint
-
 import gc
-
 import json
 import re
-
 import uuid
 
+################################ FAST API   #########################################
 from fastapi.responses import FileResponse
-
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
 
 # Create the FastAPI app
 app = FastAPI()
@@ -68,17 +65,34 @@ async def root(request: Request):
     else:
         return FileResponse("static/index.html")
 
-
-
 # Serve the index.html at root
 @app.get("/", response_class=HTMLResponse)
 async def get_index():
     html_path = Path("static/index.html")
     return HTMLResponse(content=html_path.read_text(encoding="utf-8"))
 
+CONFIG_DIR = "config"
 
-#####################################################################################################
-#global user_proxy, team, loaded_team_state, agents, agent_list, model_client_openai, model_client_gemini
+@app.get("/list_configs")
+def list_configs():
+    try:
+        configs = [f for f in os.listdir(CONFIG_DIR) if f.endswith(".json")]
+        return JSONResponse(content={"configs": configs})
+    except Exception as e:
+        return JSONResponse(content={"configs": [], "error": str(e)})
+
+@app.post("/set_config")
+async def set_config(payload: dict):
+    global CONFIG_FILE
+    name = payload.get("name")
+    if not name:
+        return {"status": "error", "message": "Missing config name"}
+    path = os.path.join(CONFIG_DIR, name)
+    if os.path.exists(path):
+        CONFIG_FILE = path
+        print("🧩 CONFIG_FILE updated to:", CONFIG_FILE)
+        return {"status": "ok", "selected": name}
+    return {"status": "error", "message": "Config not found"}
 
 ################################ Create OpenAI model client   #############################
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -88,7 +102,6 @@ if not OPENAI_API_KEY:
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 if not GOOGLE_API_KEY:
     raise RuntimeError("GOOGLE_API_KEY environment variable is not set.")
- 
  
 model_client_openai = OpenAIChatCompletionClient(
     model="gpt-4o-2024-08-06",
@@ -100,8 +113,6 @@ model_client_gemini = OpenAIChatCompletionClient(
     api_key=GOOGLE_API_KEY
 )
 
-#####################################################################################################
-image_url = None
 #########################################################################################################
 ################################## Initialize variables   ##################################################
 CONFIG_FILE = "agent_config.json"
@@ -118,8 +129,6 @@ processed_messages = set()
 stop_execution = False
 speech_queue = asyncio.Queue()
 user_message_queue = asyncio.Queue()
-spontaneous_queue = asyncio.Queue()
-prioritized_agents = asyncio.Queue()
 
 client1 = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 os.makedirs("audio", exist_ok=True)  # Folder to serve audio files
@@ -197,7 +206,6 @@ async def speak_worker(websocket):
 
 ##########################################################################################################
 ################################# Build Agents from configuration  ####################################
-
 model_clients_map = {
     "openai": model_client_openai,
     "gemini": model_client_gemini
@@ -225,7 +233,6 @@ def extract_agent_skills(config_path):
 
 ##########################################################################################################
 ################################# Build Agents from configuration  #######################################
-
 tool_lookup = {
 }
 ##########################################################################################################
@@ -273,11 +280,7 @@ def build_agents_from_config(config_path, name_to_agent_skill, model_clients_map
         agents[name] = agent
         print(f"✅ Initialized {len(agents)} agents for debate topic: {task1}")
     return agents
-
-
-#print(f"✅ Initialized {len(agents)} agents for debate topic: {task1}")
     
-
 ##########################################################################################################
 ################################# Termination  ####################################
 text_mention_termination = TextMentionTermination("TERMINATE")
@@ -291,13 +294,9 @@ You are the Selector agent following strictly the instructions of the moderator 
 """
 
 async def dynamic_selector_func(thread):
-    global agent_id, prioritized_agents
+    global agent_id
     # 🧠 Force agent turn if someone is in the priority queue
     
-    if not prioritized_agents.empty():
-        next_priority = await prioritized_agents.get()
-        print(f"🎯 Prioritizing agent: {next_priority}")
-        return next_priority
     
     last_msg = thread[-1]
     last_message = last_msg.content.lower().strip()
@@ -378,18 +377,10 @@ async def dynamic_selector_func(thread):
 #print(dir (team))
 #print(help (team))
 
-
 ####################################################################################################
-# === Globals ===
 user_conversation = []
 gradio_input_buffer = {"message": None}
 agent_config_ui = {}
-
-################## SET TOPIC        ###########################################################
-def set_task_only(task_text):
-            global task1
-            task1 = task_text
-            return "✅ Debate topic set." if task_text else "❌ Topic cannot be empty."
 
 ##########################################################################################################
 ################################# Configuration File    ###################################################=
@@ -413,7 +404,6 @@ def save_agent_config(*args):
         json.dump(updated, f, indent=2)
     return "✅ Configuration saved."
 
-
 ##########################################################################################################
 ################################# SAVE Config    ###################################################
 # === Save config ===
@@ -428,7 +418,6 @@ async def save_config():
 def sync_save_config():
     return asyncio.run(save_config())  # 'team' must be globally accessible
 
-
 ##########################################################################################################
 ################################# LOAD Config   ###################################################
 def sync_load_config():
@@ -439,22 +428,9 @@ def sync_load_config():
     return "🟢 Config loaded. Ready to apply when system starts."
 
 ##########################################################################################################
-################################# User Intervention    ###################################################
-# === User interaction ===
-def handle_user_message(message):
-    global user_conversation, gradio_input_buffer
-    gradio_input_buffer["message"] = message
-    user_conversation.append(f"🧑 USER: {message}")
-    return "\n".join(user_conversation)
-
-def intervene_now(user_input):
-    return handle_user_message(user_input)
-
-
-##########################################################################################################
 ################################# loop for debate  #######################################################
 async def run_chat(team, websocket=None):
-    global stop_execution, image_url, task1, gradio_input_buffer
+    global stop_execution, task1, gradio_input_buffer
 
     print("🚀 Starting debate with streaming...")
 
@@ -475,7 +451,6 @@ async def run_chat(team, websocket=None):
 
             print(f"👤 sender: {agent_name}")
             print(f"📝 content: {text}")
-            print(f"🖼️ image_url: {image_url}")
 
             prefix = "🧑" if "user" in agent_name.lower() else "🤖"
             user_conversation.append(f"{prefix} {agent_name.upper()}: {text}")
@@ -489,6 +464,8 @@ async def run_chat(team, websocket=None):
                 await speech_queue.put(("system", "TERMINATE"))
                 print("✅ Chat terminated.")
                 break
+            
+            
             
 @app.api_route("/", methods=["GET", "HEAD"])
 def root():
@@ -536,28 +513,16 @@ async def websocket_endpoint(websocket: WebSocket):
         name_to_agent_skill = extract_agent_skills(CONFIG_FILE)
         agents = build_agents_from_config(CONFIG_FILE, name_to_agent_skill, model_clients_map)
 
-        # 🎤 User input handler
-        
-        
+
 #####################################################################################################
         async def websocket_listener(websocket):
-            global user_message_queue, spontaneous_queue, prioritized_agents
+            global user_message_queue
             while True:
                 print("before websocket receive")                
                 data = await websocket.receive_text()
                 print("after websocket receive")  
                 if data == "__ping__":
                     print("PLUTO2")
-                    continue
-                if data == "__USER_PROXY_TURN__":
-                    print("🎙️ Moderator gave the floor to user.")
-                    # Wait for user input (the next message will go to the queue)
-                
-                elif data.startswith("__SPONTANEOUS__"):
-                    message = data.replace("__SPONTANEOUS__", "").strip()
-                    print("⚡ Spontaneous input received:", message)
-                    await spontaneous_queue.put(message)
-                    await prioritized_agents.put("user_proxy")  # 🔥 Ask selector to prioritize user
                     continue
                 
                 else:
@@ -566,26 +531,9 @@ async def websocket_endpoint(websocket: WebSocket):
                     await user_message_queue.put(data)
                     print("after message queue put")
         
-        """
-        async def wrapped_input_func(*args, **kwargs):
-                global  user_message_queue
-            
-            
-                # 🧑 Moderator gave the floor
-                print("⏳ Waiting for user response...")
-                while True:
-                    msg = await user_message_queue.get()
-                    if msg and msg.strip():
-                        return msg
-        """
        
         async def wrapped_input_func(*args, **kwargs):
-                global spontaneous_queue, user_message_queue
-            
-                if not spontaneous_queue.empty():
-                    msg = await spontaneous_queue.get()
-                    print("⚡ Using spontaneous message:", msg)
-                    return msg
+                global  user_message_queue
             
                 print("⏳ Waiting for user input (moderator turn)...")
                 while True:
@@ -640,28 +588,3 @@ async def websocket_endpoint(websocket: WebSocket):
         traceback.print_exc()
         await websocket.send_text("⚠️ Internal server error during debate.")
 
-
-from fastapi.responses import JSONResponse
-
-CONFIG_DIR = "config"
-
-@app.get("/list_configs")
-def list_configs():
-    try:
-        configs = [f for f in os.listdir(CONFIG_DIR) if f.endswith(".json")]
-        return JSONResponse(content={"configs": configs})
-    except Exception as e:
-        return JSONResponse(content={"configs": [], "error": str(e)})
-
-@app.post("/set_config")
-async def set_config(payload: dict):
-    global CONFIG_FILE
-    name = payload.get("name")
-    if not name:
-        return {"status": "error", "message": "Missing config name"}
-    path = os.path.join(CONFIG_DIR, name)
-    if os.path.exists(path):
-        CONFIG_FILE = path
-        print("🧩 CONFIG_FILE updated to:", CONFIG_FILE)
-        return {"status": "ok", "selected": name}
-    return {"status": "error", "message": "Config not found"}
