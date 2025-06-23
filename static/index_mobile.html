@@ -295,7 +295,7 @@
     log("🧑 You: " + message);
     userHasTurn = false;
     input.placeholder = "Wait for your turn...";
-    ws.send(message + " XYZ");
+    ws.send("Giuseppe " + message + " XYZ");
     input.value = "";
     document.getElementById("sendButton").disabled = true;
   }
@@ -324,7 +324,8 @@
   recognition.onresult = (event) => {
     const speechResult = event.results[0][0].transcript.trim();
     log("🗣 You said: " + speechResult);
-    const fullMessage = "Giuseppe: " + speechResult;
+    // const fullMessage = "Giuseppe: " + speechResult;
+    const fullMessage = speechResult;
 
     // Set the recognized speech into the input box
     document.getElementById("messageInput").value = fullMessage;
