@@ -281,7 +281,7 @@
       // Define a promise that resolves when audio finishes or errors out
       const audioFinished = new Promise((resolve) => {
         audio.onended = () => {
-          log("✅ ONENDED");
+          // log("✅ ONENDED");
           resolve();
         };
         audio.onerror = () => {
@@ -291,9 +291,9 @@
       });
 
       try {
-        log("✅ before audio play.");
+        // log("✅ before audio play.");
         await audio.play(); // Wait for playback to start
-        log("✅ after audio play started, now waiting for it to finish.");
+        // log("✅ after audio play started, now waiting for it to finish.");
         await audioFinished; // Wait for playback to finish
       } catch (err) {
         log("❌ Error starting playback: " + err);
