@@ -140,6 +140,46 @@
       background-color: #f5faff;
       box-shadow: 0 1px 5px rgba(33,150,243,0.08);
     }
+  
+
+    .container {
+      padding: 18px 24px 22px 24px;
+      margin-bottom: 12px;
+    }
+    textarea#log {
+      min-height: 160px;
+    }
+    h1 {
+      font-size: 2.2rem;
+      color: #1e88e5;
+      text-shadow: 1px 1px 10px rgba(30, 136, 229, 0.2);
+    }
+    h2 {
+      color: #0d47a1;
+      font-weight: 600;
+    }
+    body {
+      background: linear-gradient(145deg, #f0f7ff 0%, #e1f5fe 100%);
+      font-family: 'Segoe UI', 'Helvetica Neue', sans-serif;
+    }
+    button {
+      background: linear-gradient(to right, #42a5f5, #1e88e5);
+      font-weight: bold;
+    }
+    button:hover {
+      background: linear-gradient(to right, #1e88e5, #1976d2);
+    }
+    select#configSelector {
+      background-color: #e3f2fd;
+      font-weight: 500;
+    }
+    input[type="text"] {
+      background: #ffffff;
+      border-color: #64b5f6;
+    }
+    input[type="text"]:focus {
+      border-color: #1565c0;
+    }
   </style>
  </head>
  <body>
@@ -147,7 +187,7 @@
    DOUBT
   </h1>
   <h2>
-   Debating &middot; Observing &middot; Understanding &middot; Brainstorming &middot; Tutoring
+   Debating · Observing · Understanding · Brainstorming · Tutoring
   </h2>
   <div class="container">
    <div>
@@ -215,7 +255,7 @@
         document.getElementById("messageInput").focus();
         return;
       }
-
+       
       if (event.data.startsWith("__AUDIO_URL__/")) {
         const audioUrl = "https://doubt-02.onrender.com/" + event.data.replace("__AUDIO_URL__/", "");
         audioQueue.push(audioUrl);
@@ -241,7 +281,7 @@
       // Define a promise that resolves when audio finishes or errors out
       const audioFinished = new Promise((resolve) => {
         audio.onended = () => {
-          log("✅ ONENDED");
+          // log("✅ ONENDED");
           resolve();
         };
         audio.onerror = () => {
@@ -251,9 +291,9 @@
       });
 
       try {
-        log("✅ before audio play.");
+        // log("✅ before audio play.");
         await audio.play(); // Wait for playback to start
-        log("✅ after audio play started, now waiting for it to finish.");
+        // log("✅ after audio play started, now waiting for it to finish.");
         await audioFinished; // Wait for playback to finish
       } catch (err) {
         log("❌ Error starting playback: " + err);
