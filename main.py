@@ -146,9 +146,6 @@ async def speak_worker(websocket):
         item = await speech_queue.get()
         agent_name, content = item
         
-        if item and websocket:
-            await websocket.send_text(f"__SPEAKER__{agent_name}")
-            
         if item == ("system", "TERMINATE"):
             print("🛑 speak_worker terminated")
             speech_queue.task_done()
@@ -158,7 +155,10 @@ async def speak_worker(websocket):
         if not content.strip():
             speech_queue.task_done()
             continue
-
+        
+        if agent_name and websocket:
+            await websocket.send_text(f"__SPEAKER__{agent_name}")
+        
         # Clean message
         text = content.rsplit("XYZ", 1)[0].strip()
         text = re.sub(r'\[.*?\]\(https?://\S+\)', 'You can find the image at the link', text)
