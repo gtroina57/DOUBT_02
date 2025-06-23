@@ -171,7 +171,10 @@ async def speak_worker(websocket):
         if not content.strip():
             speech_queue.task_done()
             continue
-
+        
+        if websocket:
+            await websocket.send_text(f"__SPEAKER__{item}")
+        
         # Clean message
         text = content.rsplit("XYZ", 1)[0].strip()
         text = re.sub(r'\[.*?\]\(https?://\S+\)', 'You can find the image at the link', text)
