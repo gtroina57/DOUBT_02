@@ -203,7 +203,7 @@
 
     isPlaying = true;
     const { url, agent } = audioQueue.shift();
-    log(`🔊 Playing audio from ${agent}: ${url}`);
+    // log(`🔊 Playing audio from ${agent}: ${url}`);
     updateSpeaker(agent);
 
     try {
@@ -216,7 +216,7 @@
       source.connect(audioContext.destination);
 
       source.onended = () => {
-        log(`✅ Finished audio for ${agent}`);
+        // log(`✅ Finished audio for ${agent}`);
         updateSpeaker("None");
         isPlaying = false;
         playNextAudio();
@@ -267,7 +267,7 @@
       const payload = data.replace("__AUDIO_URL__/", "");
       const [relativePath, agent = "Unknown"] = payload.split("|");
       const audioUrl = "https://doubt-02.onrender.com/" + relativePath;
-      log(`🎵 Received audio from ${agent}: ${audioUrl}`);
+      // log(`🎵 Received audio from ${agent}: ${audioUrl}`);
       enqueueAudio(audioUrl, agent);
       return;
     }
