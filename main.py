@@ -156,8 +156,8 @@ async def speak_worker(websocket):
             speech_queue.task_done()
             continue
         
-        if agent_name and websocket:
-            await websocket.send_text(f"__SPEAKER__{agent_name}")
+        #if agent_name and websocket:
+        #    await websocket.send_text(f"__SPEAKER__{agent_name}")
         
         # Clean message
         text = content.rsplit("XYZ", 1)[0].strip()
