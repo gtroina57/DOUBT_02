@@ -4,7 +4,12 @@ Created on Friday May 30 20:11:20 2025
 
 @author: Giuseppe
 """
+
 # main.py
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
 import os
 import asyncio
 from autogen_agentchat.agents import AssistantAgent, UserProxyAgent
@@ -36,22 +41,21 @@ import gc
 import json
 import re
 import uuid
-from pydantic import BaseModel
 
 ################################ FAST API   #########################################
 from fastapi.responses import FileResponse
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
-from fastapi import FastAPI, HTTPException
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi import Request
 
 # Create the FastAPI app
 app = FastAPI()
 # Mount static directory
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+from fastapi import Request
+
+app = FastAPI()
 
 @app.get("/")
 async def root(request: Request):
@@ -121,12 +125,24 @@ print("✅ Environment cleared.")
 
 ############################ TEXT TO SPEECH  #########################################
 # Globals
+processed_messages = set()
 stop_execution = False
 speech_queue = asyncio.Queue()
 user_message_queue = asyncio.Queue()
 
 client1 = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 os.makedirs("audio", exist_ok=True)  # Folder to serve audio files
+"""
+silent_path = "audio/silent.mp3"
+if not os.path.exists(silent_path):
+    AudioSegment.silent(duration=1000).export(silent_path, format="mp3")
+"""  
+@app.get("/audio/{filename}")
+async def get_audio_file(filename: str):
+    filepath = os.path.join("audio", filename)
+    if os.path.exists(filepath):
+        return FileResponse(filepath, media_type="audio/mpeg")
+    return {"error": "File not found"}
 
 async def speak_worker(websocket):
     global stop_execution
@@ -145,7 +161,7 @@ async def speak_worker(websocket):
     while True:
         item = await speech_queue.get()
         agent_name, content = item
-        
+
         if item == ("system", "TERMINATE"):
             print("🛑 speak_worker terminated")
             speech_queue.task_done()
@@ -155,10 +171,7 @@ async def speak_worker(websocket):
         if not content.strip():
             speech_queue.task_done()
             continue
-        
-        #if agent_name and websocket:
-        #    await websocket.send_text(f"__SPEAKER__{agent_name}")
-        
+
         # Clean message
         text = content.rsplit("XYZ", 1)[0].strip()
         text = re.sub(r'\[.*?\]\(https?://\S+\)', 'You can find the image at the link', text)
