@@ -1,67 +1,269 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <title>Multi-DOUBT</title>
+ <head>
+  <meta charset="utf-8"/>
+  <title>
+   Multi-DOUBT
+  </title>
   <style>
-    /* [Same styling from your original file remains untouched] */
-  </style>
-</head>
-<body>
-  <h1>DOUBT</h1>
-  <h2>Debating · Observing · Understanding · Brainstorming · Tutoring</h2>
-  <div class="container">
-    <div>
-      <h3>Choose Language and Configuration</h3>
-      <div class="input-row">
-        <select id="languageSelector" onchange="filterConfigsByLanguage()">
-          <option value="EN">English</option>
-          <option value="IT">Italiano</option>
-        </select>
+  :root {
+    --color-bg-gradient-start: #e0eafc;
+    --color-bg-gradient-end: #cfdef3;
+    --color-white: #ffffff;
+    --color-text-main: #102a43;
+    --color-blue: #2196f3;
+    --color-blue-dark: #0d47a1;
+    --color-blue-light: #64b5f6;
+    --color-blue-verylight: #e3f2fd;
+    --color-shadow-light: rgba(33,150,243,0.08);
+    --color-shadow-medium: rgba(33,150,243,0.10);
+    --color-shadow-heavy: rgba(33,150,243,0.12);
+    --color-placeholder: #90a4ae;
+  }
 
-        <select id="configSelector" onchange="setConfig()">
-          <option>Loading...</option>
-        </select>
+  body {
+    background: linear-gradient(135deg, var(--color-bg-gradient-start), var(--color-bg-gradient-end));
+    font-family: 'Segoe UI', 'Helvetica Neue', sans-serif;
+    color: var(--color-text-main);
+    margin: 0;
+    padding: 0;
+  }
 
-        <button onclick="downloadDebateLog()">💾 Save Debate</button>
-      </div>
-    </div>
+  h1, h2 {
+    text-align: center;
+    margin-top: 6px;
+  }
 
-    <div>
-      <h3>Set Debate Topic</h3>
-      <div class="input-row">
-        <input id="topicInput" placeholder="Enter debate topic..." type="text" />
-        <button onclick="setTopic()">🎯 Set Topic</button>
-      </div>
-    </div>
+  h1 {
+    color: var(--color-blue-dark);
+    letter-spacing: 8px;
+    font-size: 4.5rem;
+    font-weight: bold;
+    text-shadow: 1px 2px 8px var(--color-shadow-medium);
+    margin-bottom: 3px;
+  }
 
-    <div>
-      <h3>Debate Log</h3>
-      <textarea id="log" readonly placeholder="Debate log will appear here..."></textarea>
-    </div>
+  h2 {
+    color: var(--color-blue-dark);
+    font-size: 2.25rem;
+    letter-spacing: 2px;
+    font-weight: bold;
+    margin-bottom: 3px;
+  }
 
-    <div>
-      <h3>Your Input</h3>
-      <div class="input-row">
-        <input id="messageInput" placeholder="Your response..." type="text" />
-        <button id="sendButton" onclick="sendMessage()">📤 Send</button>
-        <button onclick="startVoiceInput()">🎙 Voice Input</button>
-      </div>
-    </div>
+  h3 {
+    color: var(--color-blue-dark);
+    margin-top: 6px;
+    margin-bottom: 3px;
+    text-align: flex-start;
+  }
 
-    <div>
-      <div class="progress-bar" id="audioProgress" style="display:none;"> 🔊 Playing... </div>
-    </div>
+  .container {
+    max-width: 1200px;
+    margin: 0 auto 12px auto;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid #90caf9;
+    border-radius: 24px;
+    padding: 28px 34px 32px 34px;
+    box-shadow: 0 4px 24px var(--color-shadow-medium);
+  }
+
+  .input-row {
+    display: flex;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+
+  select, select#configSelector {
+    padding: 10px;
+    border-radius: 6px;
+    border: 1.5px solid var(--color-blue);
+    font-size: 1rem;
+    background-color: var(--color-blue-verylight);
+    min-width: 180px;
+    font-weight: 500;
+    box-shadow: 0 1px 5px var(--color-shadow-light);
+  }
+
+  input[type="text"] {
+  background: var(--color-white);
+  border: 1.5px solid var(--color-blue-light);
+  border-radius: 6px;
+  padding: 8px 12px;         /* smaller vertical padding = less height */
+  font-size: 1rem;
+  box-shadow: 0 1px 5px var(--color-shadow-light);
+  outline: none;
+  transition: border 0.15s;
+  min-width: 240px;
+  max-width: 1110px;          /* allow wider field */
+  flex: 1 1 480px;           /* grow to fill space */
+  height: 40px;              /* set exact height */
+}
+
+  input[type="text"]:focus {
+    border-color: #1565c0;
+  }
+
+  textarea#log {
+    display: block;
+    margin: 0 0 16px 0;
+    border-radius: 8px;
+    border: 1.5px solid #90caf9;
+    background: #f8fbff;
+    color: #234;
+    box-shadow: 0 1px 8px rgba(33,150,243,0.06);
+    resize: vertical;
+    font-size: 1rem;
+    width: 100%;
+    max-width: 1170px;
+    max-height: 180px;
+    min-height: 100px;
+    padding: 12px;
+  }
+
+  textarea#messageInput {
+  width: 100%;
+  max-width: 870px;
+  min-height: 40px;
+  padding: 6px 12px;
+  font-size: 1rem;
+  border: 1.5px solid #2196f3;
+  border-radius: 6px;
+  resize: vertical; /* allows resizing */
+  box-shadow: 0 1px 5px rgba(33,150,243,0.08);
+  outline: none;
+  transition: border 0.15s;
+  line-height: 1.4;
+}
+
+  button {
+    min-width: 120px;
+    max-width: 220px;
+    padding: 8px 12px;
+    margin: 8px 4px;
+    background: linear-gradient(to right, #42a5f5, #1e88e5);
+    color: var(--color-white);
+    font-weight: bold;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-family: 'Segoe UI', 'Arial', sans-serif;
+    cursor: pointer;
+    transition: background 0.18s, box-shadow 0.18s;
+    box-shadow: 0 1px 6px rgba(32, 33, 36, 0.08);
+    height: 40px;
+  }
+
+  button:hover:not(:disabled),
+  button:focus-visible:not(:disabled) {
+    background: linear-gradient(to right, #1e88e5, #1976d2);
+    box-shadow: 0 2px 12px var(--color-shadow-heavy);
+    outline: none;
+  }
+
+  button:disabled {
+    background-color: #b0bfcf;
+    color: #f4f4f4;
+    cursor: not-allowed;
+  }
+
+  progress#audioProgress {
+    display: block;
+    margin: 18px auto 0 auto;
+    height: 20px;
+    width: 400px;
+    max-width: 80vw;
+    background-color: var(--color-blue-verylight);
+    border-radius: 8px;
+  }
+
+  ::-webkit-input-placeholder,
+  ::-moz-placeholder,
+  :-ms-input-placeholder,
+  ::placeholder {
+    color: var(--color-placeholder);
+  }
+</style>
+ </head>
+ <body>
+  <h1>
+   DOUBT
+  </h1>
+  <h2>
+   Debating · Observing · Understanding · Brainstorming · Tutoring
+  </h2>
+
+ <div class="container">
+   <div class="input-row">
+  <h3>Choose Language and Configuration of Agents</h3>
+
+  <div style="margin-left:flex-start; display:flex; gap:45px;">
+    <select id="languageSelector" onchange="filterConfigsByLanguage()">
+      <option value="EN">English</option>
+      <option value="IT">Italiano</option>
+    </select>
+
+    <select id="configSelector" onchange="setConfig()" style="min-width:440px;">
+      <option>Loading...</option>
+    </select>
   </div>
+</div>
 
-  <script>
-    const ws = new WebSocket("wss://doubt-02.onrender.com/ws");
+  <div>
+    <h3>
+     Set Debate Topic
+    </h3>
+
+    <div class="input-row">
+     <input id="topicInput" placeholder="Enter debate topic..." type="text"/>
+     <button onclick="setTopic()">
+      🎯 Set Topic
+     </button>
+     </div>
+   </div>
+
+  <div>
+    <h3>
+     Debate Log
+    </h3>
+
+    <textarea id="log" placeholder="Debate log will appear here..." readonly="True" style="width:100%;height:250px;border-radius:10px;padding:12px;border:1.5px solid #90caf9;background:#f0f8ff;box-shadow:0 1px 8px rgba(33,150,243,0.06);color:#234;font-size:1rem;resize:vertical;"></textarea>
+   </div>
+
+  <div>
+    <h3>
+     Your Input
+    </h3>
+    <div class="input-row">
+
+     <textarea id="messageInput" placeholder="Type your message..." rows="1"></textarea>
+            <button id="sendButton" onclick="sendMessage()">
+        📤 Send
+       </button>
+
+      <button onclick="startVoiceInput()">
+      🎙 Voice Input
+      </button>
+
+      <button onclick="downloadDebateLog()">💾 Save Debate</button>
+    </div>
+   </div>
+
+   <div>
+    <div class="progress-bar" id="audioProgress" style="display:none;">
+     🔊 Playing...
+    </div>
+   </div>
+
+ </div>
+
+ <script>
+   const ws = new WebSocket("wss://doubt-02.onrender.com/ws");
     const audioQueue = [];
     let isPlaying = false;
     let userHasTurn = false;
-    let currentLanguage = "EN";
-    let allConfigFiles = [];
-    const debateLog = [];
 
     ws.onopen = () => {
       log("✅ Connected to debate server.");
@@ -75,11 +277,13 @@
         document.getElementById("messageInput").focus();
         return;
       }
-
+       
       if (event.data.startsWith("__AUDIO_URL__/")) {
         const audioUrl = "https://doubt-02.onrender.com/" + event.data.replace("__AUDIO_URL__/", "");
         audioQueue.push(audioUrl);
-        if (!isPlaying) playNextAudio();
+        if (!isPlaying) {
+          playNextAudio();
+        }
         return;
       }
 
@@ -94,122 +298,44 @@
       isPlaying = true;
       const url = audioQueue.shift();
       const audio = new Audio(url);
+      // log("🔊 Playing audio from: " + url);
 
-      await new Promise((resolve) => {
-        audio.onended = audio.onerror = resolve;
-        audio.play().catch(resolve);
+      // Define a promise that resolves when audio finishes or errors out
+      const audioFinished = new Promise((resolve) => {
+        audio.onended = () => {
+          // log("✅ ONENDED");
+          resolve();
+        };
+        audio.onerror = () => {
+          log("❌ Error playing audio.");
+          resolve();
+        };
       });
+
+      try {
+        // log("✅ before audio play.");
+        await audio.play(); // Wait for playback to start
+        // log("✅ after audio play started, now waiting for it to finish.");
+        await audioFinished; // Wait for playback to finish
+      } catch (err) {
+        log("❌ Error starting playback: " + err);
+      }
 
       isPlaying = false;
       playNextAudio();
     }
 
-    function log(message, speaker = "system") {
-      const logArea = document.getElementById("log");
-      logArea.value += `[${speaker}] ${message}\n`;
-      logArea.scrollTop = logArea.scrollHeight;
+  function log(message, speaker = "system") {
+   const logArea = document.getElementById("log");
+   logArea.value += `[${speaker}] ${message}\n`;
+   logArea.scrollTop = logArea.scrollHeight;
 
-      debateLog.push({
-        timestamp: new Date().toISOString(),
-        speaker: speaker,
-        message: message
-      });
-    }
-
-    function sendMessage() {
-      const input = document.getElementById("messageInput");
-      const message = input.value.trim();
-      if (!message || ws.readyState !== WebSocket.OPEN) return;
-
-      log("🧑 You: " + message, "Giuseppe");
-      userHasTurn = false;
-      document.getElementById("messageInput").placeholder = "Wait for your turn...";
-      ws.send("Giuseppe " + message + " XYZ");
-      input.value = "";
-      document.getElementById("sendButton").disabled = true;
-    }
-
-    function startVoiceInput() {
-      if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
-        log("❌ Speech recognition not supported in this browser.");
-        return;
-      }
-
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
-
-      recognition.lang = (currentLanguage === "IT") ? "it-IT" : "en-US";
-      recognition.interimResults = false;
-      recognition.maxAlternatives = 1;
-
-      recognition.onstart = () => log("🎤 Listening...");
-      recognition.onerror = (event) => log("❌ Voice input error: " + event.error);
-
-      recognition.onresult = (event) => {
-        const speechResult = event.results[0][0].transcript.trim();
-        log("🗣 You said: " speechResult);
-        document.getElementById("messageInput").value = speechResult;
-        sendMessage();
-      };
-
-      recognition.start();
-    }
-
-    async function fetchConfigFileList() {
-      try {
-        const res = await fetch("/list_configs");
-        const data = await res.json();
-        allConfigFiles = data.configs || [];
-        filterConfigsByLanguage();
-      } catch (error) {
-        log("❌ Failed to fetch config list: " + error.message);
-      }
-    }
-
-    function filterConfigsByLanguage() {
-      currentLanguage = document.getElementById("languageSelector").value;
-      const selector = document.getElementById("configSelector");
-      selector.innerHTML = "";
-
-      const filtered = allConfigFiles.filter(name =>
-        name.endsWith(`${currentLanguage}.json`) || name.endsWith(`${currentLanguage}.JSON`)
-      );
-
-      if (filtered.length === 0) {
-        const option = document.createElement("option");
-        option.textContent = "No config available";
-        option.disabled = true;
-        selector.appendChild(option);
-        return;
-      }
-
-      filtered.forEach(name => {
-        const option = document.createElement("option");
-        option.value = name;
-        option.textContent = name;
-        selector.appendChild(option);
-      });
-
-      selector.value = filtered[0];
-      setConfig();
-    }
-
-    async function setConfig() {
-      const selected = document.getElementById("configSelector").value;
-      if (!selected) return;
-      try {
-        const res = await fetch("/set_config", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: selected })
-        });
-        const result = await res.json();
-        log("🛠️ Config selected: " + result.selected);
-      } catch (e) {
-        log("❌ Config set error: " + e.message);
-      }
-    }
-
+   debateLog.push({
+    timestamp: new Date().toISOString(),
+    speaker: speaker,
+    message: message
+  });
+}
     function setTopic() {
       const topic = document.getElementById("topicInput").value.trim();
       if (topic && ws.readyState === WebSocket.OPEN) {
@@ -218,28 +344,138 @@
       }
     }
 
-    function downloadDebateLog() {
-      const blob = new Blob([JSON.stringify(debateLog, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `debate_${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
+    function sendMessage() {
+      const input = document.getElementById("messageInput");
+      let message = input.value.trim();
+      
+      if (!message || ws.readyState !== WebSocket.OPEN) return;
+
+      log("🧑 You: " + message);
+      userHasTurn = false;
+      document.getElementById("messageInput").placeholder = "Wait for your turn...";
+      
+      ws.send("Giuseppe " + message + " XYZ" );
+      input.value = "";
+      document.getElementById("sendButton").disabled = true;
     }
 
-    window.onload = () => {
-      fetchConfigFileList();
-    };
+    function startVoiceInput() {
+  if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+    log("❌ Speech recognition not supported in this browser.");
+    return;
+  }
 
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const recognition = new SpeechRecognition();
+
+  recognition.lang = (currentLanguage === "IT") ? "it-IT" : "en-US";
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+
+  recognition.onstart = () => {
+    log("🎤 Listening...");
+  };
+
+  recognition.onerror = (event) => {
+    log("❌ Voice input error: " + event.error);
+  };
+
+  recognition.onresult = (event) => {
+    const speechResult = event.results[0][0].transcript.trim();
+    log("🗣 You said: " + speechResult, "Giuseppe");
+    document.getElementById("messageInput").value = speechResult;
+    sendMessage();
+  };
+
+  recognition.start();
+}
+
+    
+    let currentLanguage = "EN";
+let allConfigFiles = [];
+const debateLog = [];
+
+async function fetchConfigFileList() {
+  try {
+    const res = await fetch("/list_configs");
+    const data = await res.json();
+    allConfigFiles = data.configs || [];
+    filterConfigsByLanguage();
+  } catch (error) {
+    log("❌ Failed to fetch config list: " + error.message);
+  }
+}
+
+function filterConfigsByLanguage() {
+  currentLanguage = document.getElementById("languageSelector").value;
+  const selector = document.getElementById("configSelector");
+  selector.innerHTML = "";
+
+  const filtered = allConfigFiles.filter(name =>
+    name.endsWith(`${currentLanguage}.json`) || name.endsWith(`${currentLanguage}.JSON`)
+  );
+
+  if (filtered.length === 0) {
+    const option = document.createElement("option");
+    option.textContent = "No config available";
+    option.disabled = true;
+    selector.appendChild(option);
+    return;
+  }
+
+  filtered.forEach(name => {
+    const option = document.createElement("option");
+    option.value = name;
+    option.textContent = name;
+    selector.appendChild(option);
+  });
+
+  selector.value = filtered[0];
+  setConfig();
+}
+
+async function setConfig() {
+  const selected = document.getElementById("configSelector").value;
+  if (!selected) return;
+  try {
+    const res = await fetch("/set_config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: selected })
+    });
+    const result = await res.json();
+    log("🛠️ Config selected: " + result.selected, "system");
+  } catch (e) {
+    log("❌ Config set error: " + e.message, "system");
+  }
+}
+
+  window.onload = () => {
+     fetchConfigFileList();
+                         };
+    
+// Prevent sending empty messages and enable button when there's content
     document.getElementById("messageInput").addEventListener("input", function () {
       const hasText = this.value.trim().length > 0;
       document.getElementById("sendButton").disabled = !hasText;
     });
 
     setInterval(() => {
-      if (ws.readyState === WebSocket.OPEN) ws.send("__ping__");
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send("__ping__");
+      }
     }, 20000);
+
+function downloadDebateLog() {
+  const blob = new Blob([JSON.stringify(debateLog, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `debate_${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
   </script>
-</body>
+ </body>
 </html>
