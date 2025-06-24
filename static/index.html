@@ -6,181 +6,186 @@
    Multi-DOUBT
   </title>
   <style>
-   body {
-      background: linear-gradient(120deg, #e0eafc 0%, #cfdef3 100%);
-      font-family: 'Segoe UI', Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-    }
-    h1, h2 {
-      text-align: center;
-      margin-top: 24px;
-      margin-bottom: 8px;
-    }
-    h1 {
-      color: #1976d2;
-      letter-spacing: 8px;
-      font-size: 2.5rem;
-      font-weight: bold;
-      text-shadow: 1px 2px 8px rgba(33, 150, 243, 0.10);
-      margin-bottom: 6px;
-    }
-    h2 {
-      color: #1769aa;
-      font-size: 1.25rem;
-      letter-spacing: 2px;
-      font-weight: 500;
-      margin-bottom: 24px;
-    }
-    .container {
-      max-width: 860px;
-      margin: 0 auto 24px auto;
-      background: rgba(255,255,255,0.82);
-      border-radius: 18px;
-      padding: 28px 34px 32px 34px;
-      box-shadow: 0 4px 24px rgba(33,150,243,0.10);
-    }
-    textarea#log {
-      display: block;
-      margin: 0 auto 16px auto;
-      border-radius: 8px;
-      border: 1.5px solid #90caf9;
-      background: #f8fbff;
-      color: #234;
-      box-shadow: 0 1px 8px rgba(33,150,243,0.06);
-      resize: vertical;
-      font-size: 1rem;
-      width: 100%;
-      max-width: 800px;
-      min-height: 200px;
-      padding: 12px;
-    }
-    .input-row {
-      display: flex;
-      justify-content: center;
-      gap: 12px;
-      margin-bottom: 16px;
-      flex-wrap: wrap;
-    }
-    input[type="text"] {
-      border-radius: 6px;
-      border: 1.5px solid #2196f3;
-      padding: 9px 12px;
-      background: #fff;
-      font-size: 1rem;
-      box-shadow: 0 1px 5px rgba(33,150,243,0.08);
-      outline: none;
-      transition: border 0.15s;
-      min-width: 240px;
-      flex: 1 1 340px;
-      max-width: 600px;
-    }
-    input[type="text"]:focus {
-      border-color: #1769aa;
-    }
-    button {
-      min-width: 120px;
-      max-width: 220px;
-      padding: 10px 24px;
-      margin: 8px 4px;
-      background-color: #2196F3;
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      font-size: 1rem;
-      font-family: 'Segoe UI', 'Arial', sans-serif;
-      cursor: pointer;
-      transition: background 0.18s, box-shadow 0.18s;
-      box-shadow: 0 1px 6px rgba(32, 33, 36, 0.08);
-    }
-    button:disabled {
-      background-color: #b0bfcf;
-      cursor: not-allowed;
-      color: #f4f4f4;
-    }
-    button:hover:not(:disabled),
-    button:focus-visible:not(:disabled) {
-      background-color: #1769aa;
-      box-shadow: 0 2px 12px rgba(33, 150, 243, 0.12);
-      outline: none;
-    }
-    progress#audioProgress {
-      display: block;
-      margin: 18px auto 0 auto;
-      height: 20px;
-      background-color: #e3f2fd;
-      border-radius: 8px;
-      width: 400px;
-      max-width: 80vw;
-    }
-    ::-webkit-input-placeholder { color: #90a4ae; }
-    ::-moz-placeholder { color: #90a4ae; }
-    :-ms-input-placeholder { color: #90a4ae; }
-    ::placeholder { color: #90a4ae; }
-  
+  :root {
+    --color-bg-gradient-start: #e0eafc;
+    --color-bg-gradient-end: #cfdef3;
+    --color-white: #ffffff;
+    --color-text-main: #102a43;
+    --color-blue: #2196f3;
+    --color-blue-dark: #0d47a1;
+    --color-blue-light: #64b5f6;
+    --color-blue-verylight: #e3f2fd;
+    --color-shadow-light: rgba(33,150,243,0.08);
+    --color-shadow-medium: rgba(33,150,243,0.10);
+    --color-shadow-heavy: rgba(33,150,243,0.12);
+    --color-placeholder: #90a4ae;
+  }
 
-    body {
-      background: linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%);
-      color: #102a43;
-    }
-    .container {
-      background: rgba(255, 255, 255, 0.95);
-      border: 1px solid #90caf9;
-    }
-    h3 {
-      color: #0d47a1;
-      margin-top: 28px;
-      margin-bottom: 12px;
-    }
-    select#configSelector {
-      padding: 10px;
-      border-radius: 6px;
-      border: 1.5px solid #2196f3;
-      font-size: 1rem;
-      background-color: #f5faff;
-      box-shadow: 0 1px 5px rgba(33,150,243,0.08);
-    }
-  
+  body {
+    background: linear-gradient(135deg, var(--color-bg-gradient-start), var(--color-bg-gradient-end));
+    font-family: 'Segoe UI', 'Helvetica Neue', sans-serif;
+    color: var(--color-text-main);
+    margin: 0;
+    padding: 0;
+  }
 
-    .container {
-      padding: 18px 24px 22px 24px;
-      margin-bottom: 12px;
-    }
-    textarea#log {
-      min-height: 160px;
-    }
-    h1 {
-      font-size: 2.2rem;
-      color: #1e88e5;
-      text-shadow: 1px 1px 10px rgba(30, 136, 229, 0.2);
-    }
-    h2 {
-      color: #0d47a1;
-      font-weight: 600;
-    }
-    body {
-      background: linear-gradient(145deg, #f0f7ff 0%, #e1f5fe 100%);
-      font-family: 'Segoe UI', 'Helvetica Neue', sans-serif;
-    }
-    button {
-      background: linear-gradient(to right, #42a5f5, #1e88e5);
-      font-weight: bold;
-    }
-    button:hover {
-      background: linear-gradient(to right, #1e88e5, #1976d2);
-    }
-    select#configSelector {
-      background-color: #e3f2fd;
-      font-weight: 500;
-    }
-    input[type="text"] {
-      background: #ffffff;
-      border-color: #64b5f6;
-    }
-    input[type="text"]:focus {
-      border-color: #1565c0;
-    }
-  </style>
+  h1, h2 {
+    text-align: center;
+    margin-top: 6px;
+  }
+
+  h1 {
+    color: var(--color-blue-dark);
+    letter-spacing: 8px;
+    font-size: 4.5rem;
+    font-weight: bold;
+    text-shadow: 1px 2px 8px var(--color-shadow-medium);
+    margin-bottom: 3px;
+  }
+
+  h2 {
+    color: var(--color-blue-dark);
+    font-size: 2.25rem;
+    letter-spacing: 2px;
+    font-weight: bold;
+    margin-bottom: 3px;
+  }
+
+  h3 {
+    color: var(--color-blue-dark);
+    margin-top: 6px;
+    margin-bottom: 3px;
+    text-align: flex-start;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto 12px auto;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid #90caf9;
+    border-radius: 24px;
+    padding: 28px 34px 32px 34px;
+    box-shadow: 0 4px 24px var(--color-shadow-medium);
+  }
+
+  .input-row {
+    display: flex;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+
+  select, select#configSelector {
+    padding: 10px;
+    border-radius: 6px;
+    border: 1.5px solid var(--color-blue);
+    font-size: 1rem;
+    background-color: var(--color-blue-verylight);
+    min-width: 180px;
+    font-weight: 500;
+    box-shadow: 0 1px 5px var(--color-shadow-light);
+  }
+
+  input[type="text"] {
+  background: var(--color-white);
+  border: 1.5px solid var(--color-blue-light);
+  border-radius: 6px;
+  padding: 8px 12px;         /* smaller vertical padding = less height */
+  font-size: 1rem;
+  box-shadow: 0 1px 5px var(--color-shadow-light);
+  outline: none;
+  transition: border 0.15s;
+  min-width: 240px;
+  max-width: 1110px;          /* allow wider field */
+  flex: 1 1 480px;           /* grow to fill space */
+  height: 40px;              /* set exact height */
+}
+
+  input[type="text"]:focus {
+    border-color: #1565c0;
+  }
+
+  textarea#log {
+    display: block;
+    margin: 0 0 16px 0;
+    border-radius: 8px;
+    border: 1.5px solid #90caf9;
+    background: #f8fbff;
+    color: #234;
+    box-shadow: 0 1px 8px rgba(33,150,243,0.06);
+    resize: vertical;
+    font-size: 1rem;
+    width: 100%;
+    max-width: 1170px;
+    max-height: 180px;
+    min-height: 100px;
+    padding: 12px;
+  }
+
+  textarea#messageInput {
+  width: 100%;
+  max-width: 870px;
+  min-height: 40px;
+  padding: 6px 12px;
+  font-size: 1rem;
+  border: 1.5px solid #2196f3;
+  border-radius: 6px;
+  resize: vertical; /* allows resizing */
+  box-shadow: 0 1px 5px rgba(33,150,243,0.08);
+  outline: none;
+  transition: border 0.15s;
+  line-height: 1.4;
+}
+
+  button {
+    min-width: 120px;
+    max-width: 220px;
+    padding: 8px 12px;
+    margin: 8px 4px;
+    background: linear-gradient(to right, #42a5f5, #1e88e5);
+    color: var(--color-white);
+    font-weight: bold;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-family: 'Segoe UI', 'Arial', sans-serif;
+    cursor: pointer;
+    transition: background 0.18s, box-shadow 0.18s;
+    box-shadow: 0 1px 6px rgba(32, 33, 36, 0.08);
+    height: 40px;
+  }
+
+  button:hover:not(:disabled),
+  button:focus-visible:not(:disabled) {
+    background: linear-gradient(to right, #1e88e5, #1976d2);
+    box-shadow: 0 2px 12px var(--color-shadow-heavy);
+    outline: none;
+  }
+
+  button:disabled {
+    background-color: #b0bfcf;
+    color: #f4f4f4;
+    cursor: not-allowed;
+  }
+
+  progress#audioProgress {
+    display: block;
+    margin: 18px auto 0 auto;
+    height: 20px;
+    width: 400px;
+    max-width: 80vw;
+    background-color: var(--color-blue-verylight);
+    border-radius: 8px;
+  }
+
+  ::-webkit-input-placeholder,
+  ::-moz-placeholder,
+  :-ms-input-placeholder,
+  ::placeholder {
+    color: var(--color-placeholder);
+  }
+</style>
  </head>
  <body>
   <h1>
@@ -189,55 +194,72 @@
   <h2>
    Debating · Observing · Understanding · Brainstorming · Tutoring
   </h2>
-  <div class="container">
-   <div>
-    <h3>
-     Choose Agent Configuration
-    </h3>
-    <select id="configSelector" onchange="setConfig()">
-     <option value="">
-      Loading configurations...
-     </option>
+
+ <div class="container">
+   <div class="input-row">
+  <h3>Choose Language and Configuration of Agents</h3>
+
+  <div style="margin-left:flex-start; display:flex; gap:45px;">
+    <select id="languageSelector" onchange="filterConfigsByLanguage()">
+      <option value="EN">English</option>
+      <option value="IT">Italiano</option>
     </select>
-   </div>
-   <div>
+
+    <select id="configSelector" onchange="setConfig()" style="min-width:440px;">
+      <option>Loading...</option>
+    </select>
+  </div>
+</div>
+
+  <div>
     <h3>
      Set Debate Topic
     </h3>
+
     <div class="input-row">
      <input id="topicInput" placeholder="Enter debate topic..." type="text"/>
      <button onclick="setTopic()">
       🎯 Set Topic
      </button>
-    </div>
+     </div>
    </div>
-   <div>
+
+  <div>
     <h3>
      Debate Log
     </h3>
+
     <textarea id="log" placeholder="Debate log will appear here..." readonly="True" style="width:100%;height:250px;border-radius:10px;padding:12px;border:1.5px solid #90caf9;background:#f0f8ff;box-shadow:0 1px 8px rgba(33,150,243,0.06);color:#234;font-size:1rem;resize:vertical;"></textarea>
    </div>
-   <div>
+
+  <div>
     <h3>
      Your Input
     </h3>
     <div class="input-row">
-     <input id="messageInput" placeholder="Your response..." type="text"/>
-     <button id="sendButton" onclick="sendMessage()">
-      📤 Send
-     </button>
-     <button onclick="startVoiceInput()">
+
+     <textarea id="messageInput" placeholder="Type your message..." rows="1"></textarea>
+            <button id="sendButton" onclick="sendMessage()">
+        📤 Send
+       </button>
+
+      <button onclick="startVoiceInput()">
       🎙 Voice Input
-     </button>
+      </button>
+
+      <button onclick="downloadDebateLog()">💾 Save Debate</button>
     </div>
    </div>
+
    <div>
     <div class="progress-bar" id="audioProgress" style="display:none;">
      🔊 Playing...
     </div>
    </div>
-  </div>
-  <script>
+
+ </div>
+
+ <script>
    const ws = new WebSocket("wss://doubt-02.onrender.com/ws");
     const audioQueue = [];
     let isPlaying = false;
@@ -303,12 +325,17 @@
       playNextAudio();
     }
 
-    function log(message) {
-      const logArea = document.getElementById("log");
-      logArea.value += message + "\n";
-      logArea.scrollTop = logArea.scrollHeight;
-    }
+  function log(message, speaker = "system") {
+   const logArea = document.getElementById("log");
+   logArea.value += `[${speaker}] ${message}\n`;
+   logArea.scrollTop = logArea.scrollHeight;
 
+   debateLog.push({
+    timestamp: new Date().toISOString(),
+    speaker: speaker,
+    message: message
+  });
+}
     function setTopic() {
       const topic = document.getElementById("topicInput").value.trim();
       if (topic && ws.readyState === WebSocket.OPEN) {
@@ -341,7 +368,7 @@
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const recognition = new SpeechRecognition();
 
-  recognition.lang = 'en-US';
+  recognition.lang = (currentLanguage === "IT") ? "it-IT" : "en-US";
   recognition.interimResults = false;
   recognition.maxAlternatives = 1;
 
@@ -355,14 +382,8 @@
 
   recognition.onresult = (event) => {
     const speechResult = event.results[0][0].transcript.trim();
-    log("🗣 You said: " + speechResult);
-    // const fullMessage = "Giuseppe: " + speechResult;
-    const fullMessage =  speechResult;
-
-    // Set the recognized speech into the input box
-    document.getElementById("messageInput").value = fullMessage;
-
-    // Send as if it were typed
+    log("🗣 You said: " + speechResult, "Giuseppe");
+    document.getElementById("messageInput").value = speechResult;
     sendMessage();
   };
 
@@ -370,29 +391,68 @@
 }
 
     
-    async function loadConfigOptions() {
-      const res = await fetch("/list_configs");
-      const data = await res.json();
-      const selector = document.getElementById("configSelector");
-      selector.innerHTML = data.configs.map(name => 
-        `<option value="${name}">${name}</option>`).join("");
-    }
+    let currentLanguage = "EN";
+let allConfigFiles = [];
+const debateLog = [];
 
-    async function setConfig() {
-      const selected = document.getElementById("configSelector").value;
-      if (!selected) return;
-      const res = await fetch("/set_config", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: selected })
-      });
-      const result = await res.json();
-      log("🛠️ Config selected: " + result.selected);
-    }
+async function fetchConfigFileList() {
+  try {
+    const res = await fetch("/list_configs");
+    const data = await res.json();
+    allConfigFiles = data.configs || [];
+    filterConfigsByLanguage();
+  } catch (error) {
+    log("❌ Failed to fetch config list: " + error.message);
+  }
+}
 
-    window.onload = () => {
-      loadConfigOptions();
-    };
+function filterConfigsByLanguage() {
+  currentLanguage = document.getElementById("languageSelector").value;
+  const selector = document.getElementById("configSelector");
+  selector.innerHTML = "";
+
+  const filtered = allConfigFiles.filter(name =>
+    name.endsWith(`${currentLanguage}.json`) || name.endsWith(`${currentLanguage}.JSON`)
+  );
+
+  if (filtered.length === 0) {
+    const option = document.createElement("option");
+    option.textContent = "No config available";
+    option.disabled = true;
+    selector.appendChild(option);
+    return;
+  }
+
+  filtered.forEach(name => {
+    const option = document.createElement("option");
+    option.value = name;
+    option.textContent = name;
+    selector.appendChild(option);
+  });
+
+  selector.value = filtered[0];
+  setConfig();
+}
+
+async function setConfig() {
+  const selected = document.getElementById("configSelector").value;
+  if (!selected) return;
+  try {
+    const res = await fetch("/set_config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: selected })
+    });
+    const result = await res.json();
+    log("🛠️ Config selected: " + result.selected, "system");
+  } catch (e) {
+    log("❌ Config set error: " + e.message, "system");
+  }
+}
+
+  window.onload = () => {
+     fetchConfigFileList();
+                         };
     
 // Prevent sending empty messages and enable button when there's content
     document.getElementById("messageInput").addEventListener("input", function () {
@@ -405,6 +465,17 @@
         ws.send("__ping__");
       }
     }, 20000);
+
+function downloadDebateLog() {
+  const blob = new Blob([JSON.stringify(debateLog, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `debate_${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
   </script>
  </body>
 </html>
