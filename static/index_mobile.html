@@ -7,63 +7,186 @@
    DOUBT · Mobile
   </title>
   <style>
-   body {
-      background: linear-gradient(120deg, #e0eafc 0%, #cfdef3 100%);
-      font-family: 'Segoe UI', Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-    }
-    h1, h2 {
-      text-align: center;
-      margin: 16px 8px;
-    }
-    h1 {
-      color: #1976d2;
-      font-size: 1.8rem;
-      letter-spacing: 2px;
-    }
-    h2 {
-      color: #1769aa;
-      font-size: 1rem;
-    }
-    .container {
-      padding: 16px;
-    }
-    textarea#log {
-      width: 100%;
-      min-height: 180px;
-      border-radius: 6px;
-      padding: 10px;
-      border: 1px solid #90caf9;
-      font-size: 0.95rem;
-      background: #f8fbff;
-      resize: vertical;
-    }
-    input, button {
-      font-size: 1rem;
-      padding: 10px;
-      border-radius: 6px;
-      margin: 6px 0;
-      width: 100%;
-      box-sizing: border-box;
-    }
-    input[type="text"] {
-      border: 1.5px solid #2196f3;
-    }
-    button {
-      background-color: #2196F3;
-      color: white;
-      border: none;
-    }
-    button:disabled {
-      background-color: #ccc;
-    }
-    progress#audioProgress {
-      display: block;
-      width: 100%;
-      margin: 12px auto 0 auto;
-    }
-  </style>
+  :root {
+    --color-bg-gradient-start: #e0eafc;
+    --color-bg-gradient-end: #cfdef3;
+    --color-white: #ffffff;
+    --color-text-main: #102a43;
+    --color-blue: #2196f3;
+    --color-blue-dark: #0d47a1;
+    --color-blue-light: #64b5f6;
+    --color-blue-verylight: #e3f2fd;
+    --color-shadow-light: rgba(33,150,243,0.08);
+    --color-shadow-medium: rgba(33,150,243,0.10);
+    --color-shadow-heavy: rgba(33,150,243,0.12);
+    --color-placeholder: #90a4ae;
+  }
+
+  body {
+    background: linear-gradient(135deg, var(--color-bg-gradient-start), var(--color-bg-gradient-end));
+    font-family: 'Segoe UI', 'Helvetica Neue', sans-serif;
+    color: var(--color-text-main);
+    margin: 0;
+    padding: 0;
+  }
+
+  h1, h2 {
+    text-align: center;
+    margin-top: 6px;
+  }
+
+  h1 {
+    color: var(--color-blue-dark);
+    letter-spacing: 8px;
+    font-size: 4.5rem;
+    font-weight: bold;
+    text-shadow: 1px 2px 8px var(--color-shadow-medium);
+    margin-bottom: 3px;
+  }
+
+  h2 {
+    color: var(--color-blue-dark);
+    font-size: 2.25rem;
+    letter-spacing: 2px;
+    font-weight: bold;
+    margin-bottom: 3px;
+  }
+
+  h3 {
+    color: var(--color-blue-dark);
+    margin-top: 6px;
+    margin-bottom: 3px;
+    text-align: flex-start;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto 12px auto;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid #90caf9;
+    border-radius: 24px;
+    padding: 28px 34px 32px 34px;
+    box-shadow: 0 4px 24px var(--color-shadow-medium);
+  }
+
+  .input-row {
+    display: flex;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+
+  select, select#configSelector {
+    padding: 10px;
+    border-radius: 6px;
+    border: 1.5px solid var(--color-blue);
+    font-size: 1rem;
+    background-color: var(--color-blue-verylight);
+    min-width: 180px;
+    font-weight: 500;
+    box-shadow: 0 1px 5px var(--color-shadow-light);
+  }
+
+  input[type="text"] {
+  background: var(--color-white);
+  border: 1.5px solid var(--color-blue-light);
+  border-radius: 6px;
+  padding: 8px 12px;         /* smaller vertical padding = less height */
+  font-size: 1rem;
+  box-shadow: 0 1px 5px var(--color-shadow-light);
+  outline: none;
+  transition: border 0.15s;
+  min-width: 240px;
+  max-width: 1110px;          /* allow wider field */
+  flex: 1 1 480px;           /* grow to fill space */
+  height: 40px;              /* set exact height */
+}
+
+  input[type="text"]:focus {
+    border-color: #1565c0;
+  }
+
+  textarea#log {
+    display: block;
+    margin: 0 0 16px 0;
+    border-radius: 8px;
+    border: 1.5px solid #90caf9;
+    background: #f8fbff;
+    color: #234;
+    box-shadow: 0 1px 8px rgba(33,150,243,0.06);
+    resize: vertical;
+    font-size: 1rem;
+    width: 100%;
+    max-width: 1170px;
+    max-height: 180px;
+    min-height: 100px;
+    padding: 12px;
+  }
+
+  textarea#messageInput {
+  width: 100%;
+  max-width: 870px;
+  min-height: 40px;
+  padding: 6px 12px;
+  font-size: 1rem;
+  border: 1.5px solid #2196f3;
+  border-radius: 6px;
+  resize: vertical; /* allows resizing */
+  box-shadow: 0 1px 5px rgba(33,150,243,0.08);
+  outline: none;
+  transition: border 0.15s;
+  line-height: 1.4;
+}
+
+  button {
+    min-width: 120px;
+    max-width: 220px;
+    padding: 8px 12px;
+    margin: 8px 4px;
+    background: linear-gradient(to right, #42a5f5, #1e88e5);
+    color: var(--color-white);
+    font-weight: bold;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-family: 'Segoe UI', 'Arial', sans-serif;
+    cursor: pointer;
+    transition: background 0.18s, box-shadow 0.18s;
+    box-shadow: 0 1px 6px rgba(32, 33, 36, 0.08);
+    height: 40px;
+  }
+
+  button:hover:not(:disabled),
+  button:focus-visible:not(:disabled) {
+    background: linear-gradient(to right, #1e88e5, #1976d2);
+    box-shadow: 0 2px 12px var(--color-shadow-heavy);
+    outline: none;
+  }
+
+  button:disabled {
+    background-color: #b0bfcf;
+    color: #f4f4f4;
+    cursor: not-allowed;
+  }
+
+  progress#audioProgress {
+    display: block;
+    margin: 18px auto 0 auto;
+    height: 20px;
+    width: 400px;
+    max-width: 80vw;
+    background-color: var(--color-blue-verylight);
+    border-radius: 8px;
+  }
+
+  ::-webkit-input-placeholder,
+  ::-moz-placeholder,
+  :-ms-input-placeholder,
+  ::placeholder {
+    color: var(--color-placeholder);
+  }
+</style>
  </head>
  <body>
   <h1>
@@ -76,11 +199,18 @@
    <h3>
     🎛️ Configuration
    </h3>
-   <select id="configSelector" onchange="setConfig()">
-    <option value="">
-     Loading configurations...
-    </option>
-   </select>
+   <div class="input-row">
+  <select id="languageSelector" onchange="filterConfigsByLanguage()">
+    <option value="EN">English</option>
+    <option value="IT">Italiano</option>
+  </select>
+
+  <select id="configSelector" onchange="setConfig()">
+    <option>Loading...</option>
+  </select>
+
+  <button onclick="downloadDebateLog()">💾 Save Debate</button>
+</div>
    <h3>
     🎯 Debate Topic
    </h3>
@@ -145,11 +275,17 @@
   };
 
 
-  function log(message) {
-    const logArea = document.getElementById("log");
-    logArea.value += message + "\n";
-    logArea.scrollTop = logArea.scrollHeight;
-  }
+  function log(message, speaker = "system") {
+  const logArea = document.getElementById("log");
+  logArea.value += `[${speaker}] ${message}\n`;
+  logArea.scrollTop = logArea.scrollHeight;
+
+  debateLog.push({
+    timestamp: new Date().toISOString(),
+    speaker: speaker,
+    message: message
+  });
+}
 
   function updateAudioStatus() {
     if (document.getElementById("audioStatus")) {
@@ -309,7 +445,7 @@
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const recognition = new SpeechRecognition();
 
-  recognition.lang = 'en-US';
+  recognition.lang = (currentLanguage === "IT") ? "it-IT" : "en-US";
   recognition.interimResults = false;
   recognition.maxAlternatives = 1;
 
@@ -323,44 +459,75 @@
 
   recognition.onresult = (event) => {
     const speechResult = event.results[0][0].transcript.trim();
-    log("🗣 You said: " + speechResult);
-    // const fullMessage = "Giuseppe: " + speechResult;
-    const fullMessage = speechResult;
-
-    // Set the recognized speech into the input box
-    document.getElementById("messageInput").value = fullMessage;
-
-    // Send as if it were typed
+    log("🗣 You said: " + speechResult, "Giuseppe");
+    document.getElementById("messageInput").value = speechResult;
     sendMessage();
   };
 
   recognition.start();
 }
 
-async function loadConfigOptions() {
-      const res = await fetch("/list_configs");
-      const data = await res.json();
-      const selector = document.getElementById("configSelector");
-      selector.innerHTML = data.configs.map(name => 
-        `<option value="${name}">${name}</option>`).join("");
-    }
+let currentLanguage = "EN";
+let allConfigFiles = [];
+const debateLog = [];
 
-    async function setConfig() {
-      const selected = document.getElementById("configSelector").value;
-      if (!selected) return;
-      const res = await fetch("/set_config", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: selected })
-      });
-      const result = await res.json();
-      log("🛠️ Config selected: " + result.selected);
-    }
+async function fetchConfigFileList() {
+  try {
+    const res = await fetch("/list_configs");
+    const data = await res.json();
+    allConfigFiles = data.configs || [];
+    filterConfigsByLanguage();
+  } catch (error) {
+    log("❌ Failed to fetch config list: " + error.message);
+  }
+}
 
+function filterConfigsByLanguage() {
+  currentLanguage = document.getElementById("languageSelector").value;
+  const selector = document.getElementById("configSelector");
+  selector.innerHTML = "";
+
+  const filtered = allConfigFiles.filter(name =>
+    name.endsWith(`${currentLanguage}.json`) || name.endsWith(`${currentLanguage}.JSON`)
+  );
+
+  if (filtered.length === 0) {
+    const option = document.createElement("option");
+    option.textContent = "No config available";
+    option.disabled = true;
+    selector.appendChild(option);
+    return;
+  }
+
+  filtered.forEach(name => {
+    const option = document.createElement("option");
+    option.value = name;
+    option.textContent = name;
+    selector.appendChild(option);
+  });
+
+  selector.value = filtered[0];
+  setConfig();
+}
+
+async function setConfig() {
+  const selected = document.getElementById("configSelector").value;
+  if (!selected) return;
+  try {
+    const res = await fetch("/set_config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: selected })
+    });
+    const result = await res.json();
+    log("🛠️ Config selected: " + result.selected, "system");
+  } catch (e) {
+    log("❌ Config set error: " + e.message, "system");
+  }
+}
     window.onload = () => {
-      loadConfigOptions();
-    };
-
+  fetchConfigFileList();
+};
 
 
   // Periodic ping
@@ -409,6 +576,17 @@ async function loadConfigOptions() {
   }, { once: true });
 
   enableAudio();
+
+function downloadDebateLog() {
+  const blob = new Blob([JSON.stringify(debateLog, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `debate_${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
   </script>
  </body>
 </html>
