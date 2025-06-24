@@ -57,19 +57,21 @@ from fastapi import Request
 
 app = FastAPI()
 
-app = FastAPI()
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
-CONFIG_DIR = "config"
-CONFIG_FILE = None
-
 @app.get("/")
 async def root(request: Request):
-    user_agent = request.headers.get("user-agent", "").lower()
-    if any(keyword in user_agent for keyword in ["iphone", "android", "ipad", "mobile"]):
+    user_agent = request.headers.get('user-agent', '').lower()
+    if any(x in user_agent for x in ['iphone', 'android', 'ipad', 'mobile']):
         return FileResponse("static/index_mobile.html")
     else:
         return FileResponse("static/index.html")
+
+# Serve the index.html at root
+@app.get("/", response_class=HTMLResponse)
+async def get_index():
+    html_path = Path("static/index.html")
+    return HTMLResponse(content=html_path.read_text(encoding="utf-8"))
+
+CONFIG_DIR = "config"
 
 @app.get("/list_configs")
 def list_configs():
