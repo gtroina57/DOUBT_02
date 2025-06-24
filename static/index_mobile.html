@@ -192,9 +192,6 @@
   <h1>
    DOUBT
   </h1>
-  <h2>
-   Mobile Version
-  </h2>
   <div class="container">
    <h3>
     🎛️ Configuration
@@ -209,7 +206,6 @@
     <option>Loading...</option>
   </select>
 
-  <button onclick="downloadDebateLog()">💾 Save Debate</button>
 </div>
    <h3>
     🎯 Debate Topic
@@ -218,9 +214,6 @@
    <button onclick="setTopic()">
     Set Topic
    </button>
-   <h3>
-    🗣️ Current Speaker
-   </h3>
    <p>
     <strong>
      Agent:
@@ -251,6 +244,7 @@
    <button id="speakButton" onclick="startVoiceInput()" style="background-color:#ff9800; color:white;">
     🎙 Voice Input
    </button>
+   <button onclick="downloadDebateLog()">💾 Save Debate</button>
    <progress id="audioProgress" max="1" style="display:none;" value="0">
    </progress>
    <button id="resumeAudioButton" onclick="manualResumeAudio()" style="display: none; background-color: #43a047; color: white; font-weight: bold;">
