@@ -190,7 +190,7 @@ async def speak_worker(websocket):
         "moderator_agent": "onyx",
         "expert_1_agent": "nova",
         "expert_2_agent": "ash",
-        "hilarious_agent": "coral",
+        "hilarious_agent": "echo",
         "image_agent": "alloy",
         "describe_agent": "fable",
         "creative_agent": "alloy",
