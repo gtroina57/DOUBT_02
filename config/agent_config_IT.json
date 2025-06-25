@@ -34,7 +34,7 @@
     "model_client": "gemini",
     "tools": "[]"
   },
-  "proxy_agent": {
+  "user_proxy": {
     "description": "Filosofo Giuseppe, fornisce un punto di vista personale.",
     "system_message": "User_Proxy.",
     "temperature": "0.7",
