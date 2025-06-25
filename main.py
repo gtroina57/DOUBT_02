@@ -107,7 +107,7 @@ model_client_gemini = OpenAIChatCompletionClient(
 
 #########################################################################################################
 ################################## Initialize variables   ##################################################
-CONFIG_FILE = "agent_config.json"
+#####  CONFIG_FILE = "agent_config.json"
 agents = {}
 agent_list = []
 team = None
@@ -205,15 +205,17 @@ model_clients_map = {
     "openai": model_client_openai,
     "gemini": model_client_gemini
 }
+"""
 ##########################################################################################################
 ################################# Load default configuration    ##########################################
 with open(CONFIG_FILE, "r") as f:
     agent_config = json.load(f)
-    
+"""    
 ##########################################################################################################
 ################################# Build name_to_agent_skill for introducing Agents #######################
-def extract_agent_skills(config_path):
-    with open(config_path, "r") as f:
+def extract_agent_skills():
+    global CONFIG_FILE
+    with open(CONFIG_FILE, "r") as f:
         config = json.load(f)
 
     skills = []
@@ -232,9 +234,9 @@ tool_lookup = {
 }
 ##########################################################################################################
 ################################# Build Agents from configuration  #######################################
-def build_agents_from_config(config_path, name_to_agent_skill, model_clients_map):
-    global task1
-    with open(config_path, "r") as f:
+def build_agents_from_config(name_to_agent_skill, model_clients_map):
+    global task1, CONFIG_FILE
+    with open(CONFIG_FILE, "r") as f:
         config = json.load(f)
 
     agents = {}
@@ -381,10 +383,12 @@ agent_config_ui = {}
 ##########################################################################################################
 ################################# Configuration File    ###################################################=
 def load_agent_config():
+    global CONFIG_FILE
     with open(CONFIG_FILE, "r") as f:
         return json.load(f)
 
 def save_agent_config(*args):
+    global CONFIG_FILE
     updated = {}
     idx = 0
     for name in agent_config_ui:
@@ -473,7 +477,7 @@ import traceback
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    global team, agents, agent_list, stop_execution, loaded_team_state, task1, user_message_queue, config_path
+    global team, agents, agent_list, stop_execution, loaded_team_state, task1, user_message_queue, CONFIG_FILE
 
     team = None
     stop_execution = False
@@ -542,13 +546,14 @@ async def websocket_endpoint(websocket: WebSocket):
 
         agents["user_proxy"] = UserProxyAgent(name="user_proxy", input_func=wrapped_input_func)
 
-#### This has  replaced the hard coded  agent_list       
-        with open(config_path, "r") as f:
+#### This has  replaced the hard coded  agent_list 
+        print("📄 Loading agent list from:", CONFIG_FILE)
+        with open(CONFIG_FILE, "r") as f:
             config = json.load(f)
-        agent_list = []
-        for json_key in config.keys():
-            if json_key in agents:
-                agent_list.append(agents[json_key])
+            agent_list = []
+            for json_key in config.keys():
+                if json_key in agents:
+                   agent_list.append(agents[json_key])
 
         """
         This has been replaced with automatic building of agent_list
