@@ -6,10 +6,6 @@ Created on Friday May 30 20:11:20 2025
 """
 
 # main.py
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.middleware.cors import CORSMiddleware
 import os
 import asyncio
 from autogen_agentchat.agents import AssistantAgent, UserProxyAgent
@@ -35,6 +31,7 @@ from pathlib import Path
 from IPython.display import Audio, display, HTML
 from pydub import AudioSegment
 from pydub.playback import play  # ✅ Import play() to actually play audio
+from pydantic import BaseModel
 import time
 import pprint
 import gc
@@ -47,31 +44,26 @@ from fastapi.responses import FileResponse
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi import FastAPI, Request
+from fastapi import HTTPException
+from fastapi import WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
 
-# Create the FastAPI app
+
 app = FastAPI()
-# Mount static directory
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-from fastapi import Request
-
-app = FastAPI()
+CONFIG_DIR = "config"
+CONFIG_FILE = None
 
 @app.get("/")
 async def root(request: Request):
-    user_agent = request.headers.get('user-agent', '').lower()
-    if any(x in user_agent for x in ['iphone', 'android', 'ipad', 'mobile']):
+    user_agent = request.headers.get("user-agent", "").lower()
+    if any(keyword in user_agent for keyword in ["iphone", "android", "ipad", "mobile"]):
         return FileResponse("static/index_mobile.html")
     else:
         return FileResponse("static/index.html")
-
-# Serve the index.html at root
-@app.get("/", response_class=HTMLResponse)
-async def get_index():
-    html_path = Path("static/index.html")
-    return HTMLResponse(content=html_path.read_text(encoding="utf-8"))
-
-CONFIG_DIR = "config"
 
 @app.get("/list_configs")
 def list_configs():
