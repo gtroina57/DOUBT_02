@@ -192,7 +192,7 @@ async def speak_worker(websocket):
         "expert_2_agent": "ash",
         "hilarious_agent": "echo",
         "image_agent": "alloy",
-        "describe_agent": "fable",
+        "facilitator_agent": "fable",
         "creative_agent": "alloy",
         "user": "fable"
     }
@@ -350,6 +350,7 @@ async def dynamic_selector_func(thread):
         "charlie": "hilarious_agent",
         "alan": "moderator_agent",
         "albert": "creative_agent",
+        "fiona": "facilitator_agent",
         "giuseppe": "user_proxy",
     }
 
