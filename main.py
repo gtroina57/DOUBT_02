@@ -510,8 +510,8 @@ async def websocket_endpoint(websocket: WebSocket):
                 await websocket.send_text("⚠️ Please use the 'Set Topic' button to begin.")
 
         # 🔧 Load agents
-        name_to_agent_skill = extract_agent_skills(CONFIG_FILE)
-        agents = build_agents_from_config(CONFIG_FILE, name_to_agent_skill, model_clients_map)
+        name_to_agent_skill = extract_agent_skills()
+        agents = build_agents_from_config(name_to_agent_skill, model_clients_map)
 
 
 #####################################################################################################
