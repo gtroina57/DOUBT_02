@@ -142,11 +142,11 @@ async def speak_worker(websocket):
     AGENT_VOICES = {
         "moderator_agent": "onyx",
         "expert_1_agent": "nova",
-        "expert_2_agent": "shimmer",
+        "expert_2_agent": "ash",
         "hilarious_agent": "alloy",
-        "image_agent": "alloy",
+        "image_agent": "fable",
         "describe_agent": "nova",
-        "creative_agent": "onyx",
+        "creative_agent": "coral",
         "user": "alloy"
     }
 
@@ -566,7 +566,7 @@ async def websocket_endpoint(websocket: WebSocket):
         
         asyncio.create_task(speak_worker(websocket))
         
-        await run_chat(team, websocket=websocket)
+        chat_task = asyncio.create_task(run_chat(team, websocket))
         
         await speech_queue.join()
 
@@ -583,3 +583,9 @@ async def websocket_endpoint(websocket: WebSocket):
         traceback.print_exc()
         await websocket.send_text("⚠️ Internal server error during debate.")
 
+    finally:
+        chat_task.cancel()
+        try:
+            await chat_task
+        except asyncio.CancelledError:
+            print("🛑 Chat task cancelled.")
