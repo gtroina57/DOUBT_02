@@ -50,7 +50,54 @@ from fastapi import HTTPException
 from fastapi import WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
+"""
 
+# Create the FastAPI app
+app = FastAPI()
+# Mount static directory
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+from fastapi import Request
+
+app = FastAPI()
+
+@app.get("/")
+async def root(request: Request):
+    user_agent = request.headers.get('user-agent', '').lower()
+    if any(x in user_agent for x in ['iphone', 'android', 'ipad', 'mobile']):
+        return FileResponse("static/index_mobile.html")
+    else:
+        return FileResponse("static/index.html")
+
+# Serve the index.html at root
+@app.get("/", response_class=HTMLResponse)
+async def get_index():
+    html_path = Path("static/index.html")
+    return HTMLResponse(content=html_path.read_text(encoding="utf-8"))
+
+CONFIG_DIR = "config"
+
+@app.get("/list_configs")
+def list_configs():
+    try:
+        configs = [f for f in os.listdir(CONFIG_DIR) if f.endswith(".json")]
+        return JSONResponse(content={"configs": configs})
+    except Exception as e:
+        return JSONResponse(content={"configs": [], "error": str(e)})
+
+@app.post("/set_config")
+async def set_config(payload: dict):
+    global CONFIG_FILE
+    name = payload.get("name")
+    if not name:
+        return {"status": "error", "message": "Missing config name"}
+    path = os.path.join(CONFIG_DIR, name)
+    if os.path.exists(path):
+        CONFIG_FILE = path
+        print("🧩 CONFIG_FILE updated to:", CONFIG_FILE)
+        return {"status": "ok", "selected": name}
+    return {"status": "error", "message": "Config not found"}
+"""
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -142,11 +189,11 @@ async def speak_worker(websocket):
     AGENT_VOICES = {
         "moderator_agent": "onyx",
         "expert_1_agent": "nova",
-        "expert_2_agent": "ash",
+        "expert_2_agent": "shimmer",
         "hilarious_agent": "alloy",
-        "image_agent": "fable",
+        "image_agent": "alloy",
         "describe_agent": "nova",
-        "creative_agent": "coral",
+        "creative_agent": "onyx",
         "user": "alloy"
     }
 
@@ -566,7 +613,7 @@ async def websocket_endpoint(websocket: WebSocket):
         
         asyncio.create_task(speak_worker(websocket))
         
-        chat_task = asyncio.create_task(run_chat(team, websocket))
+        await run_chat(team, websocket=websocket)
         
         await speech_queue.join()
 
@@ -583,9 +630,3 @@ async def websocket_endpoint(websocket: WebSocket):
         traceback.print_exc()
         await websocket.send_text("⚠️ Internal server error during debate.")
 
-    finally:
-        chat_task.cancel()
-        try:
-            await chat_task
-        except asyncio.CancelledError:
-            print("🛑 Chat task cancelled.")
