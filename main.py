@@ -595,6 +595,7 @@ async def websocket_endpoint(websocket: WebSocket):
             agents["expert_2_agent"],
             agents["hilarious_agent"],
             agents["creative_agent"],
+            agents["facilitator_agent"],
             agents["user_proxy"],
         ]
 
