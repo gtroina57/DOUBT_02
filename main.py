@@ -189,12 +189,12 @@ async def speak_worker(websocket):
     AGENT_VOICES = {
         "moderator_agent": "onyx",
         "expert_1_agent": "nova",
-        "expert_2_agent": "sage",
-        "hilarious_agent": "ballad",
+        "expert_2_agent": "ash",
+        "hilarious_agent": "coral",
         "image_agent": "alloy",
         "describe_agent": "fable",
-        "creative_agent": "shimmer",
-        "user": "ash"
+        "creative_agent": "alloy",
+        "user": "fable"
     }
 
     while True:
