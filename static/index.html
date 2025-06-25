@@ -454,12 +454,6 @@ async function setConfig() {
      fetchConfigFileList();
                          };
     
-
-   window.addEventListener("beforeunload", () => {
-     if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.close(1000, "Page unloading"); // Normal closure
-     }
-   };
 // Prevent sending empty messages and enable button when there's content
     document.getElementById("messageInput").addEventListener("input", function () {
       const hasText = this.value.trim().length > 0;
