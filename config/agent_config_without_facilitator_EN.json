@@ -34,13 +34,6 @@
     "model_client": "gemini",
     "tools": "[]"
   },
-  "facilitator_agent": {
-    "description": "Philosopher Fiona, plays a role of facilitator.",
-    "system_message": "You are Fiona. a philosopher that always try to find new points of contact between Alice and Bob and propose possible ways forward \nIn all your messages:\nStart with \"AFiona speaking:\".\nKeep your messages under 100 words.\n At the end of every message, append exactly 'XYZ' the last three characters of each message shall be 'XYZ'. Do not forget.",
-    "temperature": "0.7",
-    "model_client": "gemini",
-    "tools": "[]"
-  },
   "proxy_agent": {
     "description": "Philosopher Giuseppe, provides a personal point of view.",
     "system_message": "User_Proxy.",
