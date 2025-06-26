@@ -205,10 +205,6 @@ model_clients_map = {
     "openai": model_client_openai,
     "gemini": model_client_gemini
 }
-##########################################################################################################
-################################# Load default configuration    ##########################################
-with open(CONFIG_FILE, "r") as f:
-    agent_config = json.load(f)
     
 ##########################################################################################################
 ################################# Build name_to_agent_skill for introducing Agents #######################
@@ -234,8 +230,7 @@ tool_lookup = {
 ##########################################################################################################
 ################################# Build Agents from configuration  #######################################
 def build_agents_from_config(name_to_agent_skill, model_clients_map):
-    global task1
-    global CONFIG_FILE
+    global task1, CONFIG_FILE
     with open(CONFIG_FILE, "r") as f:
         config = json.load(f)
 
@@ -372,10 +367,12 @@ agent_config_ui = {}
 ##########################################################################################################
 ################################# Configuration File    ###################################################=
 def load_agent_config():
+    global CONFIG_FILE
     with open(CONFIG_FILE, "r") as f:
         return json.load(f)
 
 def save_agent_config(*args):
+    global CONFIG_FILE
     updated = {}
     idx = 0
     for name in agent_config_ui:
