@@ -391,28 +391,19 @@ async def dynamic_selector_func(thread):
     matches = list(re.finditer(pattern, focus_area))
 
     if not matches:
-        print("⚠️ No agent mentioned by moderator. Staying with Moderator.")
+        print("⚠️ No agent mentioned. Staying with Moderator.")
         return "moderator_agent"
 
-    # ✅ Find the last valid agent mentioned
-    for match in matches:
-
-        if len(matches) == 1:
-            match = matches[0]
-            name = match.group(1)
-            agent_id = name_to_agent.get(name)
-            if agent_id and agent_id != "moderator_agent":
-                print(f"✅ Moderator selected '{name}'. Routing to {agent_id}.")
-                return agent_id
-
-        if len(matches) >= 2:
-            match = matches[1]
-            name = match.group(1)
-            agent_id = name_to_agent.get(name)
-            if agent_id and agent_id != "moderator_agent":
-                print(f"✅ Moderator selected '{name}'. Routing to {agent_id}.")
-                return agent_id
-    print("⚠️ Moderator mentioned only user or moderator. Staying with Moderator.")
+    # 🔁 Loop through matches in reverse to find the last valid agent
+    for match in reversed(matches):
+        name = match.group(1)  # Extract the matched name
+        agent_id = name_to_agent.get(name)
+        if agent_id and agent_id != "moderator_agent":
+            print(f"✅ Last mentioned agent: '{name}' → {agent_id}")
+            return agent_id
+    
+    # If only the moderator was mentioned
+    print("⚠️ Only moderator mentioned. Staying with Moderator.")
     return "moderator_agent"
 
 #print(dir(agents["user_proxy"]))
