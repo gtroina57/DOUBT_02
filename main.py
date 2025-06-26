@@ -50,54 +50,7 @@ from fastapi import HTTPException
 from fastapi import WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
-"""
 
-# Create the FastAPI app
-app = FastAPI()
-# Mount static directory
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
-from fastapi import Request
-
-app = FastAPI()
-
-@app.get("/")
-async def root(request: Request):
-    user_agent = request.headers.get('user-agent', '').lower()
-    if any(x in user_agent for x in ['iphone', 'android', 'ipad', 'mobile']):
-        return FileResponse("static/index_mobile.html")
-    else:
-        return FileResponse("static/index.html")
-
-# Serve the index.html at root
-@app.get("/", response_class=HTMLResponse)
-async def get_index():
-    html_path = Path("static/index.html")
-    return HTMLResponse(content=html_path.read_text(encoding="utf-8"))
-
-CONFIG_DIR = "config"
-
-@app.get("/list_configs")
-def list_configs():
-    try:
-        configs = [f for f in os.listdir(CONFIG_DIR) if f.endswith(".json")]
-        return JSONResponse(content={"configs": configs})
-    except Exception as e:
-        return JSONResponse(content={"configs": [], "error": str(e)})
-
-@app.post("/set_config")
-async def set_config(payload: dict):
-    global CONFIG_FILE
-    name = payload.get("name")
-    if not name:
-        return {"status": "error", "message": "Missing config name"}
-    path = os.path.join(CONFIG_DIR, name)
-    if os.path.exists(path):
-        CONFIG_FILE = path
-        print("🧩 CONFIG_FILE updated to:", CONFIG_FILE)
-        return {"status": "ok", "selected": name}
-    return {"status": "error", "message": "Config not found"}
-"""
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -579,7 +532,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
 
         agents["user_proxy"] = UserProxyAgent(name="user_proxy", input_func=wrapped_input_func)
-
+"""
         agent_list = [
             agents["moderator_agent"],
             agents["expert_1_agent"],
@@ -588,7 +541,15 @@ async def websocket_endpoint(websocket: WebSocket):
             agents["creative_agent"],
             agents["user_proxy"],
         ]
-
+"""
+        with open(CONFIG_FILE, "r") as f:
+            config = json.load(f)
+        
+        agent_list = []
+        for json_key in config.keys():
+            if json_key in agents:
+                agent_list.append(agents[json_key])
+                
         team = SelectorGroupChat(
             agent_list,
             model_client=model_client_openai,
