@@ -482,17 +482,12 @@ async def websocket_endpoint(websocket: WebSocket):
     team = None
     stop_execution = False
     task1 = None  # 🆕 Debate topic will be set by user
+    agents = {}
+    agent_list = []
+    loaded_team_state = None
 
-    async def flush_queue(queue: asyncio.Queue):
-        while not queue.empty():
-            try:
-                queue.get_nowait()
-                queue.task_done()
-            except asyncio.QueueEmpty:
-                break
-
-    await flush_queue(user_message_queue)
-    await flush_queue(speech_queue)
+    speech_queue = asyncio.Queue()
+    user_message_queue = asyncio.Queue()
 
     await websocket.accept()
     try:
