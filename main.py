@@ -464,7 +464,7 @@ import traceback
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    global team, agents, agent_list, stop_execution, loaded_team_state, task1, user_message_queue
+    global team, agents, agent_list, stop_execution, loaded_team_state, task1, user_message_queue, CONFIG_FILE
 
     team = None
     stop_execution = False
