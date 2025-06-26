@@ -532,7 +532,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
 
         agents["user_proxy"] = UserProxyAgent(name="user_proxy", input_func=wrapped_input_func)
-"""
+        """
         agent_list = [
             agents["moderator_agent"],
             agents["expert_1_agent"],
@@ -541,7 +541,7 @@ async def websocket_endpoint(websocket: WebSocket):
             agents["creative_agent"],
             agents["user_proxy"],
         ]
-"""
+        """
         with open(CONFIG_FILE, "r") as f:
             config = json.load(f)
         
@@ -583,3 +583,4 @@ async def websocket_endpoint(websocket: WebSocket):
         traceback.print_exc()
         await websocket.send_text("⚠️ Internal server error during debate.")
 
+    
