@@ -50,54 +50,7 @@ from fastapi import HTTPException
 from fastapi import WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
-"""
 
-# Create the FastAPI app
-app = FastAPI()
-# Mount static directory
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
-from fastapi import Request
-
-app = FastAPI()
-
-@app.get("/")
-async def root(request: Request):
-    user_agent = request.headers.get('user-agent', '').lower()
-    if any(x in user_agent for x in ['iphone', 'android', 'ipad', 'mobile']):
-        return FileResponse("static/index_mobile.html")
-    else:
-        return FileResponse("static/index.html")
-
-# Serve the index.html at root
-@app.get("/", response_class=HTMLResponse)
-async def get_index():
-    html_path = Path("static/index.html")
-    return HTMLResponse(content=html_path.read_text(encoding="utf-8"))
-
-CONFIG_DIR = "config"
-
-@app.get("/list_configs")
-def list_configs():
-    try:
-        configs = [f for f in os.listdir(CONFIG_DIR) if f.endswith(".json")]
-        return JSONResponse(content={"configs": configs})
-    except Exception as e:
-        return JSONResponse(content={"configs": [], "error": str(e)})
-
-@app.post("/set_config")
-async def set_config(payload: dict):
-    global CONFIG_FILE
-    name = payload.get("name")
-    if not name:
-        return {"status": "error", "message": "Missing config name"}
-    path = os.path.join(CONFIG_DIR, name)
-    if os.path.exists(path):
-        CONFIG_FILE = path
-        print("🧩 CONFIG_FILE updated to:", CONFIG_FILE)
-        return {"status": "ok", "selected": name}
-    return {"status": "error", "message": "Config not found"}
-"""
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -154,7 +107,7 @@ model_client_gemini = OpenAIChatCompletionClient(
 
 #########################################################################################################
 ################################## Initialize variables   ##################################################
-CONFIG_FILE = "agent_config.json"
+#####  CONFIG_FILE = "agent_config.json"
 agents = {}
 agent_list = []
 team = None
@@ -192,7 +145,7 @@ async def speak_worker(websocket):
         "expert_2_agent": "ash",
         "hilarious_agent": "echo",
         "image_agent": "alloy",
-        "describe_agent": "fable",
+        "facilitator_agent": "fable",
         "creative_agent": "alloy",
         "user": "fable"
     }
@@ -252,15 +205,17 @@ model_clients_map = {
     "openai": model_client_openai,
     "gemini": model_client_gemini
 }
+"""
 ##########################################################################################################
 ################################# Load default configuration    ##########################################
 with open(CONFIG_FILE, "r") as f:
     agent_config = json.load(f)
-    
+"""    
 ##########################################################################################################
 ################################# Build name_to_agent_skill for introducing Agents #######################
-def extract_agent_skills(config_path):
-    with open(config_path, "r") as f:
+def extract_agent_skills():
+    global CONFIG_FILE
+    with open(CONFIG_FILE, "r") as f:
         config = json.load(f)
 
     skills = []
@@ -279,14 +234,14 @@ tool_lookup = {
 }
 ##########################################################################################################
 ################################# Build Agents from configuration  #######################################
-def build_agents_from_config(config_path, name_to_agent_skill, model_clients_map):
-    global task1
-    with open(config_path, "r") as f:
+def build_agents_from_config(name_to_agent_skill, model_clients_map):
+    global task1, CONFIG_FILE
+    with open(CONFIG_FILE, "r") as f:
         config = json.load(f)
 
     agents = {}
     for name, cfg in config.items():
-        if name == "proxy_agent":
+        if name == "user_proxy":
             continue  # Skip creating an AssistantAgent for the user_proxy
         sys_msg = (
             cfg["system_message"]
@@ -350,6 +305,7 @@ async def dynamic_selector_func(thread):
         "charlie": "hilarious_agent",
         "alan": "moderator_agent",
         "albert": "creative_agent",
+        "fiona": "facilitator_agent",
         "giuseppe": "user_proxy",
     }
 
@@ -389,31 +345,24 @@ async def dynamic_selector_func(thread):
     focus_area = last_message.rsplit("xyz", 1)[0].strip()
     pattern = r'\b(' + '|'.join(map(re.escape, name_to_agent.keys())) + r')\b'
     matches = list(re.finditer(pattern, focus_area))
+    
 
     if not matches:
-        print("⚠️ No agent mentioned by moderator. Staying with Moderator.")
+        print("⚠️ No agent mentioned. Staying with Moderator.")
         return "moderator_agent"
-
-    # ✅ Find the last valid agent mentioned
-    for match in matches:
-
-        if len(matches) == 1:
-            match = matches[0]
-            name = match.group(1)
-            agent_id = name_to_agent.get(name)
-            if agent_id and agent_id != "moderator_agent":
-                print(f"✅ Moderator selected '{name}'. Routing to {agent_id}.")
-                return agent_id
-
-        if len(matches) >= 2:
-            match = matches[1]
-            name = match.group(1)
-            agent_id = name_to_agent.get(name)
-            if agent_id and agent_id != "moderator_agent":
-                print(f"✅ Moderator selected '{name}'. Routing to {agent_id}.")
-                return agent_id
-    print("⚠️ Moderator mentioned only user or moderator. Staying with Moderator.")
+    
+    # 🔁 Loop through matches in reverse to find the last valid agent
+    for match in reversed(matches):
+        name = match.group(1)  # Extract the matched name
+        agent_id = name_to_agent.get(name)
+        if agent_id and agent_id != "moderator_agent":
+            print(f"✅ Last mentioned agent: '{name}' → {agent_id}")
+            return agent_id
+    
+    # If only the moderator was mentioned
+    print("⚠️ Only moderator mentioned. Staying with Moderator.")
     return "moderator_agent"
+
 
 #print(dir(agents["user_proxy"]))
 #print(dir (team))
@@ -427,10 +376,12 @@ agent_config_ui = {}
 ##########################################################################################################
 ################################# Configuration File    ###################################################=
 def load_agent_config():
+    global CONFIG_FILE
     with open(CONFIG_FILE, "r") as f:
         return json.load(f)
 
 def save_agent_config(*args):
+    global CONFIG_FILE
     updated = {}
     idx = 0
     for name in agent_config_ui:
@@ -507,7 +458,7 @@ async def run_chat(team, websocket=None):
                 print("✅ Chat terminated.")
                 break
             
-            
+   
             
 @app.api_route("/", methods=["GET", "HEAD"])
 def root():
@@ -519,22 +470,17 @@ import traceback
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    global team, agents, agent_list, stop_execution, loaded_team_state, task1, user_message_queue
+    global team, agents, agent_list, stop_execution, loaded_team_state, task1, user_message_queue, CONFIG_FILE
 
     team = None
     stop_execution = False
     task1 = None  # 🆕 Debate topic will be set by user
+    agents = {}
+    agent_list = []
+    loaded_team_state = None
 
-    async def flush_queue(queue: asyncio.Queue):
-        while not queue.empty():
-            try:
-                queue.get_nowait()
-                queue.task_done()
-            except asyncio.QueueEmpty:
-                break
-
-    await flush_queue(user_message_queue)
-    await flush_queue(speech_queue)
+    speech_queue = asyncio.Queue()
+    user_message_queue = asyncio.Queue()
 
     await websocket.accept()
     try:
@@ -552,8 +498,8 @@ async def websocket_endpoint(websocket: WebSocket):
                 await websocket.send_text("⚠️ Please use the 'Set Topic' button to begin.")
 
         # 🔧 Load agents
-        name_to_agent_skill = extract_agent_skills(CONFIG_FILE)
-        agents = build_agents_from_config(CONFIG_FILE, name_to_agent_skill, model_clients_map)
+        name_to_agent_skill = extract_agent_skills()
+        agents = build_agents_from_config(name_to_agent_skill, model_clients_map)
 
 
 #####################################################################################################
@@ -588,15 +534,27 @@ async def websocket_endpoint(websocket: WebSocket):
 
         agents["user_proxy"] = UserProxyAgent(name="user_proxy", input_func=wrapped_input_func)
 
+#### This has  replaced the hard coded  agent_list 
+        print("📄 Loading agent list from:", CONFIG_FILE)
+        with open(CONFIG_FILE, "r") as f:
+            config = json.load(f)
+            agent_list = []
+            for json_key in config.keys():
+                if json_key in agents:
+                   agent_list.append(agents[json_key])
+
+        """
+        This has been replaced with automatic building of agent_list
         agent_list = [
             agents["moderator_agent"],
             agents["expert_1_agent"],
             agents["expert_2_agent"],
             agents["hilarious_agent"],
             agents["creative_agent"],
+            agents["facilitator_agent"],
             agents["user_proxy"],
         ]
-
+        """
         team = SelectorGroupChat(
             agent_list,
             model_client=model_client_openai,
