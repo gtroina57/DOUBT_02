@@ -154,7 +154,7 @@ model_client_gemini = OpenAIChatCompletionClient(
 
 #########################################################################################################
 ################################## Initialize variables   ##################################################
-CONFIG_FILE = "agent_config.json"
+CONFIG_FILE = None
 agents = {}
 agent_list = []
 team = None
@@ -192,7 +192,7 @@ async def speak_worker(websocket):
         "expert_2_agent": "ash",
         "hilarious_agent": "echo",
         "image_agent": "alloy",
-        "describe_agent": "fable",
+        "facilitator_agent": "fable",
         "creative_agent": "alloy",
         "user": "fable"
     }
@@ -259,8 +259,9 @@ with open(CONFIG_FILE, "r") as f:
     
 ##########################################################################################################
 ################################# Build name_to_agent_skill for introducing Agents #######################
-def extract_agent_skills(config_path):
-    with open(config_path, "r") as f:
+def extract_agent_skills():
+    global CONFIG_FILE
+    with open(CONFIG_FILE, "r") as f:
         config = json.load(f)
 
     skills = []
@@ -279,9 +280,10 @@ tool_lookup = {
 }
 ##########################################################################################################
 ################################# Build Agents from configuration  #######################################
-def build_agents_from_config(config_path, name_to_agent_skill, model_clients_map):
+def build_agents_from_config(name_to_agent_skill, model_clients_map):
     global task1
-    with open(config_path, "r") as f:
+    global CONFIG_FILE
+    with open(CONFIG_FILE, "r") as f:
         config = json.load(f)
 
     agents = {}
@@ -542,8 +544,8 @@ async def websocket_endpoint(websocket: WebSocket):
                 await websocket.send_text("⚠️ Please use the 'Set Topic' button to begin.")
 
         # 🔧 Load agents
-        name_to_agent_skill = extract_agent_skills(CONFIG_FILE)
-        agents = build_agents_from_config(CONFIG_FILE, name_to_agent_skill, model_clients_map)
+        name_to_agent_skill = extract_agent_skills()
+        agents = build_agents_from_config(name_to_agent_skill, model_clients_map)
 
 
 #####################################################################################################
