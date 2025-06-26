@@ -350,6 +350,7 @@ async def dynamic_selector_func(thread):
         "charlie": "hilarious_agent",
         "alan": "moderator_agent",
         "albert": "creative_agent",
+        "fiona": "facilitator_agent",
         "giuseppe": "user_proxy",
     }
 
