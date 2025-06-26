@@ -387,22 +387,20 @@ async def dynamic_selector_func(thread):
         return "moderator_agent"
 
     focus_area = last_message.rsplit("xyz", 1)[0].strip()
-    pattern = r'\b(' + '|'.join(map(re.escape, name_to_agent.keys())) + r')\b'
-    matches = list(re.finditer(pattern, focus_area))
-
+    pattern = r'\b' + '|'.join(map(re.escape, name_to_agent.keys())) + r'\b'
+    matches = list(re.finditer(pattern, focus_area, flags=re.IGNORECASE))
+    
     if not matches:
         print("⚠️ No agent mentioned. Staying with Moderator.")
         return "moderator_agent"
-
-    # 🔁 Loop through matches in reverse to find the last valid agent
+    
     for match in reversed(matches):
-        name = match.group(1)  # Extract the matched name
+        name = match.group(0)  # Matched agent name directly
         agent_id = name_to_agent.get(name)
         if agent_id and agent_id != "moderator_agent":
-            print(f"✅ Last mentioned agent: '{name}' → {agent_id}")
+            print(f"✅ Last mentioned valid agent: '{name}' → {agent_id}")
             return agent_id
     
-    # If only the moderator was mentioned
     print("⚠️ Only moderator mentioned. Staying with Moderator.")
     return "moderator_agent"
 
