@@ -117,7 +117,6 @@ print("✅ Environment cleared.")
 
 ############################ TEXT TO SPEECH  #########################################
 # Globals
-processed_messages = set()
 stop_execution = False
 speech_queue = asyncio.Queue()
 user_message_queue = asyncio.Queue()
@@ -466,7 +465,10 @@ async def websocket_endpoint(websocket: WebSocket):
     team = None
     stop_execution = False
     task1 = None  # 🆕 Debate topic will be set by user
-
+    speech_queue = asyncio.Queue()
+    user_message_queue = asyncio.Queue()
+    
+    """
     async def flush_queue(queue: asyncio.Queue):
         while not queue.empty():
             try:
@@ -477,7 +479,8 @@ async def websocket_endpoint(websocket: WebSocket):
 
     await flush_queue(user_message_queue)
     await flush_queue(speech_queue)
-
+    """
+    
     await websocket.accept()
     try:
         # ✳️ Wait for user to submit task1 before anything else
@@ -580,4 +583,12 @@ async def websocket_endpoint(websocket: WebSocket):
         traceback.print_exc()
         await websocket.send_text("⚠️ Internal server error during debate.")
 
-    
+    finally:
+        print("🧹 Cleaning up session state...")
+        stop_execution = True
+        team = None
+        task1 = None
+        agent_list = []
+        user_message_queue = asyncio.Queue()
+        speech_queue = asyncio.Queue()
+        await websocket.close(code=1001)
