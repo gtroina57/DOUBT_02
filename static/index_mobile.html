@@ -505,7 +505,14 @@ async function setConfig() {
   }
 }
     window.onload = () => {
-  fetchConfigFileList();
+  fetch("/reset", { method: "POST" })
+    .then(() => {
+      fetchConfigFileList();  // ← run this only after reset completes
+    })
+    .catch(err => {
+      log("❌ Reset failed: " + err);
+      fetchConfigFileList();  // ← still load config list to recover
+    });
 };
 
 

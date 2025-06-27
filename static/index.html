@@ -451,8 +451,15 @@ async function setConfig() {
 }
 
   window.onload = () => {
-     fetchConfigFileList();
-                         };
+  fetch("/reset", { method: "POST" })
+    .then(() => {
+      fetchConfigFileList();  // ← run this only after reset completes
+    })
+    .catch(err => {
+      log("❌ Reset failed: " + err);
+      fetchConfigFileList();  // ← still load config list to recover
+    });
+};
     
 // Prevent sending empty messages and enable button when there's content
     document.getElementById("messageInput").addEventListener("input", function () {
