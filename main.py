@@ -272,6 +272,7 @@ def build_agents_from_config(name_to_agent_skill, model_clients_map):
         print(f"✅ Initialized {len(agents)} agents for debate topic: {task1}")
     return agents
     
+    
 ##########################################################################################################
 ################################# Termination  ####################################
 text_mention_termination = TextMentionTermination("TERMINATE")
@@ -500,7 +501,16 @@ async def websocket_endpoint(websocket: WebSocket):
         name_to_agent_skill = extract_agent_skills()
         agents = build_agents_from_config(name_to_agent_skill, model_clients_map)
 
-
+        agents["selector_agent"] = AssistantAgent(
+            name="selector_agent",
+            system_message=(
+                "You are a debate coordinator. Based on the recent conversation, "
+                "choose the next agent to speak from this list: "
+                "moderator_agent, expert_1_agent, expert_2_agent, hilarious_agent, user_proxy. "
+                "Respond only with the agent name."
+            ),
+            model_client=model_client,
+            tools=tool_list)
 #################################################################################################################
 #################################################################################################################
 
@@ -582,19 +592,7 @@ async def websocket_endpoint(websocket: WebSocket):
         for json_key in config.keys():
             if json_key in agents:
                 agent_list.append(agents[json_key])
-          
         
-        
-        agents["selector_agent"] = AssistantAgent(
-            name="selector_agent",
-            system_message=(
-                "You are a debate coordinator. Based on the recent conversation, "
-                "choose the next agent to speak from this list: "
-                "moderator_agent, expert_1_agent, expert_2_agent, hilarious_agent, user_proxy. "
-                "Respond only with the agent name."
-            ),
-            llm_config={"model": "gpt-4o-2024-08-06"}  # or pass `model_client_openai` if you prefer
-        )
         
         team = SelectorGroupChat(
             agent_list,
