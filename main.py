@@ -278,8 +278,8 @@ def build_agents_from_config(name_to_agent_skill, model_clients_map):
             description="You are a selector agent.",
             model_client=model_client_openai,
             tools=tool_list)
-    agents[name] = selector_agent
-    
+
+    agents["selector_agent"] = selector_agent
     return agents
     
 ##########################################################################################################
