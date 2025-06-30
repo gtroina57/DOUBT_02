@@ -270,6 +270,17 @@ def build_agents_from_config(name_to_agent_skill, model_clients_map):
 
         agents[name] = agent
         print(f"✅ Initialized {len(agents)} agents for debate topic: {task1}")
+    
+    agents["selector_agent"] = AssistantAgent(
+        name="selector_agent",
+        system_message=(
+            "You are a debate coordinator. Based on the recent conversation, "
+            "choose the next agent to speak from this list: "
+            "moderator_agent, expert_1_agent, expert_2_agent, hilarious_agent, user_proxy. "
+            "Respond only with the agent name."
+        ),
+        model_client=model_client_openai,
+        tools=tool_list)
     return agents
     
     
@@ -501,16 +512,7 @@ async def websocket_endpoint(websocket: WebSocket):
         name_to_agent_skill = extract_agent_skills()
         agents = build_agents_from_config(name_to_agent_skill, model_clients_map)
 
-        agents["selector_agent"] = AssistantAgent(
-            name="selector_agent",
-            system_message=(
-                "You are a debate coordinator. Based on the recent conversation, "
-                "choose the next agent to speak from this list: "
-                "moderator_agent, expert_1_agent, expert_2_agent, hilarious_agent, user_proxy. "
-                "Respond only with the agent name."
-            ),
-            model_client=model_client,
-            tools=tool_list)
+        
 #################################################################################################################
 #################################################################################################################
 
