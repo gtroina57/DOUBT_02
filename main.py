@@ -402,13 +402,19 @@ async def llm_selector_func(messages, agents) -> list:
         
 def build_selector_func(agents):
     async def selector_func(thread):
-        # Convert Message objects to dicts (if needed)
-        messages = [
-            {"role": msg.role, "name": msg.source, "content": msg.content}
-            for msg in thread
-        ]
+        # Convert thread (TextMessage list) into OpenAI-style message dicts
+        messages = []
+        for msg in thread:
+            sender = msg.source
+            role = "user" if sender == "user_proxy" else "assistant"
+            messages.append({
+                "role": role,
+                "name": sender,
+                "content": msg.content
+            })
+
         result = await llm_selector_func(messages, agents)
-        return result[0].name  # AutoGen expects just the agent name here
+        return result[0].name  # Must return the name of the agent
     return selector_func
 
 #####################################################################################################
