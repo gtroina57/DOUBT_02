@@ -602,14 +602,11 @@ async def websocket_endpoint(websocket: WebSocket):
             if json_key in agents:
                 agent_list.append(agents[json_key])
                 
-                
-        
-        selector_func = build_selector_func(agents)        
         
         team = SelectorGroupChat(
             agent_list,
             model_client=model_client_openai,
-            selector_func=build_selector_func,
+            selector_func=build_selector_func(agents),
             termination_condition=termination,
             allow_repeated_speaker=True,
         )
