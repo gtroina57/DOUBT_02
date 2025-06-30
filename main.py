@@ -21,9 +21,9 @@ from autogen_agentchat.teams import SelectorGroupChat
 from autogen_agentchat.messages import HandoffMessage
 from autogen_agentchat.teams import Swarm
 from autogen_core.tools import FunctionTool
+from autogen import Message  # make sure this is imported
 from typing import Sequence
 from typing import Any, Dict, List
-
 import playwright
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from openai import OpenAI
@@ -372,40 +372,41 @@ async def dynamic_selector_func(thread):
 
 def build_selector_func(agents):
     async def llm_selector_func(thread):
-        # Extract last 6 messages (adjust window if needed)
+        # Prepare messages as TextMessage objects
         messages = []
         for msg in thread[-6:]:
             role = "user" if msg.source == "user_proxy" else "assistant"
-            messages.append({
-                "role": role,
-                "name": msg.source,
-                "content": msg.content
-            })
-
-        # Add explicit instruction for unambiguous output
-        messages.append({
-            "role": "user",
-            "content": (
-                "Based on the above discussion, who should speak next?\n"
-                "Choose only one of: moderator_agent, expert_1_agent, expert_2_agent, hilarious_agent, facilitator_agent, user_proxy.\n"
-                "Reply with the exact format: Next speaker is AGENT_NAME.\n"
-                "Do not mention any other agent names."
+            messages.append(
+                Message(role=role, content=msg.content, name=msg.source)
             )
-        })
+        
+        # Instruction for the selector agent
+        messages.append(
+            Message(
+                role="user",
+                content=(
+                    "Based on the above discussion, who should speak next?\n"
+                    "Choose only one of: moderator_agent, expert_1_agent, expert_2_agent, hilarious_agent, facilitator_agent, user_proxy.\n"
+                    "Reply with the exact format: Next speaker is AGENT_NAME.\n"
+                    "Do not mention any other agent names."
+                ),
+            )
+        )
 
-        # Run the selector agent (AssistantAgent)
+        # Run the selector agent
         result = await agents["selector_agent"].run(task=messages)
         selector_response = result.chat_history[-1].content.strip()
+        print(f"🔍 Selector response: {selector_response}")
 
         # Extract agent name using regex
         match = re.search(r"next speaker is (\w+)", selector_response.lower())
         if match:
             selected_name = match.group(1)
             if selected_name in agents:
-                return selected_name
+                return [agents[selected_name]]
 
         print(f"⚠️ Unexpected selector output: {selector_response}")
-        return "moderator_agent"  # fallback
+        return [agents["moderator_agent"]]  # fallback
 
     return llm_selector_func
 
