@@ -235,7 +235,7 @@ def build_agents_from_config(name_to_agent_skill, model_clients_map):
 
     agents = {}
     for name, cfg in config.items():
-        if name == "proxy_agent":
+        if name == "user_proxy":
             continue  # Skip creating an AssistantAgent for the user_proxy
         sys_msg = (
             cfg["system_message"]
@@ -271,18 +271,16 @@ def build_agents_from_config(name_to_agent_skill, model_clients_map):
         agents[name] = agent
         print(f"✅ Initialized {len(agents)} agents for debate topic: {task1}")
     
-    agents["selector_agent"] = AssistantAgent(
-        name="selector_agent",
-        system_message=(
-            "You are a debate coordinator. Based on the recent conversation, "
-            "choose the next agent to speak from this list: "
-            "moderator_agent, expert_1_agent, expert_2_agent, hilarious_agent, user_proxy. "
-            "Respond only with the agent name."
-        ),
-        model_client=model_client_openai,
-        tools=tool_list)
-    return agents
     
+    selector_agent = AssistantAgent(
+            name="selector_agent",
+            system_message="You are a selector agent. Your role is to choose the next speaker in a debate. Follow strict formatting instructions and never mention more than one agent.",
+            description="You are a selector agent.",
+            model_client=model_client_openai,
+            tools=tool_list)
+    agents[name] = selector_agent
+    
+    return agents
     
 ##########################################################################################################
 ################################# Termination  ####################################
@@ -369,55 +367,49 @@ async def dynamic_selector_func(thread):
 #print(dir(agents["user_proxy"]))
 #print(dir (team))
 #print(help (team))
-#################################################################################################################
+####################################################################################################
+####################################################################################################
 
-async def llm_selector_func(messages, agents) -> list:
-        # Prepare prompt using recent chat
-        recent_messages = messages[-4:]  # Adjust window as needed
-    
-        prompt = [
-            {"role": "system", "content": "You are selecting the next speaker in a debate."},
-            *recent_messages,
-            {"role": "user", "content": (
-                "Based on the above discussion, who should speak next?\n"
-                "Choose only one: moderator_agent, expert_1_agent, expert_2_agent, hilarious_agent, user_proxy.\n"
-                "Just reply with the agent name."
-            )}
-        ]
-        
-        
-        
-        
-        # Ask the selector agent (LLM-powered)
-        selector_response = await agents["selector_agent"].generate_reply(messages=prompt)
-    
-        selected_name = selector_response.strip().split()[0]  # Take only first word
-    
-        # Safety fallback
-        if selected_name in agents:
-            return [agents[selected_name]]
-        else:
-            print(f"⚠️ Unexpected selector output: {selector_response}")
-            return [agents["moderator_agent"]]
-        
 def build_selector_func(agents):
-    async def selector_func(thread):
-        # Convert thread (TextMessage list) into OpenAI-style message dicts
+    async def llm_selector_func(thread):
+        # Extract last 6 messages (adjust window if needed)
         messages = []
-        for msg in thread:
-            sender = msg.source
-            role = "user" if sender == "user_proxy" else "assistant"
+        for msg in thread[-6:]:
+            role = "user" if msg.source == "user_proxy" else "assistant"
             messages.append({
                 "role": role,
-                "name": sender,
+                "name": msg.source,
                 "content": msg.content
             })
 
-        result = await llm_selector_func(messages, agents)
-        return result[0].name  # Must return the name of the agent
-    return selector_func
+        # Add explicit instruction for unambiguous output
+        messages.append({
+            "role": "user",
+            "content": (
+                "Based on the above discussion, who should speak next?\n"
+                "Choose only one of: moderator_agent, expert_1_agent, expert_2_agent, hilarious_agent, facilitator_agent, user_proxy.\n"
+                "Reply with the exact format: Next speaker is AGENT_NAME.\n"
+                "Do not mention any other agent names."
+            )
+        })
 
-#####################################################################################################
+        # Run the selector agent (AssistantAgent)
+        result = await agents["selector_agent"].run(task=messages)
+        selector_response = result.chat_history[-1].content.strip()
+
+        # Extract agent name using regex
+        match = re.search(r"next speaker is (\w+)", selector_response.lower())
+        if match:
+            selected_name = match.group(1)
+            if selected_name in agents:
+                return selected_name
+
+        print(f"⚠️ Unexpected selector output: {selector_response}")
+        return "moderator_agent"  # fallback
+
+    return llm_selector_func
+
+
 ####################################################################################################
 user_conversation = []
 gradio_input_buffer = {"message": None}
@@ -560,8 +552,6 @@ async def websocket_endpoint(websocket: WebSocket):
         name_to_agent_skill = extract_agent_skills()
         agents = build_agents_from_config(name_to_agent_skill, model_clients_map)
 
-        
-#################################################################################################################
 
 #####################################################################################################
         async def websocket_listener(websocket):
@@ -592,7 +582,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     if msg and msg.strip():
                         return msg         
 
-
+        
         agents["user_proxy"] = UserProxyAgent(name="user_proxy", input_func=wrapped_input_func)
         """
         agent_list = [
@@ -611,14 +601,15 @@ async def websocket_endpoint(websocket: WebSocket):
         for json_key in config.keys():
             if json_key in agents:
                 agent_list.append(agents[json_key])
+                
+                
         
-        
-        selector_func = build_selector_func(agents)
+        selector_func = build_selector_func(agents)        
         
         team = SelectorGroupChat(
             agent_list,
             model_client=model_client_openai,
-            selector_func=selector_func,
+            selector_func=build_selector_func,
             termination_condition=termination,
             allow_repeated_speaker=True,
         )
