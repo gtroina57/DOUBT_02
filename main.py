@@ -501,6 +501,39 @@ async def websocket_endpoint(websocket: WebSocket):
         agents = build_agents_from_config(name_to_agent_skill, model_clients_map)
 
 
+#################################################################################################################
+#################################################################################################################
+
+        async def llm_selector_func(messages, agents) -> list:
+                # Prepare prompt using recent chat
+                recent_messages = messages[-4:]  # Adjust window as needed
+            
+                prompt = [
+                    {"role": "system", "content": "You are selecting the next speaker in a debate."},
+                    *recent_messages,
+                    {"role": "user", "content": (
+                        "Based on the above discussion, who should speak next?\n"
+                        "Choose only one: moderator_agent, expert_1_agent, expert_2_agent, hilarious_agent, user_proxy.\n"
+                        "Just reply with the agent name."
+                    )}
+                ]
+                
+                
+                
+                
+                # Ask the selector agent (LLM-powered)
+                selector_response = await agents["selector_agent"].generate_reply(messages=prompt)
+            
+                selected_name = selector_response.strip().split()[0]  # Take only first word
+            
+                # Safety fallback
+                if selected_name in agents:
+                    return [agents[selected_name]]
+                else:
+                    print(f"⚠️ Unexpected selector output: {selector_response}")
+                    return [agents["moderator_agent"]]
+
+#####################################################################################################
 #####################################################################################################
         async def websocket_listener(websocket):
             global user_message_queue
@@ -549,11 +582,24 @@ async def websocket_endpoint(websocket: WebSocket):
         for json_key in config.keys():
             if json_key in agents:
                 agent_list.append(agents[json_key])
-                
+          
+        
+        
+        agents["selector_agent"] = AssistantAgent(
+            name="selector_agent",
+            system_message=(
+                "You are a debate coordinator. Based on the recent conversation, "
+                "choose the next agent to speak from this list: "
+                "moderator_agent, expert_1_agent, expert_2_agent, hilarious_agent, user_proxy. "
+                "Respond only with the agent name."
+            ),
+            llm_config={"model": "gpt-4o-2024-08-06"}  # or pass `model_client_openai` if you prefer
+        )
+        
         team = SelectorGroupChat(
             agent_list,
             model_client=model_client_openai,
-            selector_func=dynamic_selector_func,
+            selector_func=llm_selector_func,
             termination_condition=termination,
             allow_repeated_speaker=True,
         )
