@@ -399,6 +399,17 @@ async def llm_selector_func(messages, agents) -> list:
         else:
             print(f"⚠️ Unexpected selector output: {selector_response}")
             return [agents["moderator_agent"]]
+        
+def build_selector_func(agents):
+    async def selector_func(thread):
+        # Convert Message objects to dicts (if needed)
+        messages = [
+            {"role": msg.role, "name": msg.source, "content": msg.content}
+            for msg in thread
+        ]
+        result = await llm_selector_func(messages, agents)
+        return result[0].name  # AutoGen expects just the agent name here
+    return selector_func
 
 #####################################################################################################
 ####################################################################################################
@@ -596,10 +607,12 @@ async def websocket_endpoint(websocket: WebSocket):
                 agent_list.append(agents[json_key])
         
         
+        selector_func = build_selector_func(agents)
+        
         team = SelectorGroupChat(
             agent_list,
             model_client=model_client_openai,
-            selector_func=llm_selector_func,
+            selector_func=selector_func,
             termination_condition=termination,
             allow_repeated_speaker=True,
         )
