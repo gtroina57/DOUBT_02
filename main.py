@@ -270,6 +270,15 @@ def build_agents_from_config(name_to_agent_skill, model_clients_map):
 
         agents[name] = agent
         print(f"✅ Initialized {len(agents)} agents for debate topic: {task1}")
+    
+    agent = AssistantAgent(
+        name=name,
+        description="selector_agent",
+        system_message="You are a selector agent and you decide who should speak next",
+        model_client=model_client.openai,
+        tools=tool_list)
+    
+    agents["selector_agent"] = agent
     return agents
     
 ##########################################################################################################
@@ -363,8 +372,33 @@ user_conversation = []
 gradio_input_buffer = {"message": None}
 agent_config_ui = {}
 
+###########################################################################################################
+############################    Selector Prompt Function   ################################################
+async def llm_selector_func(thread):
+    prompt = ""
+    for msg in thread[-6:]:
+        role = "User" if msg.source == "user_proxy" else msg.source
+        prompt += f"{role}: {msg.content.strip()}\n"
+
+    prompt += (
+        "\nWho should speak next?\n"
+        "Choose only one of: moderator_agent, expert_1_agent, expert_2_agent, hilarious_agent, facilitator_agent, user_proxy.\n"
+        "Reply with the exact format: Next speaker is agent_name."
+    )
+
+    result = await agents["selector_agent"].run(task=prompt)
+    selector_response = result.messages[-1] 
+    
+    match = re.search(r"next speaker is (\w+)", selector_response.content.lower().strip())
+    if match:
+        selected_name = match.group(1)
+        if selected_name in agents:
+            return selected_name
+
+    print(f"⚠️ Unexpected selector output: {selector_response}")
+    return "moderator_agent"
 ##########################################################################################################
-################################# Configuration File    ###################################################=
+################################# Configuration File    ##################################################
 def load_agent_config():
     global CONFIG_FILE
     with open(CONFIG_FILE, "r") as f:
@@ -553,7 +587,7 @@ async def websocket_endpoint(websocket: WebSocket):
         team = SelectorGroupChat(
             agent_list,
             model_client=model_client_openai,
-            selector_func=dynamic_selector_func,
+            selector_func=llm_selector_func,
             termination_condition=termination,
             allow_repeated_speaker=True,
         )
