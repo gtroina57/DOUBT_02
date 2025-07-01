@@ -422,8 +422,8 @@ async def llm_selector_func(thread):
         result = await agents["selector_agent"].run(task=prompt)
 
         # Extract final response
-        selector_response = result.messages.strip()
-
+        selector_response = result.messages
+        print (selector_response)
         # Use regex to extract valid agent name
         match = re.search(r"next speaker is (\w+)", selector_response.lower())
         if match:
