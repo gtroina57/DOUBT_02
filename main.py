@@ -413,7 +413,8 @@ async def llm_selector_func(thread):
             "Choose only one of: moderator_agent, expert_1_agent, expert_2_agent, hilarious_agent, facilitator_agent, user_proxy.\n"
             "Reply with the exact format: Next speaker is AGENT_NAME."
         )
-        
+        print("🧪 Selector prompt:\n", prompt)
+        print("✅ Type of prompt:", type(prompt))
         # ✅ Convert to BaseChatMessages
         #task_messages = convert_to_messages(raw_messages)
 
