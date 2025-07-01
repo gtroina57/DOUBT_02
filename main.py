@@ -422,15 +422,19 @@ async def llm_selector_func(thread):
         result = await agents["selector_agent"].run(task=prompt)
 
         # Extract final response
+        print ("I AM HERE HERE HERE")
         selector_response = result.messages
         print (selector_response)
+        
+    
+        """
         # Use regex to extract valid agent name
         match = re.search(r"next speaker is (\w+)", selector_response.lower())
         if match:
             selected_name = match.group(1)
             if selected_name in agents:
                 return selected_name
-
+        """
         # Fallback
         print(f"⚠️ Unexpected selector output: {selector_response}")
         return "moderator_agent"
