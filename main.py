@@ -382,7 +382,8 @@ You are the Selector agent following strictly the instructions of the moderator 
 async def llm_selector_func(thread):
         # Select last N messages to provide context (e.g., 6)
         recent = thread[-6:]
-
+        
+        """
         # Build raw dict-style messages
         raw_messages = []
         for msg in recent:
@@ -402,12 +403,23 @@ async def llm_selector_func(thread):
                 "Reply with the exact format: Next speaker is AGENT_NAME."
             )
         })
-
+        """
+        
+        prompt = ""
+        for msg in thread[-6:]:
+            role = "User" if msg.source == "user_proxy" else msg.source
+            prompt += f"{role}: {msg.content.strip()}\n"
+        prompt += (
+            "\nWho should speak next?\n"
+            "Choose only one of: moderator_agent, expert_1_agent, expert_2_agent, hilarious_agent, facilitator_agent, user_proxy.\n"
+            "Reply with the exact format: Next speaker is AGENT_NAME."
+        )
+        
         # ✅ Convert to BaseChatMessages
-        task_messages = convert_to_messages(raw_messages)
+        #task_messages = convert_to_messages(raw_messages)
 
         # Ask the selector agent to decide
-        result = await agents["selector_agent"].run(task=task_messages)
+        result = await agents["selector_agent"].run(task=prompt)
 
         # Extract final response
         selector_response = result.chat_history[-1].content.strip()
