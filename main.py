@@ -275,7 +275,7 @@ def build_agents_from_config(name_to_agent_skill, model_clients_map):
         name=name,
         description="selector_agent",
         system_message="You are a selector agent and you decide who should speak next",
-        model_client=model_client.openai,
+        model_client=model_client_openai,
         tools=tool_list)
     
     agents["selector_agent"] = agent
