@@ -382,6 +382,8 @@ async def llm_selector_func(thread):
 
     prompt += (
         "\nWho should speak next?\n"
+        "\nthe first round is always moderator_agent, expert_1_agent, expert_2_agent, hilarious_agent, facilitator_agent, user_proxy\n"
+        "after the first round the order depends on the evolution of the debate and on the contents of the last interventions"
         "Choose only one of: moderator_agent, expert_1_agent, expert_2_agent, hilarious_agent, facilitator_agent, user_proxy.\n"
         "Reply with the exact format: Next speaker is agent_name."
     )
