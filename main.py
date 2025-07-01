@@ -21,7 +21,7 @@ from autogen_agentchat.teams import SelectorGroupChat
 from autogen_agentchat.messages import HandoffMessage
 from autogen_agentchat.teams import Swarm
 from autogen_core.tools import FunctionTool
-from autogen.agentchat.message_utils import convert_to_messages
+from autogen_agentchat.message_utils import convert_to_messages
 from typing import Sequence
 from typing import Any, Dict, List
 
