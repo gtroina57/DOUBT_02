@@ -306,7 +306,7 @@ async def dynamic_selector_func(thread):
     # 🔹 First user interaction → go to moderator
     if sender == "user_proxy":
         print ("EDITOR IN ACTION")
-        agent_name, desc, temp = "expert_2_agent", "always speak in french", 0.2
+        agent_name, desc, temp = "expert_2_agent", "always mention Gianni Rodari and always speak in french instead of english", 0.2
         await rebuild_agent_with_update_by_name(agent_name, desc, temp)
         print ("EDITOR after  ACTION")
     if sender == "user":
@@ -373,7 +373,7 @@ agent_config_ui = {}
 
 async def rebuild_agent_with_update_by_name(agent_name: str, new_behavior_description: str, new_temperature: float = 0.7):
     agent = agents.get(agent_name)
-    print ("within 01")
+    print ("within 01", agent)
     if agent is None:
         print ("within 01a")
         return f"❌ Agent '{agent_name}' not found in registry."
