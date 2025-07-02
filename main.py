@@ -270,15 +270,6 @@ def build_agents_from_config(name_to_agent_skill, model_clients_map):
 
         agents[name] = agent
         print(f"✅ Initialized {len(agents)} agents for debate topic: {task1}")
-    
-    agent = AssistantAgent(
-        name=name,
-        description="selector_agent",
-        system_message="You are a selector agent and you decide who should speak next",
-        model_client=model_client_openai,
-        tools=tool_list)
-    
-    agents["selector_agent"] = agent
     return agents
     
 ##########################################################################################################
@@ -313,6 +304,11 @@ async def dynamic_selector_func(thread):
     }
 
     # 🔹 First user interaction → go to moderator
+    if sender == "user_proxy":
+        print ("EDITOR IN ACTION")
+        agent_name, desc, temp = "expert_2_agent, ""always speak in french", 0.2
+        await rebuild_agent_with_update_by_name(agent_name, desc, temp)
+    
     if sender == "user":
         print("👤 User input detected. Moderator takes over.")
         return "moderator_agent"
@@ -373,35 +369,64 @@ gradio_input_buffer = {"message": None}
 agent_config_ui = {}
 
 ###########################################################################################################
-############################    Selector Prompt Function   ################################################
-async def llm_selector_func(thread):
-    prompt = ""
-    for msg in thread[-6:]:
-        role = "User" if msg.source == "user_proxy" else msg.source
-        prompt += f"{role}: {msg.content.strip()}\n"
+################################# Rebuild team and agent status ###########################################
 
-    prompt += (
-        "\nWho should speak next?\n"
-        "\n The sequence of the first round is always moderator_agent, expert_1_agent, expert_2_agent, hilarious_agent, facilitator_agent, user_proxy\n"
-        "After the first round the order depends on the evolution of the debate and on the contents of the last interventions"
-        "Do not choose the same participant twice consecutively"
-        "Choose only one of: moderator_agent, expert_1_agent, expert_2_agent, hilarious_agent, facilitator_agent, user_proxy.\n"
-        "Reply with the exact format: Next speaker is agent_name."
+async def rebuild_agent_with_update_by_name(agent_name: str, new_behavior_description: str, new_temperature: float = 0.7):
+    global agents, team, agent_list
+
+    old_agent = agents.get(agent_name)
+    if old_agent is None:
+        return "❌ Agent not found."
+
+    model_client = model_client_openai if agent_name.startswith("expert") or agent_name == "moderator_agent" else model_client_gemini
+    if model_client is None:
+        return f"❌ No model client for '{agent_name}'."
+
+    updated_sys_msg = new_behavior_description.strip()
+
+    # 🔁 Create new agent with new behavior
+    replacement_agent = AssistantAgent(
+        name=agent_name,
+        model_client=model_client,
+        description=old_agent.description,
+        system_message=updated_sys_msg,
+        tools=getattr(old_agent, "tools", []),
     )
-
-    result = await agents["selector_agent"].run(task=prompt)
-    selector_response = result.messages[-1] 
     
-    match = re.search(r"next speaker is (\w+)", selector_response.content.lower().strip())
-    if match:
-        selected_name = match.group(1)
-        if selected_name in agents:
-            return selected_name
+    
+    # 🔄 Preserve internal agent state
+    state_keys = ["chat_history", "next_possible_messages", "last_message", "_reply_func", "_reply_func_with_timeout"]
+    for key in state_keys:
+        if hasattr(old_agent, key):
+            setattr(replacement_agent, key, getattr(old_agent, key))
 
-    print(f"⚠️ Unexpected selector output: {selector_response}")
-    return "moderator_agent"
+    agents[agent_name] = replacement_agent
+    print(f"🔁 '{agent_name}' updated and state preserved.")
+
+    if team is not None:
+        participating_names = [a.name for a in team.agent_list]
+        if agent_name in participating_names:
+            print(f"🧠 Saving team state...")
+            team_state = await team.save_state(return_state_dict=True)
+
+            agent_list = [agents[name] for name in participating_names]
+            new_team = SelectorGroupChat(
+                agent_list=agent_list,
+                model_client=model_client_openai,
+                selector_func=dynamic_selector_func,
+                termination_condition=termination,
+                allow_repeated_speaker=True,
+            )
+
+            await new_team.load_state(team_state)
+            team = new_team
+
+            return f"✅ '{agent_name}' updated with preserved state, and team rebuilt."
+        else:
+            return f"✅ '{agent_name}' updated (not in team)."
+    return f"✅ '{agent_name}' updated (no active team)."
 ##########################################################################################################
-################################# Configuration File    ##################################################
+################################# Configuration File    ###################################################=
 def load_agent_config():
     global CONFIG_FILE
     with open(CONFIG_FILE, "r") as f:
@@ -590,7 +615,7 @@ async def websocket_endpoint(websocket: WebSocket):
         team = SelectorGroupChat(
             agent_list,
             model_client=model_client_openai,
-            selector_func=llm_selector_func,
+            selector_func=dynamic_selector_func,
             termination_condition=termination,
             allow_repeated_speaker=True,
         )
