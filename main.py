@@ -380,7 +380,7 @@ async def rebuild_agent_with_update_by_name(agent_name: str, new_behavior_descri
 
 
     # 🎯 Use the correct model client (you can adjust logic if needed)
-    model_client = model_client_openai if agent_name == "expert_1_agent" else None
+    model_client = model_client_gemini if agent_name == "expert_2_agent" else model_client_openai
     if model_client is None:
         print ("within 01b")
         return f"❌ No model client defined for {agent_name}."
