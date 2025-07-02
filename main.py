@@ -371,7 +371,7 @@ agent_config_ui = {}
 ###########################################################################################################
 ################################# Rebuild team and agent status ###########################################
 
-def rebuild_agent_with_update_by_name(agent_name: str, new_behavior_description: str, new_temperature: float = 0.7):
+async def rebuild_agent_with_update_by_name(agent_name: str, new_behavior_description: str, new_temperature: float = 0.7):
     agent = agents.get(agent_name)
     if agent is None:
         return f"❌ Agent '{agent_name}' not found in registry."
