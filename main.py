@@ -404,20 +404,8 @@ async def rebuild_agent_with_update_by_name(agent_name: str, new_behavior_descri
     print(f"🔁 '{agent_name}' updated and state preserved.")
 
     if team is not None:
-        team_state = await team.save_state(return_state_dict=True)
         
-        new_team = SelectorGroupChat(
-            agent_list,
-            model_client=model_client_openai,
-            selector_func=dynamic_selector_func,
-            termination_condition=termination,
-            allow_repeated_speaker=True,
-        )
-
-        await new_team.load_state(team_state)
-        team = new_team
-        """
-        participating_names = [a.name for a in team.agent_list]
+        participating_names = [a.name for a in team.get_agents()]
         if agent_name in participating_names:
             print(f"🧠 Saving team state...")
             team_state = await team.save_state(return_state_dict=True)
@@ -437,7 +425,7 @@ async def rebuild_agent_with_update_by_name(agent_name: str, new_behavior_descri
             return f"✅ '{agent_name}' updated with preserved state, and team rebuilt."
         else:
             return f"✅ '{agent_name}' updated (not in team)."
-        """
+        
     return f"✅ '{agent_name}' updated (no active team)."
 ##########################################################################################################
 ################################# Configuration File    ###################################################=
