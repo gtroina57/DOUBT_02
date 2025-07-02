@@ -411,7 +411,7 @@ async def rebuild_agent_with_update_by_name(agent_name: str, new_behavior_descri
 
             agent_list = [agents[name] for name in participating_names]
             new_team = SelectorGroupChat(
-                agent_list=agent_list,
+                agent_list,
                 model_client=model_client_openai,
                 selector_func=dynamic_selector_func,
                 termination_condition=termination,
