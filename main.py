@@ -308,7 +308,7 @@ async def dynamic_selector_func(thread):
         print ("EDITOR IN ACTION")
         agent_name, desc, temp = "expert_2_agent", "always speak in french", 0.2
         await rebuild_agent_with_update_by_name(agent_name, desc, temp)
-    
+        print ("EDITOR after  ACTION")
     if sender == "user":
         print("👤 User input detected. Moderator takes over.")
         return "moderator_agent"
@@ -373,6 +373,7 @@ agent_config_ui = {}
 
 async def rebuild_agent_with_update_by_name(agent_name: str, new_behavior_description: str, new_temperature: float = 0.7):
     agent = agents.get(agent_name)
+    print ("within 01")
     if agent is None:
         return f"❌ Agent '{agent_name}' not found in registry."
 
@@ -381,9 +382,9 @@ async def rebuild_agent_with_update_by_name(agent_name: str, new_behavior_descri
     model_client = model_client_openai if agent_name == "expert_1_agent" else None
     if model_client is None:
         return f"❌ No model client defined for {agent_name}."
-
+    
     updated_sys_msg = f"{new_behavior_description.strip()}\n\n"
-
+    print ("within 02",  updated_sys_msg)
     replacement_agent = AssistantAgent(
         name=agent.name,
         model_client=model_client,
@@ -396,6 +397,7 @@ async def rebuild_agent_with_update_by_name(agent_name: str, new_behavior_descri
     for key, value in replacement_agent.__dict__.items():
         if key not in preserve_keys:
             setattr(agent, key, value)
+            print ("within 03")
 
     print(f"🔄 System message updated for '{agent.name}':\n{updated_sys_msg}")
     return f"✅ {agent.name}'s mindset updated."
