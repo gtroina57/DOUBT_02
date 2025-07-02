@@ -375,14 +375,16 @@ async def rebuild_agent_with_update_by_name(agent_name: str, new_behavior_descri
     agent = agents.get(agent_name)
     print ("within 01")
     if agent is None:
+        print ("within 01a")
         return f"❌ Agent '{agent_name}' not found in registry."
 
 
     # 🎯 Use the correct model client (you can adjust logic if needed)
     model_client = model_client_openai if agent_name == "expert_1_agent" else None
     if model_client is None:
+        print ("within 01b")
         return f"❌ No model client defined for {agent_name}."
-    
+    print ("within 01c")
     updated_sys_msg = f"{new_behavior_description.strip()}\n\n"
     print ("within 02",  updated_sys_msg)
     replacement_agent = AssistantAgent(
