@@ -371,62 +371,35 @@ agent_config_ui = {}
 ###########################################################################################################
 ################################# Rebuild team and agent status ###########################################
 
-async def rebuild_agent_with_update_by_name(agent_name: str, new_behavior_description: str, new_temperature: float = 0.7):
-    global agents, team, agent_list
+def rebuild_agent_with_update_by_name(agent_name: str, new_behavior_description: str, new_temperature: float = 0.7):
+    agent = agents.get(agent_name)
+    if agent is None:
+        return f"❌ Agent '{agent_name}' not found in registry."
 
-    old_agent = agents.get(agent_name)
-    if old_agent is None:
-        return "❌ Agent not found."
 
-    model_client = model_client_openai if agent_name.startswith("expert") or agent_name == "moderator_agent" else model_client_gemini
+    # 🎯 Use the correct model client (you can adjust logic if needed)
+    model_client = model_client_openai if agent_name == "expert_1_agent" else None
     if model_client is None:
-        return f"❌ No model client for '{agent_name}'."
+        return f"❌ No model client defined for {agent_name}."
 
-    updated_sys_msg = new_behavior_description.strip()
+    updated_sys_msg = f"{new_behavior_description.strip()}\n\n"
 
-    # 🔁 Create new agent with new behavior
     replacement_agent = AssistantAgent(
-        name=agent_name,
+        name=agent.name,
         model_client=model_client,
-        description=old_agent.description,
+        description=agent.description,
         system_message=updated_sys_msg,
-        tools=getattr(old_agent, "tools", []),
+        tools=getattr(agent, "tools", []),
     )
-    
-    
-    # 🔄 Preserve internal agent state
-    state_keys = ["chat_history", "next_possible_messages", "last_message", "_reply_func", "_reply_func_with_timeout"]
-    for key in state_keys:
-        if hasattr(old_agent, key):
-            setattr(replacement_agent, key, getattr(old_agent, key))
 
-    agents[agent_name] = replacement_agent
-    print(f"🔁 '{agent_name}' updated and state preserved.")
+    preserve_keys = {"name", "model_client", "description", "tools"}
+    for key, value in replacement_agent.__dict__.items():
+        if key not in preserve_keys:
+            setattr(agent, key, value)
 
-    if team is not None:
-        
-        participating_names = [a.name for a in team.get_agents()]
-        if agent_name in participating_names:
-            print(f"🧠 Saving team state...")
-            team_state = await team.save_state(return_state_dict=True)
+    print(f"🔄 System message updated for '{agent.name}':\n{updated_sys_msg}")
+    return f"✅ {agent.name}'s mindset updated."
 
-            agent_list = [agents[name] for name in participating_names]
-            new_team = SelectorGroupChat(
-                agent_list,
-                model_client=model_client_openai,
-                selector_func=dynamic_selector_func,
-                termination_condition=termination,
-                allow_repeated_speaker=True,
-            )
-
-            await new_team.load_state(team_state)
-            team = new_team
-
-            return f"✅ '{agent_name}' updated with preserved state, and team rebuilt."
-        else:
-            return f"✅ '{agent_name}' updated (not in team)."
-        
-    return f"✅ '{agent_name}' updated (no active team)."
 ##########################################################################################################
 ################################# Configuration File    ###################################################=
 def load_agent_config():
