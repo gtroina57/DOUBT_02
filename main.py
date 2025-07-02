@@ -306,7 +306,7 @@ async def dynamic_selector_func(thread):
     # 🔹 First user interaction → go to moderator
     if sender == "user_proxy":
         print ("EDITOR IN ACTION")
-        agent_name, desc, temp = "expert_2_agent, ""always speak in french", 0.2
+        agent_name, desc, temp = "expert_2_agent, "always speak in french", 0.2
         await rebuild_agent_with_update_by_name(agent_name, desc, temp)
     
     if sender == "user":
