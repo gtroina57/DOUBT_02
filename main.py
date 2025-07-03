@@ -276,7 +276,7 @@ def build_agents_from_config(name_to_agent_skill, model_clients_map):
 ##########################################################################################################
 ################################# Termination  ####################################
 text_mention_termination = TextMentionTermination("TERMINATE")
-max_messages_termination = MaxMessageTermination(max_messages=80)
+max_messages_termination = MaxMessageTermination(max_messages=100)
 termination = text_mention_termination | max_messages_termination
 
 ##########################################################################################################
