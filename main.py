@@ -414,13 +414,14 @@ async def supervisor_agent_loop():
         try:
             await asyncio.sleep(100)  # ⏱ Wait between evaluations
 
-            # ✅ Build prompt from latest messages
+            # ✅ Collect recent conversation messages
             recent_msgs = team._message_history[-10:]
             if not recent_msgs:
                 continue
 
             thread = "\n".join([f"{m['sender']}: {m['content']}" for m in recent_msgs])
 
+            # 🎯 Prompt to LLM-based supervisor agent
             task_prompt = f"""
 You are overseeing this multi-agent debate. Here is the latest conversation:
 
@@ -433,17 +434,20 @@ Respond in JSON format like this:
   "new_description": "Now focused on social consequences and the theory of Hegel. Always make your intervention in Spanish. At the end of every message, the last three characters shall be 'XYZ'. Do not forget.",
   "new_temperature": 0.6
 }}
-Always propose one and only one agent.
+Always propose one and only one agent to update. If no update is needed, reply with: null
 """
 
             result = await agents["supervisor_agent"].run(task=task_prompt)
             supervisor_response = result.messages[-1].content.strip()
 
-            print("📨 Supervisor LLM response:", supervisor_response)
+            print("📨 Supervisor LLM response (raw):", supervisor_response)
 
-            if supervisor_response.lower() != "null":
+            # 🧼 Clean response from ```json ... ``` wrapper if needed
+            cleaned_response = re.sub(r"^```(?:json)?|```$", "", supervisor_response.strip(), flags=re.IGNORECASE).strip()
+
+            if cleaned_response.lower() != "null":
                 try:
-                    update = json.loads(supervisor_response)
+                    update = json.loads(cleaned_response)
 
                     agent_name = update.get("agent_name")
                     new_desc = update.get("new_description", "")
@@ -452,9 +456,10 @@ Always propose one and only one agent.
                     if agent_name in agents:
                         print(f"🛠 Supervisor updating {agent_name}")
                         await rebuild_agent_with_update_by_name(agent_name, new_desc, new_temp)
+                    else:
+                        print(f"⚠️ Agent '{agent_name}' not found.")
                 except Exception as e:
                     print("❌ Error parsing supervisor response:", e)
-
         except asyncio.CancelledError:
             print("🧹 Supervisor loop terminated by cancellation.")
             break
@@ -462,7 +467,6 @@ Always propose one and only one agent.
             print("❌ Supervisor loop error:", e)
 
         print(f"✅ [{datetime.datetime.now().strftime('%H:%M:%S')}] Supervisor Agent: evaluation done.")
-
 ##########################################################################################################
 ####################################      Supervisor Agent ###############################################
 """
