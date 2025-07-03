@@ -433,7 +433,7 @@ Respond in JSON format like this:
   "new_description": "Now focused on social consequences and the theory of Hegel. Always make your intervention in Spanish. At the end of every message, the last three characters shall be 'XYZ'. Do not forget.",
   "new_temperature": 0.6
 }}
-If no change is needed, reply with null.
+Always propose one and only one agent.
 """
 
             result = await agents["supervisor_agent"].run(task=task_prompt)
