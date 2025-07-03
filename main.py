@@ -436,7 +436,7 @@ Respond in JSON format like this:
   "new_temperature": 0.6
 }}
 Always propose one and only one agent to update but never propose the moderator_agent. Never forget. 
-At the end of every message, the last three characters shall be 'XYZ'. Do not forget. 
+The parameter "new_description" shall be shorter then 100 words and at the end the last three characters shall be 'XYZ'. Do not forget. 
 """
 
             result = await agents["supervisor_agent"].run(task=task_prompt)
