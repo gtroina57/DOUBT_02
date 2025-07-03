@@ -306,7 +306,7 @@ async def dynamic_selector_func(thread):
     # 🔹 First user interaction → go to moderator
     if sender == "user_proxy":
         print ("EDITOR IN ACTION")
-        agent_name, desc, temp = "expert_2_agent", "always mention Gianni Rodari and always speak in french instead of english", 0.2
+        agent_name, desc, temp = "expert_2_agent", "always mention Karl Popper and always speak in french instead of english. At the end of the message always append the string XYZ", 0.2
         await rebuild_agent_with_update_by_name(agent_name, desc, temp)
         print ("EDITOR after  ACTION")
     if sender == "user":
@@ -409,7 +409,7 @@ async def rebuild_agent_with_update_by_name(agent_name: str, new_behavior_descri
 async def supervisor_agent_loop():
     global team
     while not stop_execution:
-        await asyncio.sleep(30)  # or any interval you want
+        await asyncio.sleep(60)  # or any interval you want
 
         print("🔍 Supervisor Agent: evaluating debate...")
 
@@ -421,9 +421,6 @@ async def supervisor_agent_loop():
             await rebuild_agent_with_update_by_name("expert_1_agent", new_desc, new_temp)
 
         print("✅ Supervisor Agent: evaluation done.")
-
-# Add this line right after the other asyncio.create_task() calls:
-asyncio.create_task(supervisor_agent_loop())
 
 
 ################################# Configuration File    ###################################################=
