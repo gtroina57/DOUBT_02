@@ -409,14 +409,14 @@ async def rebuild_agent_with_update_by_name(agent_name: str, new_behavior_descri
 async def supervisor_agent_loop():
     global team
     while not stop_execution:
-        await asyncio.sleep(15)  # or any interval you want
+        await asyncio.sleep(30)  # or any interval you want
 
         print("🔍 Supervisor Agent: evaluating debate...")
 
         # You can add analysis logic here — for now we just log
         # Example: trigger a change to expert_1_agent if needed
         if "expert_1_agent" in agents:
-            new_desc = "Updated by supervisor — now more focused on emotional implications."
+            new_desc = "Updated by supervisor — now more focused on daily life implications. At the end of the message always append the string XYZ"
             new_temp = 0.6
             await rebuild_agent_with_update_by_name("expert_1_agent", new_desc, new_temp)
 
@@ -631,7 +631,7 @@ async def websocket_endpoint(websocket: WebSocket):
         
         ####################################
         
-        asyncio.create_task(supervisor_agent_loop())
+        supervisor_task = asyncio.create_task(supervisor_agent_loop())
         
         ###############################################
         
@@ -660,6 +660,7 @@ async def websocket_endpoint(websocket: WebSocket):
         team = None
         task1 = None
         agent_list = []
+        supervisor_task.cancel()
         user_message_queue = asyncio.Queue()
         speech_queue = asyncio.Queue()
         await websocket.close(code=1001)
