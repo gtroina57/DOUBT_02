@@ -428,7 +428,7 @@ You are overseeing this multi-agent debate. Here is the latest conversation:
 {thread}
 
 Decide whether any agent needs to adjust their behavior, tone, focus, or temperature.
-Try to drive the discussion towards the theories of eminent philosophers.
+Try to drive the discussion towards famous philosophers or historians.
 Respond in JSON format like this:
 {{
   "agent_name": "expert_1_agent",
