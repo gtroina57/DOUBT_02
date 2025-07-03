@@ -428,13 +428,15 @@ You are overseeing this multi-agent debate. Here is the latest conversation:
 {thread}
 
 Decide whether any agent needs to adjust their behavior, tone, focus, or temperature.
+Try to drive the discussion towards the theories of eminent philosophers.
 Respond in JSON format like this:
 {{
   "agent_name": "expert_1_agent",
   "new_description": "Now focused on social consequences and the theory of Hegel. Always make your intervention in Spanish. At the end of every message, the last three characters shall be 'XYZ'. Do not forget.",
   "new_temperature": 0.6
 }}
-Always propose one and only one agent to update. 
+Always propose one and only one agent to update but never propose the moderator_agent. Never forget. 
+At the end of every message, the last three characters shall be 'XYZ'. Do not forget. 
 """
 
             result = await agents["supervisor_agent"].run(task=task_prompt)
