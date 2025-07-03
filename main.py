@@ -38,7 +38,6 @@ import gc
 import json
 import re
 import uuid
-import datetime
 
 ################################ FAST API   #########################################
 from fastapi.responses import FileResponse
@@ -276,7 +275,7 @@ def build_agents_from_config(name_to_agent_skill, model_clients_map):
 ##########################################################################################################
 ################################# Termination  ####################################
 text_mention_termination = TextMentionTermination("TERMINATE")
-max_messages_termination = MaxMessageTermination(max_messages=100)
+max_messages_termination = MaxMessageTermination(max_messages=80)
 termination = text_mention_termination | max_messages_termination
 
 ##########################################################################################################
@@ -305,6 +304,11 @@ async def dynamic_selector_func(thread):
     }
 
     # 🔹 First user interaction → go to moderator
+    if sender == "user_proxy":
+        print ("EDITOR IN ACTION")
+        agent_name, desc, temp = "expert_2_agent", "always mention Kant and always make your intervention in French instead of english. At the end of every message, the last three characters shall be 'XYZ'. Do not forget.", 0.2
+        await rebuild_agent_with_update_by_name(agent_name, desc, temp)
+        print ("EDITOR after  ACTION")
     if sender == "user":
         print("👤 User input detected. Moderator takes over.")
         return "moderator_agent"
@@ -402,76 +406,6 @@ async def rebuild_agent_with_update_by_name(agent_name: str, new_behavior_descri
 
 ##########################################################################################################
 ####################################      Supervisor Agent ###############################################
-
-async def supervisor_agent_loop():
-    global team
-
-    await asyncio.sleep(10)  # Optional: initial delay to allow debate to start
-
-    while not stop_execution:
-        print(f"🔍 [{datetime.datetime.now().strftime('%H:%M:%S')}] Supervisor Agent: evaluating debate...")
-
-        try:
-            await asyncio.sleep(100)  # ⏱ Wait between evaluations
-
-            # ✅ Collect recent conversation messages
-            recent_msgs = team._message_history[-10:]
-            if not recent_msgs:
-                continue
-
-            thread = "\n".join([f"{m['sender']}: {m['content']}" for m in recent_msgs])
-
-            # 🎯 Prompt to LLM-based supervisor agent
-            task_prompt = f"""
-You are overseeing this multi-agent debate. Here is the latest conversation:
-
-{thread}
-
-Decide whether any agent needs to adjust their behavior, tone, focus, or temperature.
-Try to drive the discussion towards famous philosophers or historians.
-Respond in JSON format like this:
-{{
-  "agent_name": "expert_1_agent",
-  "new_description": "Now focused on social consequences and the theory of Hegel. Always make your intervention in Spanish. At the end of every message, the last three characters shall be 'XYZ'. Do not forget.",
-  "new_temperature": 0.6
-}}
-Always propose one and only one agent to update but never propose the moderator_agent. Never forget. 
-The parameter "new_description" shall be shorter then 100 words and at the end the last three characters shall be 'XYZ'. Do not forget. 
-"""
-
-            result = await agents["supervisor_agent"].run(task=task_prompt)
-            supervisor_response = result.messages[-1].content.strip()
-
-            print("📨 Supervisor LLM response (raw):", supervisor_response)
-
-            # 🧼 Clean response from ```json ... ``` wrapper if needed
-            cleaned_response = re.sub(r"^```(?:json)?|```$", "", supervisor_response.strip(), flags=re.IGNORECASE).strip()
-
-            if cleaned_response.lower() != "null":
-                try:
-                    update = json.loads(cleaned_response)
-
-                    agent_name = update.get("agent_name")
-                    new_desc = update.get("new_description", "")
-                    new_temp = float(update.get("new_temperature", 0.7))
-
-                    if agent_name in agents:
-                        print(f"🛠 Supervisor updating {agent_name}")
-                        await rebuild_agent_with_update_by_name(agent_name, new_desc, new_temp)
-                    else:
-                        print(f"⚠️ Agent '{agent_name}' not found.")
-                except Exception as e:
-                    print("❌ Error parsing supervisor response:", e)
-        except asyncio.CancelledError:
-            print("🧹 Supervisor loop terminated by cancellation.")
-            break
-        except Exception as e:
-            print("❌ Supervisor loop error:", e)
-
-        print(f"✅ [{datetime.datetime.now().strftime('%H:%M:%S')}] Supervisor Agent: evaluation done.")
-##########################################################################################################
-####################################      Supervisor Agent ###############################################
-"""
 async def supervisor_agent_loop():
     global team
     while not stop_execution:
@@ -488,7 +422,7 @@ async def supervisor_agent_loop():
 
         print("✅ Supervisor Agent: evaluation done.")
 
-"""
+
 ################################# Configuration File    ###################################################=
 ##########################################################################################################
 def load_agent_config():
@@ -569,8 +503,8 @@ async def run_chat(team, websocket=None):
             print("after speech queue put")
             
             if "TERMINATE" in text:
-                await speech_queue.put(("system", "TERMINATE"))
                 stop_execution = True
+                await speech_queue.put(("system", "TERMINATE"))
                 print("✅ Chat terminated.")
                 break
             
@@ -656,28 +590,8 @@ async def websocket_endpoint(websocket: WebSocket):
                     if msg and msg.strip():
                         return msg         
 
-##########################################################################################################
-################################# user_proxy  #######################################################
 
         agents["user_proxy"] = UserProxyAgent(name="user_proxy", input_func=wrapped_input_func)
-        
-##########################################################################################################
-################################# supervisor_agent  ####################################################### 
-####### agents includes supervisor_agent
-####### agent_list does NOT include supervisor_agent    
-   
-        agents["supervisor_agent"] = AssistantAgent(
-            name="supervisor_agent",
-            description="Monitors the debate and proposes agent behavior changes.",
-            system_message=(
-                "You are responsible for analyzing the ongoing debate and suggesting changes to any agent's system message "
-                "or temperature. Always respond in JSON format like:\n"
-                '{"agent_name": "expert_1_agent", "new_description": "Speak more clearly.", "new_temperature": 0.6}\n'
-                "If no update is needed, respond with: null"
-            ),
-            model_client=model_client_openai
-        )
-     
         """
         agent_list = [
             agents["moderator_agent"],
@@ -712,7 +626,7 @@ async def websocket_endpoint(websocket: WebSocket):
         
         asyncio.create_task(speak_worker(websocket))
         
-        ###############################################
+        ####################################
         
         supervisor_task = asyncio.create_task(supervisor_agent_loop())
         
