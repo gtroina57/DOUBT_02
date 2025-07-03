@@ -306,7 +306,7 @@ async def dynamic_selector_func(thread):
     # 🔹 First user interaction → go to moderator
     if sender == "user_proxy":
         print ("EDITOR IN ACTION")
-        agent_name, desc, temp = "expert_2_agent", "always mention Penrose and always make your intervention in French instead of english. At the end of the message always append the string XYZ", 0.2
+        agent_name, desc, temp = "expert_2_agent", "always mention Kant and always make your intervention in French instead of english. At the end of every message, the last three characters shall be 'XYZ'. Do not forget.", 0.2
         await rebuild_agent_with_update_by_name(agent_name, desc, temp)
         print ("EDITOR after  ACTION")
     if sender == "user":
@@ -416,7 +416,7 @@ async def supervisor_agent_loop():
         # You can add analysis logic here — for now we just log
         # Example: trigger a change to expert_1_agent if needed
         if "expert_1_agent" in agents:
-            new_desc = "now focused on economic consequences and the theory of Keynes. Always make your intervention in Spanish. At the end of the message always append the string XYZ"
+            new_desc = "now focused on social consequences and the theory of Hegel. Always make your intervention in Spanish. At the end of every message, the last three characters shall be 'XYZ'. Do not forget."
             new_temp = 0.6
             await rebuild_agent_with_update_by_name("expert_1_agent", new_desc, new_temp)
 
