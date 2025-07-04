@@ -375,19 +375,25 @@ async def rebuild_agent_with_update_by_name(agent_name: str, new_behavior_descri
         print(f"🔒 [rebuild_agent] Lock acquired to update '{agent_name}'")
 
         agent = agents.get(agent_name)
-        print("within 01", agent)
         if agent is None:
             print("within 01a")
             return f"❌ Agent '{agent_name}' not found in registry."
 
-        # 🎯 Use the correct model client
+        # 🎯 Choose model client
         model_client = model_client_gemini if agent_name == "expert_2_agent" else model_client_openai
         if model_client is None:
             print("within 01b")
             return f"❌ No model client defined for {agent_name}."
 
-        print("within 01c")
-        updated_sys_msg = f"{new_behavior_description.strip()}\n\n"
+        # 📏 Enforce system constraints on output length and format
+        constraints = (
+            "From now on, you must always follow these rules:\n"
+            "- Keep every response shorter than 60 words.\n"
+            "- End every message with the exact string 'XYZ'.\n"
+            "This format is mandatory for system compatibility."
+        )
+
+        updated_sys_msg = f"{new_behavior_description.strip()}\n\n{constraints}"
         print("within 02", updated_sys_msg)
 
         replacement_agent = AssistantAgent(
@@ -402,7 +408,6 @@ async def rebuild_agent_with_update_by_name(agent_name: str, new_behavior_descri
         for key, value in replacement_agent.__dict__.items():
             if key not in preserve_keys:
                 setattr(agent, key, value)
-                print("within 03")
 
         print(f"🔄 System message updated for '{agent.name}':\n{updated_sys_msg}")
         print(f"🔓 [rebuild_agent] Lock released after updating '{agent_name}'")
@@ -414,51 +419,53 @@ async def rebuild_agent_with_update_by_name(agent_name: str, new_behavior_descri
 async def supervisor_agent_loop():
     global team, agent_lock
 
-    await asyncio.sleep(10)  # Optional: initial delay to allow debate to start
+    await asyncio.sleep(10)  # Optional: startup delay
 
     while not stop_execution:
         print(f"🔍 [{datetime.datetime.now().strftime('%H:%M:%S')}] Supervisor Agent: evaluating debate...")
 
         try:
-            await asyncio.sleep(100)  # ⏱ Wait between evaluations
+            await asyncio.sleep(100)
 
-            # ✅ Collect recent conversation messages
             recent_msgs = team._message_history[-10:]
             if not recent_msgs:
                 continue
 
             thread = "\n".join([f"{m['sender']}: {m['content']}" for m in recent_msgs])
 
-            # 🎯 Prompt to LLM-based supervisor agent
             task_prompt = f"""
-You are overseeing this multi-agent debate. Here is the latest conversation:
+You are the supervisor of this multi-agent debate. Here is the recent conversation:
 
 {thread}
 
-Decide whether any agent needs to adjust their behavior, tone, focus, or temperature.
-Try to drive the discussion towards famous philosophers or historians.
-Respond in JSON format like this:
+Decide if any agent (except moderator_agent) needs a behavior update.
+Push the debate toward history, philosophy, or ethical reflection.
+
+Respond ONLY in this JSON format:
 {{
   "agent_name": "expert_1_agent",
-  "new_description": "Now focused on social consequences and the theory of Hegel. Always make your intervention in Spanish. At the end of every message, the last three characters shall be 'XYZ'. Do not forget.",
+  "new_description": "A short behavioral guideline. Ends with XYZ.",
   "new_temperature": 0.6
 }}
-Always propose one and only one agent to update but never propose the moderator_agent. Never forget. 
-The parameter "new_description" shall be shorter then 100 words and at the end the last three characters shall be 'XYZ'. Do not forget. 
+
+⚠️ Constraints:
+- Never propose updates for moderator_agent.
+- Only suggest one agent per update cycle.
+- Do not wrap your response in Markdown or code blocks.
+- The description must instruct the agent to limit replies to 60 words and end with 'XYZ'.
+If no change is needed, reply with: null
 """
 
             result = await agents["supervisor_agent"].run(task=task_prompt)
             supervisor_response = result.messages[-1].content.strip()
-
             print("📨 Supervisor LLM response (raw):", supervisor_response)
 
-            # 🧼 Clean response from ```json ... ``` wrapper if needed
+            # 🧼 Clean up Markdown fences if present
             cleaned_response = re.sub(r"^```(?:json)?|```$", "", supervisor_response.strip(), flags=re.IGNORECASE).strip()
 
             if cleaned_response.lower() != "null":
                 try:
                     update = json.loads(cleaned_response)
-
                     agent_name = update.get("agent_name")
                     new_desc = update.get("new_description", "")
                     new_temp = float(update.get("new_temperature", 0.7))
@@ -470,6 +477,7 @@ The parameter "new_description" shall be shorter then 100 words and at the end t
                         print(f"⚠️ Agent '{agent_name}' not found.")
                 except Exception as e:
                     print("❌ Error parsing supervisor response:", e)
+
         except asyncio.CancelledError:
             print("🧹 Supervisor loop terminated by cancellation.")
             break
