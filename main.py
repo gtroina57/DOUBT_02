@@ -385,7 +385,7 @@ async def rebuild_agent_with_update_by_name(agent_name: str, new_behavior_descri
 
         constraints = (
             f"From now on, you must always follow these rules:\n"
-            f"- begin every response '{name} speaking'\n"
+            f"- begin every response '{name} MacIntyre speaking'\n"
             f"- Keep every response shorter than 60 words.\n"
             f"- End every message with the exact string 'XYZ'.\n"
             f"This format is mandatory for system compatibility."
@@ -450,7 +450,7 @@ Respond ONLY in this JSON format:
 - Always suggest one and only one agent per update cycle.
 - Do not wrap your response in Markdown or code blocks.
 - The description must instruct the agent to limit replies to 60 words and end with 'XYZ'.
-If no change is needed, reply with: null
+
 """
 
             result = await agents["supervisor_agent"].run(task=task_prompt)
