@@ -116,8 +116,16 @@ loaded_team_state = None  # Will hold config if loaded before team is created
 task1 ="This is a debate on ethics and AI"
 print("✅ Environment cleared.")
 
-############################ TEXT TO SPEECH  #########################################
-# Globals
+name_to_agent = {
+    "alice": "expert_1_agent",
+    "bob": "expert_2_agent",
+    "charlie": "hilarious_agent",
+    "alan": "moderator_agent",
+    "albert": "creative_agent",
+    "fiona": "facilitator_agent",
+    "giuseppe": "user_proxy",
+}
+
 stop_execution = False
 speech_queue = asyncio.Queue()
 user_message_queue = asyncio.Queue()
@@ -287,23 +295,13 @@ You are the Selector agent following strictly the instructions of the moderator 
 """
 
 async def dynamic_selector_func(thread):
-    global agent_id
+    global agent_id, name_to_agent
     # 🧠 Force agent turn if someone is in the priority queue
     
     
     last_msg = thread[-1]
     last_message = last_msg.content.lower().strip()
     sender = last_msg.source.lower()
-
-    name_to_agent = {
-        "alice": "expert_1_agent",
-        "bob": "expert_2_agent",
-        "charlie": "hilarious_agent",
-        "alan": "moderator_agent",
-        "albert": "creative_agent",
-        "fiona": "facilitator_agent",
-        "giuseppe": "user_proxy",
-    }
 
     # 🔹 First user interaction → go to moderator
     if sender == "user":
@@ -369,7 +367,7 @@ agent_config_ui = {}
 ################################# Rebuild team and agent status ###########################################
 
 async def rebuild_agent_with_update_by_name(agent_name: str, new_behavior_description: str, new_temperature: float = 0.7):
-    global agent_lock
+    global agent_lock, name_to_agent
 
     async with agent_lock:
         print(f"🔒 [rebuild_agent] Lock acquired to update '{agent_name}'")
@@ -386,8 +384,12 @@ async def rebuild_agent_with_update_by_name(agent_name: str, new_behavior_descri
             return f"❌ No model client defined for {agent_name}."
 
         # 📏 Enforce system constraints on output length and format
+        
+        agent_to_name = {v: k for k, v in name_to_agent.items()}
+        name = agent_to_name.get(agent_name)  # returns "bob"
         constraints = (
             "From now on, you must always follow these rules:\n"
+            "- begin every response '{name} speaking'\n"
             "- Keep every response shorter than 60 words.\n"
             "- End every message with the exact string 'XYZ'.\n"
             "This format is mandatory for system compatibility."
@@ -606,7 +608,7 @@ import traceback
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    global team, agents, agent_list, stop_execution, loaded_team_state, task1, user_message_queue, CONFIG_FILE
+    global team, agents, agent_list, stop_execution, loaded_team_state, task1, user_message_queue, CONFIG_FILE, name_to_agent
 
     team = None
     stop_execution = False
