@@ -759,10 +759,22 @@ async def websocket_endpoint(websocket: WebSocket):
     finally:
         print("🧹 Cleaning up session state...")
         stop_execution = True
+    
+        try:
+            # 🔕 Gracefully shut down speaker
+            await speech_queue.put(("system", "TERMINATE"))
+            print("🔚 'TERMINATE' sent to speak_worker. Waiting for queue to drain...")
+            await speech_queue.join()
+            print("✅ speak_worker queue fully drained.")
+        except Exception as e:
+            print("⚠️ Error while shutting down speak_worker:", e)
+    
+        # 🧼 Now safe to clear everything
         team = None
         task1 = None
         agent_list = []
         supervisor_task.cancel()
         user_message_queue = asyncio.Queue()
         speech_queue = asyncio.Queue()
+    
         await websocket.close(code=1001)
