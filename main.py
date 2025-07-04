@@ -374,29 +374,25 @@ async def rebuild_agent_with_update_by_name(agent_name: str, new_behavior_descri
 
         agent = agents.get(agent_name)
         if agent is None:
-            print("within 01a")
             return f"❌ Agent '{agent_name}' not found in registry."
 
-        # 🎯 Choose model client
         model_client = model_client_gemini if agent_name == "expert_2_agent" else model_client_openai
         if model_client is None:
-            print("within 01b")
             return f"❌ No model client defined for {agent_name}."
 
-        # 📏 Enforce system constraints on output length and format
-        
         agent_to_name = {v: k for k, v in name_to_agent.items()}
-        name = agent_to_name.get(agent_name)  # returns "bob"
+        name = agent_to_name.get(agent_name, agent_name)
+
         constraints = (
-            "From now on, you must always follow these rules:\n"
-            "- begin every response '{name} speaking'\n"
-            "- Keep every response shorter than 60 words.\n"
-            "- End every message with the exact string 'XYZ'.\n"
-            "This format is mandatory for system compatibility."
+            f"From now on, you must always follow these rules:\n"
+            f"- begin every response '{name} speaking'\n"
+            f"- Keep every response shorter than 60 words.\n"
+            f"- End every message with the exact string 'XYZ'.\n"
+            f"This format is mandatory for system compatibility."
         )
 
         updated_sys_msg = f"{new_behavior_description.strip()}\n\n{constraints}"
-        print("within 02", updated_sys_msg)
+        print("🛠 System message for update:", updated_sys_msg)
 
         replacement_agent = AssistantAgent(
             name=agent.name,
@@ -411,9 +407,7 @@ async def rebuild_agent_with_update_by_name(agent_name: str, new_behavior_descri
             if key not in preserve_keys:
                 setattr(agent, key, value)
 
-        print(f"🔄 System message updated for '{agent.name}':\n{updated_sys_msg}")
-        print(f"🔓 [rebuild_agent] Lock released after updating '{agent_name}'")
-
+        print(f"🔄 System message updated for '{agent.name}'")
         return f"✅ {agent.name}'s mindset updated."
 ##########################################################################################################
 ####################################      Supervisor Agent ###############################################
@@ -441,7 +435,7 @@ You are the supervisor of this multi-agent debate. Here is the recent conversati
 {thread}
 
 Decide if any agent (except moderator_agent) needs a behavior update.
-Push the debate toward history, philosophy, or ethical reflection.
+Push the debate toward history, philosophy, or ethical reflection and articulate your request with specific examples
 Always suggest one and only one agent per update cycle.
 
 Respond ONLY in this JSON format:
