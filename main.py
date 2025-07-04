@@ -57,6 +57,8 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 CONFIG_DIR = "config"
 CONFIG_FILE = None
+LANGUAGE = "EN"  # Default language
+
 
 @app.get("/")
 async def root(request: Request):
@@ -84,7 +86,13 @@ async def set_config(payload: dict):
     if os.path.exists(path):
         CONFIG_FILE = path
         print("🧩 CONFIG_FILE updated to:", CONFIG_FILE)
-        return {"status": "ok", "selected": name}
+        if ".IT." in name.upper():
+            LANGUAGE = "IT"
+        elif ".EN." in name.upper():
+            LANGUAGE = "EN"
+        else:
+            LANGUAGE = "EN"  # Fallback
+        return {"status": "ok", "selected": name, "language": LANGUAGE}
     return {"status": "error", "message": "Config not found"}
 
 ################################ Create OpenAI model client   #############################
@@ -382,15 +390,24 @@ async def rebuild_agent_with_update_by_name(agent_name: str, new_behavior_descri
 
         agent_to_name = {v: k for k, v in name_to_agent.items()}
         name = agent_to_name.get(agent_name, agent_name)
-
-        constraints = (
-            f"From now on, you must always follow these rules:\n"
-            f"- begin every response '{name} MacIntyre speaking'\n"
-            f"- Keep every response shorter than 60 words.\n"
-            f"- End every message with the exact string 'XYZ'.\n"
-            f"This format is mandatory for system compatibility."
-        )
-
+        
+        if LANGUAGE == "IT":
+            constraints = (
+                f"  D'ora in poi, devi sempre seguire queste regole:\n"
+                f"- Inizia ogni intervento con '{name} MacIntyre parla'\n"
+                f"- Mantieni ogni intervento più corto di 60 parole.\n"
+                f"- Termina ogni messaggio con la stringa esatta 'XYZ'.\n"
+                f"Questo formato è obbligatorio per garantire la compatibilità con il sistema."
+            )
+        else:
+            constraints = (
+                f"From now on, you must always follow these rules:\n"
+                f"- begin every response '{name} MacIntyre speaking'\n"
+                f"- Keep every response shorter than 60 words.\n"
+                f"- End every message with the exact string 'XYZ'.\n"
+                f"This format is mandatory for system compatibility."
+            )
+            
         updated_sys_msg = f"{new_behavior_description.strip()}\n\n{constraints}"
         print("🛠 System message for update:", updated_sys_msg)
 
@@ -428,31 +445,55 @@ async def supervisor_agent_loop():
                 continue
 
             thread = "\n".join([f"{m['sender']}: {m['content']}" for m in recent_msgs])
+            if LANGUAGE == "IT":
+                task_prompt = f"""
+            Sei il supervisore di questo dibattito tra agenti. Qui sotto trovi le ultime conversazioni:
 
-            task_prompt = f"""
-You are the supervisor of this multi-agent debate. Here is the recent conversation:
-
-{thread}
-
-Decide if any agent (except moderator_agent) needs a behavior update.
-Push the debate toward history, philosophy, or ethical reflection and articulate your request with specific examples
-Always suggest one and only one agent per update cycle.
-
-Respond ONLY in this JSON format:
-{{
-  "agent_name": "expert_1_agent",
-  "new_description": "A short behavioral guideline. Ends with XYZ.",
-  "new_temperature": 0.6
-}}
-
-⚠️ Constraints:
-- Never propose updates for moderator_agent.
-- Always suggest one and only one agent per update cycle.
-- Do not wrap your response in Markdown or code blocks.
-- The description must instruct the agent to limit replies to 60 words and end with 'XYZ'.
-
-"""
-
+            {thread}
+            
+            Decidi se un agente (escluso il moderatore) ha bisogno di cambiare comportamento.
+            Spingi il dibattito verso storia, filosofia o riflessione etica.
+            Suggerisci un solo agente per ogni ciclo.
+            
+            Rispondi SOLO in questo formato JSON:
+            {{
+              "agent_name": "expert_1_agent",
+              "new_description": "Guida comportamentale breve. Finisce con XYZ.",
+              "new_temperature": 0.6
+            }}
+            
+            ⚠️ Regole:
+            - Non aggiornare mai il moderatore.
+            - Suggerisci solo un agente a ciclo.
+            - Non usare Markdown o blocchi di codice.
+            - La descrizione deve chiedere risposte di massimo 60 parole e concludersi con 'XYZ'.
+            Se nessun cambiamento è necessario, rispondi con: null
+            """
+            
+            else:
+                task_prompt = f"""
+            You are the supervisor of this multi-agent debate. Here is the recent conversation:
+            
+            {thread}
+            
+            Decide if any agent (except moderator_agent) needs a behavior update.
+            Push the debate toward history, philosophy, or ethical reflection and articulate your request with specific examples
+            Always suggest one and only one agent per update cycle.
+            
+            Respond ONLY in this JSON format:
+            {{
+              "agent_name": "expert_1_agent",
+              "new_description": "A short behavioral guideline. Ends with XYZ.",
+              "new_temperature": 0.6
+            }}
+            
+            ⚠️ Constraints:
+            - Never propose updates for moderator_agent.
+            - Always suggest one and only one agent per update cycle.
+            - Do not wrap your response in Markdown or code blocks.
+            - The description must instruct the agent to limit replies to 60 words and end with 'XYZ'.
+            
+            """
             result = await agents["supervisor_agent"].run(task=task_prompt)
             supervisor_response = result.messages[-1].content.strip()
             print("📨 Supervisor LLM response (raw):", supervisor_response)
@@ -482,26 +523,8 @@ Respond ONLY in this JSON format:
             print("❌ Supervisor loop error:", e)
 
         print(f"✅ [{datetime.datetime.now().strftime('%H:%M:%S')}] Supervisor Agent: evaluation done.")
+
 ##########################################################################################################
-####################################      Supervisor Agent ###############################################
-"""
-async def supervisor_agent_loop():
-    global team
-    while not stop_execution:
-        await asyncio.sleep(60)  # or any interval you want
-
-        print("🔍 Supervisor Agent: evaluating debate...")
-
-        # You can add analysis logic here — for now we just log
-        # Example: trigger a change to expert_1_agent if needed
-        if "expert_1_agent" in agents:
-            new_desc = "now focused on social consequences and the theory of Hegel. Always make your intervention in Spanish. At the end of every message, the last three characters shall be 'XYZ'. Do not forget."
-            new_temp = 0.6
-            await rebuild_agent_with_update_by_name("expert_1_agent", new_desc, new_temp)
-
-        print("✅ Supervisor Agent: evaluation done.")
-
-"""
 ################################# Configuration File    ###################################################=
 ##########################################################################################################
 def load_agent_config():
@@ -609,19 +632,6 @@ async def websocket_endpoint(websocket: WebSocket):
     task1 = None  # 🆕 Debate topic will be set by user
     speech_queue = asyncio.Queue()
     user_message_queue = asyncio.Queue()
-    
-    """
-    async def flush_queue(queue: asyncio.Queue):
-        while not queue.empty():
-            try:
-                queue.get_nowait()
-                queue.task_done()
-            except asyncio.QueueEmpty:
-                break
-
-    await flush_queue(user_message_queue)
-    await flush_queue(speech_queue)
-    """
     
     await websocket.accept()
     try:
