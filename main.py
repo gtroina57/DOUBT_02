@@ -440,6 +440,7 @@ You are the supervisor of this multi-agent debate. Here is the recent conversati
 
 Decide if any agent (except moderator_agent) needs a behavior update.
 Push the debate toward history, philosophy, or ethical reflection.
+Always suggest one and only one agent per update cycle.
 
 Respond ONLY in this JSON format:
 {{
@@ -450,7 +451,7 @@ Respond ONLY in this JSON format:
 
 ⚠️ Constraints:
 - Never propose updates for moderator_agent.
-- Only suggest one agent per update cycle.
+- Always suggest one and only one agent per update cycle.
 - Do not wrap your response in Markdown or code blocks.
 - The description must instruct the agent to limit replies to 60 words and end with 'XYZ'.
 If no change is needed, reply with: null
